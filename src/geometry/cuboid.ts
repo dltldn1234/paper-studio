@@ -254,6 +254,8 @@ export function createCuboidNet(dimensions: CuboidDimensions): NetLayout {
   return {
     faces,
     edges: createNetEdges(faces),
+    glueTabs: [],
+    tabInterferences: [],
     bounds: { x: minX, y: minY, width: maxX - minX, height: maxY - minY },
   }
 }
