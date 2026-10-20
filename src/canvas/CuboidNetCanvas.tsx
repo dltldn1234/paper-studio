@@ -107,6 +107,15 @@ export function CuboidNetCanvas({
           height={viewHeight * 3}
           fill={`url(#${id}-grid)`}
         />
+        {layout.glueTabs.map((tab) => (
+          <polygon
+            key={tab.id}
+            className="net-canvas__tab"
+            data-tab-id={tab.id}
+            points={pointsToAttribute(tab.polygon.vertices)}
+            aria-hidden="true"
+          />
+        ))}
         {layout.faces.map((face) => (
           <g key={face.id}>
             <polygon
@@ -140,17 +149,38 @@ export function CuboidNetCanvas({
             </text>
           </g>
         ))}
-        {layout.edges.map((edge) => (
-          <line
-            key={edge.id}
-            className={`net-canvas__edge is-${edge.kind}`}
-            x1={edge.start.x}
-            y1={edge.start.y}
-            x2={edge.end.x}
-            y2={edge.end.y}
-            aria-hidden="true"
-          />
-        ))}
+        {layout.edges
+          .filter(
+            (edge) => !layout.glueTabs.some((tab) => tab.edgeId === edge.id),
+          )
+          .map((edge) => (
+            <line
+              key={edge.id}
+              className={`net-canvas__edge is-${edge.kind}`}
+              x1={edge.start.x}
+              y1={edge.start.y}
+              x2={edge.end.x}
+              y2={edge.end.y}
+              aria-hidden="true"
+            />
+          ))}
+        {layout.glueTabs.map((tab) => {
+          const edge = layout.edges.find(
+            ({ id: edgeId }) => edgeId === tab.edgeId,
+          )
+          if (!edge) return null
+          return (
+            <line
+              key={`${tab.id}-fold`}
+              className="net-canvas__edge is-fold"
+              x1={edge.start.x}
+              y1={edge.start.y}
+              x2={edge.end.x}
+              y2={edge.end.y}
+              aria-hidden="true"
+            />
+          )
+        })}
       </svg>
 
       <div className="net-canvas__controls" aria-label="캔버스 확대 및 축소">

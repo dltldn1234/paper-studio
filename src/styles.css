@@ -506,6 +506,13 @@ button:disabled {
   pointer-events: none;
   user-select: none;
 }
+.net-canvas__tab {
+  fill: #222d3c;
+  stroke: #cbd3e1;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
 .net-canvas__edge {
   fill: none;
   pointer-events: none;
@@ -711,6 +718,30 @@ button:disabled {
   color: #aeb8c7;
   font-size: 10px;
   font-weight: 550;
+}
+.inspector-section-title--tabs {
+  margin-top: 20px;
+}
+.glue-tab-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #bdc6d4;
+  font-size: 11px;
+}
+.glue-tab-toggle input {
+  accent-color: #78a6ff;
+}
+.glue-tab-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.glue-tab-warning {
+  margin-top: 9px;
+  color: #ffc46b;
+  font-size: 10px;
 }
 .inspector-section-title > span:last-child {
   color: #778396;

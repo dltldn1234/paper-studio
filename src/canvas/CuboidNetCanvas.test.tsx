@@ -66,4 +66,23 @@ describe('CuboidNetCanvas', () => {
     fireEvent.click(screen.getByRole('button', { name: '화면 맞춤' }))
     expect(screen.getByText('100%')).toBeInTheDocument()
   })
+
+  it('renders tabs as cut outlines with a fold line at each attachment edge', () => {
+    const tabbedLayout = createCuboidNet(
+      { widthMm: 100, depthMm: 80, heightMm: 60 },
+      { enabled: true, widthMm: 10, angleDeg: 45 },
+    )
+    const { container } = render(
+      <CuboidNetCanvas
+        layout={tabbedLayout}
+        selectedFaceId={null}
+        onFaceSelect={vi.fn()}
+      />,
+    )
+
+    expect(container.querySelectorAll('[data-tab-id]')).toHaveLength(7)
+    expect(
+      container.querySelectorAll('.net-canvas__edge.is-fold'),
+    ).toHaveLength(12)
+  })
 })
