@@ -898,6 +898,16 @@ button:disabled {
   stroke: #a34b3e;
   stroke-width: 0.6;
 }
+.print-preview-calibration {
+  fill: none;
+  stroke: #2875c7;
+  stroke-width: 0.45;
+}
+.print-preview-calibration text {
+  fill: #2875c7;
+  stroke: none;
+  font-size: 4px;
+}
 .print-preview-tile figcaption {
   padding-top: 3px;
   color: #aab4c3;

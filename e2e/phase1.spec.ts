@@ -139,9 +139,12 @@ test('previews and downloads a paginated PDF at the selected paper size', async 
   await dialog.getByLabel('파일 형식').selectOption('pdf')
   await dialog.getByLabel('PDF 파일 이름').fill('assembly')
 
-  await expect(dialog.getByRole('status')).toContainText('2페이지')
+  await expect(dialog.getByRole('status')).toContainText('3페이지')
   await expect(
     dialog.getByRole('img', { name: /PDF 1페이지 미리보기/ }),
+  ).toBeVisible()
+  await expect(
+    dialog.getByRole('img', { name: /PDF 교정 페이지 미리보기/ }),
   ).toBeVisible()
   await page.screenshot({
     path: 'test-results/phase2-pdf-preview.png',
@@ -149,7 +152,7 @@ test('previews and downloads a paginated PDF at the selected paper size', async 
   })
   await dialog.getByLabel('PDF 용지 크기').selectOption('A3')
   await dialog.getByLabel('PDF 방향').selectOption('landscape')
-  await expect(dialog.getByRole('status')).toContainText('1페이지')
+  await expect(dialog.getByRole('status')).toContainText('2페이지')
 
   const downloadPromise = page.waitForEvent('download')
   await dialog.getByRole('button', { name: 'PDF 다운로드' }).click()
