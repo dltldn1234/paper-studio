@@ -14,6 +14,13 @@ function validateGraph(graph: FoldGraph): FoldGraphError[] {
   for (const face of graph.faces) {
     if (faces.has(face.id))
       errors.push({ kind: 'duplicate-face', faceId: face.id })
+    if (![face.center.x, face.center.y, face.center.z].every(Number.isFinite)) {
+      errors.push({
+        kind: 'invalid-face',
+        faceId: face.id,
+        reason: 'Center coordinates must be finite.',
+      })
+    }
     faces.set(face.id, face.center)
   }
   if (!faces.has(graph.rootFaceId))
@@ -25,6 +32,13 @@ function validateGraph(graph: FoldGraph): FoldGraphError[] {
     const reason = hingeError(hinge, faces, parents)
     if (reason)
       errors.push({ kind: 'invalid-hinge', hingeId: hinge.id, reason })
+    if (hinge.childFaceId === graph.rootFaceId) {
+      errors.push({
+        kind: 'invalid-hinge',
+        hingeId: hinge.id,
+        reason: 'The root face cannot have a parent.',
+      })
+    }
     if (!adjacency.has(hinge.parentFaceId) || !adjacency.has(hinge.childFaceId))
       continue
     adjacency.get(hinge.parentFaceId)?.push(hinge.childFaceId)
@@ -58,6 +72,18 @@ function hingeError(
     return 'A face may have only one parent in the fold tree.'
   parents.add(hinge.childFaceId)
   if (!Number.isFinite(hinge.angleRadians)) return 'Hinge angle must be finite.'
+  if (
+    ![
+      hinge.start.x,
+      hinge.start.y,
+      hinge.start.z,
+      hinge.end.x,
+      hinge.end.y,
+      hinge.end.z,
+    ].every(Number.isFinite)
+  ) {
+    return 'Hinge coordinates must be finite.'
+  }
   if (
     Math.hypot(
       hinge.end.x - hinge.start.x,

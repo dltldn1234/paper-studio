@@ -13,12 +13,38 @@ import type { FoldGraph, FoldHinge, FoldPoint, Quaternion } from './types'
 
 const FOLD_TOLERANCE = 1e-7
 
-function faceFrame(cuboid: Cuboid, faceId: FaceId): Quaternion {
-  const face = cuboid.faces.find((candidate) => candidate.id === faceId)
-  if (!face || face.vertices.length < 3)
-    throw new RangeError(`Missing face geometry: ${faceId}`)
-  const xAxis = normalize(subtract(face.vertices[1], face.vertices[0]))
-  const yAxis = normalize(subtract(face.vertices[2], face.vertices[1]))
+function samePoint(a: FoldPoint, b: FoldPoint): boolean {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) <= FOLD_TOLERANCE
+}
+
+function sharedVertex(cuboid: Cuboid, faceIds: FaceId[]): FoldPoint {
+  const faceSets = faceIds.map((id) => {
+    const face = cuboid.faces.find((candidate) => candidate.id === id)
+    if (!face) throw new RangeError(`Missing face geometry: ${id}`)
+    return face.vertices
+  })
+  const point = faceSets[0].find((candidate) =>
+    faceSets
+      .slice(1)
+      .every((vertices) =>
+        vertices.some((vertex) => samePoint(candidate, vertex)),
+      ),
+  )
+  if (!point)
+    throw new RangeError(`Faces ${faceIds.join(', ')} do not share a vertex.`)
+  return point
+}
+
+function faceFrame(
+  cuboid: Cuboid,
+  face: NetLayout['faces'][number],
+): Quaternion {
+  const [top, right, bottom, left] = face.edgeNeighborIds
+  const topLeft = sharedVertex(cuboid, [face.id, top, left])
+  const topRight = sharedVertex(cuboid, [face.id, top, right])
+  const bottomLeft = sharedVertex(cuboid, [face.id, bottom, left])
+  const xAxis = normalize(subtract(topRight, topLeft))
+  const yAxis = normalize(subtract(bottomLeft, topLeft))
   return quaternionFromBasis(xAxis, yAxis, cross(xAxis, yAxis))
 }
 
@@ -55,7 +81,7 @@ export function createCuboidFoldGraph(
 ): FoldGraph {
   const netFaces = new Map(net.faces.map((face) => [face.id, face]))
   const targetFrames = new Map(
-    cuboid.faces.map((face) => [face.id, faceFrame(cuboid, face.id)]),
+    net.faces.map((face) => [face.id, faceFrame(cuboid, face)]),
   )
   const faces = net.faces.map((face) => ({
     id: face.id,

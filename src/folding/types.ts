@@ -33,5 +33,6 @@ export type FoldPose = {
 export type FoldGraphError =
   | { kind: 'missing-root'; faceId: string }
   | { kind: 'duplicate-face'; faceId: string }
+  | { kind: 'invalid-face'; faceId: string; reason: string }
   | { kind: 'invalid-hinge'; hingeId: string; reason: string }
   | { kind: 'disconnected'; faceIds: string[] }

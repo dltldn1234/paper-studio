@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { createCuboid, createCuboidNet } from '../geometry'
 import { createCuboidFoldGraph } from './cuboid-adapter'
-import { rotatePoint, transformPoint } from './math'
+import {
+  cross,
+  inverseQuaternion,
+  normalize,
+  quaternionFromBasis,
+  rotatePoint,
+  subtract,
+  transformPoint,
+} from './math'
 import { solveFoldPoses } from './solver'
 import type { FoldGraph } from './types'
 
@@ -62,29 +70,92 @@ describe('solveFoldPoses', () => {
     'derives a closed cuboid fold for $widthMm × $depthMm × $heightMm mm',
     (dimensions) => {
       const cuboid = createCuboid(dimensions)
-      const graph = createCuboidFoldGraph(createCuboidNet(dimensions), cuboid)
+      const net = createCuboidNet(dimensions)
+      const graph = createCuboidFoldGraph(net, cuboid)
       const poses = new Map(
         solveFoldPoses(graph, 1).map((pose) => [pose.faceId, pose.transform]),
       )
       expect(graph.hinges).toHaveLength(5)
+      const rootFace = cuboid.faces.find((face) => face.id === 'front')!
+      const rootNetFace = net.faces.find((face) => face.id === 'front')!
+      const rootCorners = targetCorners(
+        cuboid,
+        rootNetFace.edgeNeighborIds,
+        'front',
+      )
+      const rootX = normalize(subtract(rootCorners[1], rootCorners[0]))
+      const rootY = normalize(subtract(rootCorners[3], rootCorners[0]))
+      const rootRotation = quaternionFromBasis(
+        rootX,
+        rootY,
+        cross(rootX, rootY),
+      )
+      const rootNetCenter = poses.get('front')!.translation
       for (const face of cuboid.faces) {
         const transform = poses.get(face.id)!
-        const localPoints = face.vertices.map((point) => ({
-          x: point.x - face.center.x,
-          y: point.z - face.center.z,
-          z: 0,
-        }))
-        const corners = localPoints.map((point) =>
-          transformPoint(transform, point),
-        )
-        expect(
-          corners.every((point) =>
-            Number.isFinite(point.x + point.y + point.z),
-          ),
-        ).toBe(true)
-        const normal = rotatePoint(transform.rotation, { x: 0, y: 0, z: 1 })
-        expect(Math.hypot(normal.x, normal.y, normal.z)).toBeCloseTo(1)
+        const netFace = net.faces.find((candidate) => candidate.id === face.id)!
+        const corners = targetCorners(cuboid, netFace.edgeNeighborIds, face.id)
+        const localCorners = [
+          { x: -netFace.widthMm / 2, y: -netFace.heightMm / 2, z: 0 },
+          { x: netFace.widthMm / 2, y: -netFace.heightMm / 2, z: 0 },
+          { x: netFace.widthMm / 2, y: netFace.heightMm / 2, z: 0 },
+          { x: -netFace.widthMm / 2, y: netFace.heightMm / 2, z: 0 },
+        ]
+        localCorners.forEach((local, index) => {
+          const actual = subtract(
+            transformPoint(transform, local),
+            rootNetCenter,
+          )
+          const expected = rotatePoint(
+            inverseQuaternion(rootRotation),
+            subtract(corners[index], rootFace.center),
+          )
+          expect(actual.x, `${face.id} corner ${index} x`).toBeCloseTo(
+            expected.x,
+            6,
+          )
+          expect(actual.y, `${face.id} corner ${index} y`).toBeCloseTo(
+            expected.y,
+            6,
+          )
+          expect(actual.z, `${face.id} corner ${index} z`).toBeCloseTo(
+            expected.z,
+            6,
+          )
+        })
       }
     },
   )
 })
+
+function targetCorners(
+  cuboid: ReturnType<typeof createCuboid>,
+  neighbors: readonly [string, string, string, string],
+  faceId: string,
+) {
+  const [top, right, bottom, left] = neighbors
+  return [
+    sharedCorner(cuboid, [faceId, top, left]),
+    sharedCorner(cuboid, [faceId, top, right]),
+    sharedCorner(cuboid, [faceId, right, bottom]),
+    sharedCorner(cuboid, [faceId, bottom, left]),
+  ]
+}
+
+function sharedCorner(cuboid: ReturnType<typeof createCuboid>, ids: string[]) {
+  const faces = ids.map((id) => cuboid.faces.find((face) => face.id === id)!)
+  return faces[0].vertices.find((candidate) =>
+    faces
+      .slice(1)
+      .every((face) =>
+        face.vertices.some(
+          (point) =>
+            Math.hypot(
+              point.x - candidate.x,
+              point.y - candidate.y,
+              point.z - candidate.z,
+            ) < 1e-8,
+        ),
+      ),
+  )!
+}
