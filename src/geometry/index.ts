@@ -19,6 +19,19 @@ export {
 } from './regular-polyhedra'
 export type { RegularPolyhedronKind } from './regular-polyhedra'
 export {
+  DEFAULT_UNFOLDING_SEARCH_LIMIT,
+  UNFOLDING_EPSILON_MM,
+  findUnfoldedFaceOverlaps,
+  unfoldPolyhedron,
+} from './unfolding'
+export type {
+  UnfoldedEdge,
+  UnfoldedFace,
+  UnfoldedNet,
+  UnfoldingOptions,
+  UnfoldingResult,
+} from './unfolding'
+export {
   add2D,
   add3D,
   cross3D,
