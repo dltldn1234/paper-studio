@@ -8,6 +8,7 @@ The application is a Vite single-page React app. `src/main.tsx` mounts `src/App.
 
 - Keep geometry and net calculations in pure TypeScript modules under `src/geometry/`, independent from React and Three.js.
 - Represent dimensions in millimeters and validate them at the domain boundary.
+- The first cuboid model accepts dimensions from 0.1 mm through 10,000 mm per axis; keep those safety bounds centralized and revisit them with product requirements.
 - Derive both the SVG net and 3D cuboid from the same immutable cuboid model.
 - Keep shared selection and dimension state in the editor composition layer; pass typed values into focused panels.
 - Use SVG for the 2D net because paths, labels, hit targets, and scaling remain resolution-independent and easy to test through the DOM.
