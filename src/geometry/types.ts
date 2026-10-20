@@ -1,6 +1,19 @@
 export type Point2D = { x: number; y: number }
 export type Point3D = { x: number; y: number; z: number }
 
+/** Generic polygon mesh primitives. Vertex IDs are shared by adjacent faces. */
+export type PolyhedronVertex = { id: string; position: Point3D }
+export type PolyhedronFace = { id: string; vertexIds: string[]; label?: string }
+export type PolyhedronEdge = {
+  id: string
+  vertexIds: [string, string]
+  adjacentFaceIds: string[]
+}
+export type PolyhedronMesh = {
+  vertices: PolyhedronVertex[]
+  faces: PolyhedronFace[]
+}
+
 export type Vector2D = { x: number; y: number }
 export type Vector3D = { x: number; y: number; z: number }
 
