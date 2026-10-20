@@ -2,7 +2,7 @@
 
 ## Current state
 
-The application is a Vite single-page React app. `src/main.tsx` mounts `src/App.tsx`; `src/styles.css` defines Tailwind v4 theme values and workspace styling. Vitest runs in jsdom with Testing Library. The current workspace is a static UI shell: it does not yet contain geometry state, a 2D editor, or a Three.js renderer.
+The application is a Vite single-page React app. `src/main.tsx` mounts `src/App.tsx`; `src/styles.css` defines Tailwind v4 theme values and workspace styling. Vitest runs in jsdom with Testing Library. `src/geometry/` contains the pure cuboid and net model. `src/canvas/CuboidNetCanvas.tsx` renders and navigates that net as SVG; it is not yet integrated into the application shell. A Three.js renderer and shared editor state remain future slices.
 
 ## Phase 1 direction
 

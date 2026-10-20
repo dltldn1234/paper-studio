@@ -9,7 +9,7 @@
 
 - [x] Pure TypeScript geometry core: typed dimensions, validation, vectors, six faces, edges, net layout, bounds
 - [ ] Responsive dark editor layout and shared dimension/selection state
-- [ ] SVG net canvas with grid, pan/zoom, cut/fold line styling, labels, dimensions, and face selection
+- [x] SVG net canvas with grid, pan/zoom, cut/fold line styling, labels, dimensions, and face selection
 - [ ] Three.js cuboid preview with camera controls, selection synchronization, and cleanup
 - [ ] Integrate width/depth/height inputs (100 × 80 × 60 mm defaults) with both views
 
