@@ -119,7 +119,7 @@ export function CuboidNetCanvas({
         {layout.faces.map((face) => (
           <g key={face.id}>
             <polygon
-              className={`net-canvas__face${selectedFaceId === face.id ? 'is-selected' : ''}`}
+              className={`net-canvas__face ${selectedFaceId === face.id ? 'is-selected' : ''}`}
               data-face-id={face.id}
               points={pointsToAttribute(face.polygon.vertices)}
               role="button"
