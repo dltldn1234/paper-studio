@@ -19,6 +19,7 @@
   "dependencies": {
     "@tailwindcss/vite": "latest",
     "lucide-react": "latest",
+    "pdf-lib": "^1.17.1",
     "react": "latest",
     "react-dom": "latest",
     "three": "latest"
