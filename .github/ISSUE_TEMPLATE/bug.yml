@@ -1,0 +1,51 @@
+name: Bug Report
+description: Report incorrect or unexpected behavior
+title: '[Fix] '
+labels: ['type: fix']
+body:
+  - type: textarea
+    id: overview
+    attributes:
+      label: 작업 개요
+      description: 문제를 간결하게 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 작업 목적
+      description: 이 문제가 사용자나 설계 결과에 주는 영향을 적어 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: requirements
+    attributes:
+      label: 재현 절차 및 기대/실제 결과
+      placeholder: "1. ...\n기대 결과: ...\n실제 결과: ..."
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 구현 체크리스트
+      options:
+        - label: 재현 환경을 기록했습니다.
+        - label: 회귀 테스트를 추가할 수 있는지 확인했습니다.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 완료 조건 (Acceptance Criteria)
+      placeholder: "- [ ] 문제가 재현되지 않습니다.\n- [ ] 회귀 검증이 통과합니다."
+    validations:
+      required: true
+  - type: textarea
+    id: testing
+    attributes:
+      label: 테스트 및 검증 방법
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: 참고 자료
+      description: 스크린샷, 브라우저, 관련 Issue 링크

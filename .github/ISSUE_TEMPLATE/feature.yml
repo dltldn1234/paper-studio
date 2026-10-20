@@ -1,0 +1,54 @@
+name: Feature Request
+description: Propose a user-facing capability
+title: '[Feat] '
+labels: ['type: feat']
+body:
+  - type: textarea
+    id: overview
+    attributes:
+      label: 작업 개요
+      description: 무엇을 추가할지 간단히 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 작업 목적
+      description: 사용자 또는 프로젝트에 필요한 이유를 적어 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: requirements
+    attributes:
+      label: 상세 요구사항
+      placeholder: 입력, 상태 변화, 출력과 예외 동작을 적어 주세요.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 구현 체크리스트
+      options:
+        - label: 구현 항목을 작은 작업으로 나눴습니다.
+          required: true
+        - label: 필요한 단위 또는 UI 테스트를 확인했습니다.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 완료 조건 (Acceptance Criteria)
+      placeholder: '- [ ] ...'
+    validations:
+      required: true
+  - type: textarea
+    id: testing
+    attributes:
+      label: 테스트 및 검증 방법
+      placeholder: 기대하는 명령 또는 수동 검증 절차
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: 참고 자료
+      description: 디자인, 문서, 관련 Issue 링크
+      render: markdown
