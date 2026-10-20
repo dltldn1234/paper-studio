@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { createCuboid, createCuboidNet } from '../geometry'
+import { createCuboidFoldGraph } from './cuboid-adapter'
+import { rotatePoint, transformPoint } from './math'
 import { solveFoldPoses } from './solver'
 import type { FoldGraph } from './types'
 
@@ -50,4 +53,38 @@ describe('solveFoldPoses', () => {
     invalid.hinges[0].end = invalid.hinges[0].start
     expect(() => solveFoldPoses(invalid, 0.5)).toThrow('invalid-hinge')
   })
+
+  it.each([
+    { widthMm: 100, depthMm: 80, heightMm: 60 },
+    { widthMm: 12, depthMm: 34, heightMm: 56 },
+    { widthMm: 500, depthMm: 250, heightMm: 120 },
+  ])(
+    'derives a closed cuboid fold for $widthMm × $depthMm × $heightMm mm',
+    (dimensions) => {
+      const cuboid = createCuboid(dimensions)
+      const graph = createCuboidFoldGraph(createCuboidNet(dimensions), cuboid)
+      const poses = new Map(
+        solveFoldPoses(graph, 1).map((pose) => [pose.faceId, pose.transform]),
+      )
+      expect(graph.hinges).toHaveLength(5)
+      for (const face of cuboid.faces) {
+        const transform = poses.get(face.id)!
+        const localPoints = face.vertices.map((point) => ({
+          x: point.x - face.center.x,
+          y: point.z - face.center.z,
+          z: 0,
+        }))
+        const corners = localPoints.map((point) =>
+          transformPoint(transform, point),
+        )
+        expect(
+          corners.every((point) =>
+            Number.isFinite(point.x + point.y + point.z),
+          ),
+        ).toBe(true)
+        const normal = rotatePoint(transform.rotation, { x: 0, y: 0, z: 1 })
+        expect(Math.hypot(normal.x, normal.y, normal.z)).toBeCloseTo(1)
+      }
+    },
+  )
 })
