@@ -46,10 +46,12 @@ export type NetFace = {
   heightMm: number
   origin: Point2D
   polygon: Polygon
+  edgeNeighborIds: [FaceId, FaceId, FaceId, FaceId]
 }
 
 export type NetEdge = {
   id: string
+  hostFaceId: FaceId
   start: Point2D
   end: Point2D
   kind: 'cut' | 'fold'
