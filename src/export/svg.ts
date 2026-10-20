@@ -1,4 +1,5 @@
 import type { NetLayout, Point2D } from '../geometry'
+import { createSvgCalibrationGuide } from './calibration'
 
 function number(value: number): string {
   return Number(value.toFixed(5)).toString()
@@ -63,7 +64,8 @@ export function serializeNetToSvg(
   title = 'Paper Studio net',
 ): string {
   validateNetBounds(layout)
-  const { x, y, width, height } = layout.bounds
+  const calibration = createSvgCalibrationGuide(layout.bounds)
+  const { x, y, width, height } = calibration.bounds
   const tabbedEdgeIds = new Set(layout.glueTabs.map((tab) => tab.edgeId))
   const edgeMarkup = layout.edges
     .map((edge) => {
@@ -85,19 +87,27 @@ export function serializeNetToSvg(
       return `  <text class="face-label" x="${number(centerX)}" y="${number(centerY)}" text-anchor="middle"><tspan>${escapeXml(face.label)}</tspan><tspan x="${number(centerX)}" dy="4">${number(face.widthMm)} × ${number(face.heightMm)} mm</tspan></text>`
     })
     .join('\n')
+  const calibrationMarkup = `  <g class="calibration" aria-label="100 millimeter print calibration">
+    <rect x="${number(calibration.x)}" y="${number(calibration.y)}" width="${calibration.sizeMm}" height="${calibration.sizeMm}" />
+    <line x1="${number(calibration.x)}" y1="${number(calibration.lineY)}" x2="${number(calibration.x + calibration.sizeMm)}" y2="${number(calibration.lineY)}" />
+    <text x="${number(calibration.x)}" y="${number(calibration.lineY + 7)}">100 mm · PRINT AT 100%</text>
+  </g>`
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${number(width)}mm" height="${number(height)}mm" viewBox="${number(x)} ${number(y)} ${number(width)} ${number(height)}" role="img" aria-labelledby="title description">
   <title id="title">${escapeXml(title)}</title>
-  <desc id="description">1:1 millimeter cut and fold pattern. Solid lines are cuts; dashed lines are folds.</desc>
+  <desc id="description">1:1 millimeter cut and fold pattern with a 100 mm line and square scale check. Print at 100% actual size.</desc>
   <style>
     .cut { fill: none; stroke: #111; stroke-width: 0.25; }
     .fold { fill: none; stroke: #555; stroke-width: 0.2; stroke-dasharray: 2 1; }
     .face-label { fill: #333; font-family: sans-serif; font-size: 3px; }
+    .calibration { fill: none; stroke: #2875c7; stroke-width: 0.35; }
+    .calibration text { fill: #2875c7; stroke: none; font-family: sans-serif; font-size: 3px; }
   </style>
 ${edgeMarkup}
 ${tabMarkup}
 ${labelMarkup}
+${calibrationMarkup}
 </svg>
 `
 }
