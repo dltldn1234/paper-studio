@@ -25,10 +25,12 @@ Create `type/issue-number-description` from the latest `main`. Supported types: 
 
 Use English Conventional Commits: `type(scope): description`. Keep the message concise and each commit logically reviewable. Do not create filler commits to meet a count target.
 
+Commit after each coherent unit has passed its relevant checks. A Phase 2 sized task may naturally produce roughly 15–25 meaningful commits, but this is not a quota. Do not create empty commits, repeat no-op edits, or combine unrelated changes to manipulate commit count.
+
 ## Pull requests
 
-Use `[Type] concise task`, complete `.github/PULL_REQUEST_TEMPLATE.md`, and connect the Issue with `Closes #<number>`. Confirm lint, typecheck, format, tests, and production build. Attach UI screenshots where practical. Squash merge only after required CI passes and use a Conventional Commit squash subject, such as `gh pr merge <number> --squash --subject "feat(editor): integrate cuboid views"`. The PR title format is not a valid Conventional Commit subject. Delete the merged branch after confirming the merge.
+Use `[Type] concise task`, complete `.github/PULL_REQUEST_TEMPLATE.md`, and connect the Issue with `Closes #<number>`. Confirm lint, typecheck, format, tests, and production build. Attach UI screenshots where practical. Merge only after required CI passes. Use a normal merge commit to preserve individual commits; squash and rebase merging are disabled in this repository. Delete the merged branch and confirm Issue closure after merge.
 
 ## Main branch protection
 
-Use a repository ruleset requiring pull requests and successful CI, disallow force pushes, and prevent deletion when the current GitHub plan and permissions support it. Prefer squash merging. Do not weaken or bypass rules to complete a merge; document unavailable controls.
+Use a repository ruleset requiring pull requests and successful CI, disallow force pushes, and prevent deletion when the current GitHub plan and permissions support it. The repository merge strategy is normal merge commits only. Do not weaken or bypass rules to complete a merge; document unavailable controls.
