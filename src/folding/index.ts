@@ -1,5 +1,6 @@
 export * from './math'
 export * from './cuboid-adapter'
 export * from './polyhedron-adapter'
+export * from './collisions'
 export * from './solver'
 export * from './types'
