@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import * as THREE from 'three'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createCuboid } from '../geometry'
+import { createCuboid, createCuboidNet } from '../geometry'
 import { ThreeCuboidPreview } from './ThreeCuboidPreview'
 import { faceIdForMaterialIndex, materialIndexForFaceId } from './face-mapping'
 
@@ -94,9 +94,13 @@ describe('ThreeCuboidPreview lifecycle', () => {
 
   it('creates a preview canvas and releases renderer and controls on unmount', () => {
     const cuboid = createCuboid({ widthMm: 100, depthMm: 80, heightMm: 60 })
+    const netLayout = createCuboidNet(cuboid.dimensions)
     const { container, unmount } = render(
       <ThreeCuboidPreview
         cuboid={cuboid}
+        netLayout={netLayout}
+        foldProgress={1}
+        cameraResetToken={0}
         selectedFaceId={null}
         onFaceSelect={vi.fn()}
       />,
@@ -104,7 +108,7 @@ describe('ThreeCuboidPreview lifecycle', () => {
 
     expect(container.querySelector('canvas')).toHaveAttribute(
       'aria-label',
-      'Three.js 직육면체 3D 미리보기',
+      '접힘 시뮬레이션 3D 미리보기',
     )
     unmount()
     expect(rendererDispose).toHaveBeenCalledOnce()
@@ -115,10 +119,14 @@ describe('ThreeCuboidPreview lifecycle', () => {
   it('shows a clear fallback when WebGL renderer creation fails', async () => {
     rendererShouldFail.current = true
     const cuboid = createCuboid({ widthMm: 100, depthMm: 80, heightMm: 60 })
+    const netLayout = createCuboidNet(cuboid.dimensions)
 
     render(
       <ThreeCuboidPreview
         cuboid={cuboid}
+        netLayout={netLayout}
+        foldProgress={1}
+        cameraResetToken={0}
         selectedFaceId={null}
         onFaceSelect={vi.fn()}
       />,
