@@ -24,6 +24,7 @@ pnpm dev
 
 ```sh
 pnpm lint
+pnpm typecheck
 pnpm format:check
 pnpm test
 pnpm build
