@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   CSSProperties,
   FormEvent,
@@ -15,6 +15,10 @@ import {
   Layers3,
   MoreHorizontal,
   MousePointer2,
+  Pause,
+  Play,
+  RotateCcw,
+  Camera,
   Redo2,
   Ruler,
   Settings2,
@@ -82,6 +86,11 @@ function App() {
     Partial<Record<keyof CuboidDimensions, string>>
   >({})
   const [selectedFaceId, setSelectedFaceId] = useState<FaceId | null>('front')
+  const [foldProgress, setFoldProgress] = useState(1)
+  const foldProgressRef = useRef(1)
+  const [foldPlaying, setFoldPlaying] = useState(false)
+  const [foldSpeed, setFoldSpeed] = useState(1)
+  const [cameraResetToken, setCameraResetToken] = useState(0)
   const [glueTabOptions, setGlueTabOptions] = useState<GlueTabOptions>({
     ...DEFAULT_GLUE_TAB_OPTIONS,
     enabled: true,
@@ -130,6 +139,34 @@ function App() {
     }
   }, [netLayout, printSettings])
   const selectedFace = cuboid.faces.find((face) => face.id === selectedFaceId)
+
+  useEffect(() => {
+    if (!foldPlaying) return
+    let frame = 0
+    let previous = 0
+    const advance = (now: number) => {
+      if (previous === 0) previous = now
+      const delta = now - previous
+      previous = now
+      const next = Math.min(
+        1,
+        foldProgressRef.current + (delta / 4_000) * foldSpeed,
+      )
+      foldProgressRef.current = next
+      setFoldProgress(next)
+      if (next >= 1) {
+        setFoldPlaying(false)
+        return
+      }
+      frame = window.requestAnimationFrame(advance)
+    }
+    frame = window.requestAnimationFrame(advance)
+    return () => window.cancelAnimationFrame(frame)
+  }, [foldPlaying, foldSpeed])
+
+  useEffect(() => {
+    foldProgressRef.current = foldProgress
+  }, [foldProgress])
 
   useEffect(() => {
     if (!resizeDrag) return
@@ -500,13 +537,82 @@ function App() {
                 <span /> LIVE
               </span>
             </div>
+            <div className="folding-controls" aria-label="접힘 시뮬레이션 조작">
+              <button
+                type="button"
+                className="icon-button folding-controls__action"
+                aria-label={foldPlaying ? '접힘 일시정지' : '접힘 재생'}
+                onClick={() => {
+                  if (foldProgress >= 1) {
+                    foldProgressRef.current = 0
+                    setFoldProgress(0)
+                  }
+                  setFoldPlaying((playing) => !playing)
+                }}
+              >
+                {foldPlaying ? <Pause size={14} /> : <Play size={14} />}
+              </button>
+              <button
+                type="button"
+                className="icon-button folding-controls__action"
+                aria-label="접힘 처음으로"
+                onClick={() => {
+                  setFoldPlaying(false)
+                  foldProgressRef.current = 0
+                  setFoldProgress(0)
+                }}
+              >
+                <RotateCcw size={14} />
+              </button>
+              <input
+                className="folding-controls__progress"
+                type="range"
+                min="0"
+                max="1"
+                step="0.001"
+                aria-label="접힘 진행률"
+                value={foldProgress}
+                onChange={(event) => {
+                  setFoldPlaying(false)
+                  const next = Number(event.target.value)
+                  foldProgressRef.current = next
+                  setFoldProgress(next)
+                }}
+              />
+              <span className="folding-controls__percent" aria-live="polite">
+                {Math.round(foldProgress * 100)}%
+              </span>
+              <label className="folding-controls__speed">
+                <span className="sr-only">재생 속도</span>
+                <select
+                  aria-label="재생 속도"
+                  value={foldSpeed}
+                  onChange={(event) => setFoldSpeed(Number(event.target.value))}
+                >
+                  <option value="0.5">0.5×</option>
+                  <option value="1">1×</option>
+                  <option value="2">2×</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                className="icon-button folding-controls__action"
+                aria-label="카메라 초기화"
+                onClick={() => setCameraResetToken((token) => token + 1)}
+              >
+                <Camera size={14} />
+              </button>
+            </div>
             <Suspense
               fallback={<div className="preview-loading">3D 모델 준비 중…</div>}
             >
               <ThreeCuboidPreview
                 cuboid={cuboid}
+                netLayout={netLayout}
+                foldProgress={foldProgress}
                 selectedFaceId={selectedFaceId}
                 onFaceSelect={setSelectedFaceId}
+                cameraResetToken={cameraResetToken}
               />
             </Suspense>
           </section>

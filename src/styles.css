@@ -574,7 +574,42 @@ button:disabled {
 .preview-block {
   display: grid;
   min-height: 0;
-  grid-template-rows: 42px minmax(220px, 1fr);
+  grid-template-rows: 42px minmax(48px, auto) minmax(220px, 1fr);
+}
+.folding-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 6px 9px;
+  border-bottom: 1px solid #272d38;
+  background: #121822;
+}
+.folding-controls__action {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+}
+.folding-controls__progress {
+  min-width: 40px;
+  flex: 1 1 auto;
+  accent-color: #4386f5;
+}
+.folding-controls__percent {
+  min-width: 32px;
+  color: #aeb8c7;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.folding-controls__speed select {
+  width: 48px;
+  height: 27px;
+  border: 1px solid #343c49;
+  border-radius: 4px;
+  background: #1a202b;
+  color: #c7d0de;
+  font-size: 10px;
 }
 .panel-toolbar--preview {
   border-left: 0;
