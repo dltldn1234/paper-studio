@@ -1,5 +1,48 @@
 import { expect, test } from '@playwright/test'
 
+test('selects a regular solid and synchronizes its net, folding, and SVG output', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByLabel('다면체 종류').selectOption('octahedron')
+  const canvas2d = page.getByRole('application', {
+    name: '다면체 2D 전개도 캔버스',
+  })
+  await expect(canvas2d).toBeVisible()
+  await expect(page.locator('[data-face-id^="face-"]')).toHaveCount(8)
+  await expect(
+    page.getByRole('img', { name: '다면체 접힘 시뮬레이션 3D 미리보기' }),
+  ).toBeVisible()
+
+  const edgeLength = page.getByLabel('모서리 길이 (mm)')
+  await edgeLength.fill('120')
+  await expect(page.locator('.inspector-object')).toContainText('모서리 120 mm')
+  const selectedFace = page.locator('[data-face-id^="face-"]').first()
+  await selectedFace.focus()
+  await page.keyboard.press('Enter')
+  await expect(selectedFace).toHaveAttribute('aria-pressed', 'true')
+  await page.screenshot({
+    path: 'test-results/phase4-polyhedron-octahedron.png',
+    fullPage: true,
+  })
+
+  const progress = page.getByLabel('접힘 진행률')
+  await progress.fill('0.5')
+  await expect(page.locator('.folding-controls__percent')).toHaveText('50%')
+
+  await page.getByRole('button', { name: '내보내기' }).click()
+  const dialog = page.getByRole('dialog', { name: '도면 내보내기' })
+  await expect(dialog.getByLabel('파일 형식')).toHaveValue('svg')
+  await expect(
+    dialog.getByLabel('파일 형식').locator('option[value="pdf"]'),
+  ).toHaveJSProperty('disabled', true)
+  const downloadPromise = page.waitForEvent('download')
+  await dialog.getByRole('button', { name: 'SVG 다운로드' }).click()
+  expect((await downloadPromise).suggestedFilename()).toBe(
+    'paper-studio-net.svg',
+  )
+})
+
 test('dimensions update the 2D net, 3D preview, and inspector together', async ({
   page,
 }) => {

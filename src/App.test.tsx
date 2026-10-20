@@ -23,8 +23,73 @@ vi.mock('./preview/ThreeCuboidPreview', () => ({
     </button>
   ),
 }))
+vi.mock('./preview/ThreePolyhedronPreview', () => ({
+  ThreePolyhedronPreview: ({
+    layout,
+    selectedFaceId,
+    onFaceSelect,
+  }: {
+    layout: { faces: Array<{ id: string }> }
+    selectedFaceId: string | null
+    onFaceSelect: (faceId: string) => void
+  }) => (
+    <button
+      type="button"
+      data-testid="polyhedron-preview-probe"
+      data-face-count={layout.faces.length}
+      data-selected-face={selectedFaceId ?? ''}
+      onClick={() => onFaceSelect(layout.faces[0].id)}
+    >
+      Mock polyhedron preview
+    </button>
+  ),
+}))
 
 describe('Paper Studio editor', () => {
+  it('selects a polyhedron and synchronizes its net, edge length, and selected face', async () => {
+    render(<App />)
+    fireEvent.change(screen.getByRole('combobox', { name: '다면체 종류' }), {
+      target: { value: 'tetrahedron' },
+    })
+
+    expect(
+      await screen.findByRole('application', {
+        name: '다면체 2D 전개도 캔버스',
+      }),
+    ).toBeInTheDocument()
+    const preview = await screen.findByTestId('polyhedron-preview-probe')
+    expect(preview).toHaveAttribute('data-face-count', '4')
+    const edgeLength = screen.getByRole('spinbutton', {
+      name: '모서리 길이 (mm)',
+    })
+    fireEvent.change(edgeLength, { target: { value: '125' } })
+    expect(screen.getByText(/모서리 125 mm/)).toBeInTheDocument()
+
+    const face = screen.getAllByRole('button', { name: /face-/ })[1]
+    fireEvent.click(face)
+    expect(face).toHaveAttribute('aria-pressed', 'true')
+    expect(preview).toHaveAttribute(
+      'data-selected-face',
+      face.getAttribute('data-face-id'),
+    )
+  })
+
+  it('rejects invalid polyhedron edge lengths without changing the active model', async () => {
+    render(<App />)
+    fireEvent.change(screen.getByRole('combobox', { name: '다면체 종류' }), {
+      target: { value: 'octahedron' },
+    })
+    const edgeLength = await screen.findByRole('spinbutton', {
+      name: '모서리 길이 (mm)',
+    })
+    fireEvent.change(edgeLength, { target: { value: '0' } })
+    expect(edgeLength).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('alert')).toHaveTextContent('0.1–10,000 mm')
+    expect(
+      await screen.findByTestId('polyhedron-preview-probe'),
+    ).toHaveAttribute('data-face-count', '8')
+  })
+
   it('starts with the standard cuboid and the synchronized 2D and 3D views', async () => {
     render(<App />)
 

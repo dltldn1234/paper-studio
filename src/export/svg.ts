@@ -1,4 +1,4 @@
-import type { NetLayout, Point2D } from '../geometry'
+import type { NetLayout, Point2D, UnfoldedNet } from '../geometry'
 import { createSvgCalibrationGuide } from './calibration'
 
 function number(value: number): string {
@@ -108,6 +108,66 @@ ${edgeMarkup}
 ${tabMarkup}
 ${labelMarkup}
 ${calibrationMarkup}
+</svg>
+`
+}
+
+/** Serializes a generic unfolded polyhedron net at a 1:1 millimetre scale. */
+export function serializeUnfoldedNetToSvg(
+  layout: UnfoldedNet,
+  title = 'Paper Studio polyhedron net',
+): string {
+  const { x, y, width, height } = layout.bounds
+  if (
+    ![x, y, width, height].every(Number.isFinite) ||
+    width <= 0 ||
+    height <= 0
+  ) {
+    throw new RangeError('Unfolded net bounds must be finite and positive.')
+  }
+  const points = [
+    ...layout.faces.flatMap((face) => face.polygon),
+    ...layout.edges.flatMap((edge) => [edge.start, edge.end]),
+  ]
+  if (
+    points.some(
+      (point) =>
+        !Number.isFinite(point.x) ||
+        !Number.isFinite(point.y) ||
+        point.x < x - 1e-5 ||
+        point.y < y - 1e-5 ||
+        point.x > x + width + 1e-5 ||
+        point.y > y + height + 1e-5,
+    )
+  ) {
+    throw new RangeError('Unfolded net bounds do not contain all geometry.')
+  }
+  const edges = layout.edges
+    .map(
+      (edge) =>
+        `  <line class="${edge.kind}" data-kind="${edge.kind}" x1="${number(edge.start.x)}" y1="${number(edge.start.y)}" x2="${number(edge.end.x)}" y2="${number(edge.end.y)}" />`,
+    )
+    .join('\n')
+  const labels = layout.faces
+    .map((face) => {
+      const center = face.polygon.reduce(
+        (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }),
+        { x: 0, y: 0 },
+      )
+      return `  <text class="face-label" x="${number(center.x / face.polygon.length)}" y="${number(center.y / face.polygon.length)}" text-anchor="middle">${escapeXml(face.label)}</text>`
+    })
+    .join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${number(width)}mm" height="${number(height)}mm" viewBox="${number(x)} ${number(y)} ${number(width)} ${number(height)}" role="img" aria-labelledby="title description">
+  <title id="title">${escapeXml(title)}</title>
+  <desc id="description">Polyhedron net in millimetres at actual size. Print at 100%.</desc>
+  <style>
+    .cut { fill: none; stroke: #111; stroke-width: 0.25; }
+    .fold { fill: none; stroke: #555; stroke-width: 0.2; stroke-dasharray: 2 1; }
+    .face-label { fill: #333; font-family: sans-serif; font-size: 3px; }
+  </style>
+${edges}
+${labels}
 </svg>
 `
 }

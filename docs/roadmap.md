@@ -13,11 +13,25 @@
 - [x] Standalone Three.js cuboid preview with camera controls, selectable face mapping, and resource cleanup
 - [x] Integrate width/depth/height inputs (100 × 80 × 60 mm defaults) with both views
 
+## Phase 2 — Printable papercraft MVP
+
+- [x] Glue tabs, true-scale SVG export, and tiled PDF output for cuboids
+
+## Phase 3 — Folding simulation
+
+- [x] Geometry-derived hinge graph, fold timeline, and zero-thickness collision diagnostics
+
+## Phase 4 — Polyhedra and unfolding
+
+- [x] Generic mesh topology validation and regular tetrahedron, cube, and octahedron generators
+- [x] Candidate spanning-tree unfolding with overlap detection and cut/fold classification
+- [x] Generic fold pose solving, 3D preview, face selection, and true-scale SVG export
+- [ ] Generic polyhedron PDF tiling and editable/custom net trees
+
 ## Later phases
 
-- [ ] Editable 2D nets and more solids
-- [ ] Deterministic fold simulation
-- [ ] PDF/SVG export
 - [ ] Local-first project persistence
+- [ ] Non-convex and user-authored polyhedra and nets
+- [ ] Paper thickness, tabs, and physical assembly constraints in folding/collision simulation
 
 Each item should be delivered through a focused Issue, branch, and PR with the repository checks passing.

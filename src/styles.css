@@ -290,6 +290,27 @@ button:disabled {
   border-radius: 50%;
   background: #7da4ff;
 }
+.polyhedron-selector {
+  display: grid;
+  gap: 5px;
+  margin: 8px 2px 0;
+  color: #8390a2;
+  font-size: 10px;
+}
+.polyhedron-selector select {
+  width: 100%;
+  height: 30px;
+  border: 1px solid #343d4b;
+  border-radius: 5px;
+  background: #171e29;
+  padding: 0 7px;
+  color: #d5dce7;
+  font: inherit;
+}
+.polyhedron-selector select:focus-visible {
+  outline: 1px solid #80a7ff;
+  outline-offset: 2px;
+}
 .tool-row:not(:disabled):hover,
 .object-row:not(:disabled):hover {
   background: #1b2330;
