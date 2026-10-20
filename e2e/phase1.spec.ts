@@ -9,7 +9,7 @@ test('dimensions update the 2D net, 3D preview, and inspector together', async (
   await expect(
     page.getByRole('img', { name: 'Three.js 직육면체 3D 미리보기' }),
   ).toBeVisible()
-  await page.getByLabel('너비 (mm)').fill('120')
+  await page.getByLabel('너비 (mm)', { exact: true }).fill('120')
 
   await expect(page.getByText('W 120', { exact: false })).toBeVisible()
   await expect(page.locator('[data-face-id="front"]')).toHaveAttribute(
@@ -30,7 +30,7 @@ test('rejects invalid dimensions while keeping the last valid model', async ({
   page,
 }) => {
   await page.goto('/')
-  const width = page.getByLabel('너비 (mm)')
+  const width = page.getByLabel('너비 (mm)', { exact: true })
   await width.fill('0')
 
   await expect(width).toHaveAttribute('aria-invalid', 'true')
