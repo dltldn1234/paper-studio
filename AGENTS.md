@@ -7,7 +7,7 @@ Paper Studio is a client-only paper structure design app. Keep the core workflow
 ## Architecture
 
 - Keep UI components in `src/` and reusable geometry/design logic in focused modules.
-- Treat the 2D net as the editable source of truth; derive 3D preview and export output from the same design model.
+- Keep the typed geometry model as the source of truth; derive the 2D net, 3D preview, and export output from it. Represent direct net edits in the canonical model before deriving the other views.
 - Keep browser storage behind a small persistence boundary. Do not introduce a backend without an explicit product decision.
 - Use Three.js for 3D rendering and dispose of GPU resources when views unmount.
 - Keep folding simulation deterministic and separate from UI rendering.
@@ -26,6 +26,6 @@ Paper Studio is a client-only paper structure design app. Keep the core workflow
 - Update `main`, then create one branch per Issue as `type/issue-number-description` using one of `feat`, `fix`, `refactor`, `design`, `test`, `docs`, `chore`, or `perf`. Never develop directly on `main`.
 - Use English Conventional Commit messages: `type(scope): concise description`. Keep each commit to one logical change and do not create filler commits.
 - Open a PR titled `[Type] concise task`, include `Closes #<issue>`, summarize changes, and report lint, typecheck, format, test, and build results. Attach screenshots for UI changes when available.
-- Merge only after required CI passes. Use squash merge with a Conventional Commit title; remove the merged branch after confirming the merge.
+- Merge only after required CI passes. Use squash merge with a Conventional Commit subject, even though the PR title uses `[Type]`; with `gh pr merge`, set `--subject "type(scope): description"`. Remove the merged branch after confirming the merge.
 - Never force-push, bypass required reviews/checks, or change repository protections to get around a blocker. Report permission or plan limitations.
 - For independent Phase 1 components, keep geometry, 2D net, 3D preview, and integrated editor work in separate Issues and PRs where dependencies allow.

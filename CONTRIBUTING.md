@@ -10,7 +10,7 @@ Start from the latest `main` and use `type/issue-number-description`, for exampl
 
 ## Pull requests
 
-Open a PR titled `[Type] concise task`, link its Issue with `Closes #<number>`, and complete the PR template. Keep PRs focused. UI changes should include screenshots when practical. Merge only after CI passes; use squash merge with a Conventional Commit title. Remove the feature branch after confirming the merge.
+Open a PR titled `[Type] concise task`, link its Issue with `Closes #<number>`, and complete the PR template. Keep PRs focused. UI changes should include screenshots when practical. Merge only after CI passes; use squash merge with a Conventional Commit subject (for example, `gh pr merge <number> --squash --subject "feat(editor): integrate cuboid views"`). The PR title uses `[Type]` and must not be copied as the squash subject. Remove the feature branch after confirming the merge.
 
 ## Local verification
 
