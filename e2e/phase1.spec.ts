@@ -56,6 +56,7 @@ test('supports SVG zoom, pan, and keyboard face selection', async ({
   await face.focus()
   await page.keyboard.press('Enter')
   await expect(face).toHaveAttribute('aria-pressed', 'true')
+  await expect(face).toHaveClass(/is-selected/)
   await expect(page.locator('.selected-face-card')).toContainText('오른쪽 면')
 
   const before = await svg.getAttribute('viewBox')
