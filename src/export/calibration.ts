@@ -11,6 +11,40 @@ export type CalibrationGuide = {
   bounds: NetBounds
 }
 
+export type PdfCalibrationGuide = {
+  square: { x: number; y: number; sizeMm: number }
+  line: { x1: number; x2: number; y: number }
+  label: { x: number; y: number }
+}
+
+export function createPdfCalibrationGuide(
+  pageWidthMm: number,
+  pageHeightMm: number,
+  marginMm: number,
+): PdfCalibrationGuide {
+  if (
+    ![pageWidthMm, pageHeightMm, marginMm].every(Number.isFinite) ||
+    marginMm < 0
+  ) {
+    throw new RangeError(
+      'Page dimensions and calibration margin must be finite.',
+    )
+  }
+  const sizeMm = CALIBRATION_SIZE_MM
+  const x = marginMm + 20
+  const y = pageHeightMm - marginMm - sizeMm - 20
+  if (x + sizeMm > pageWidthMm - marginMm || y - 22 < marginMm) {
+    throw new RangeError(
+      'Calibration marks do not fit inside the printable page area.',
+    )
+  }
+  return {
+    square: { x, y, sizeMm },
+    line: { x1: x, x2: x + sizeMm, y: y - 10 },
+    label: { x, y: y - 17 },
+  }
+}
+
 /** Places a 100 mm square and line in an unoccupied area beside an SVG net. */
 export function createSvgCalibrationGuide(
   netBounds: NetBounds,

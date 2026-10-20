@@ -1,6 +1,7 @@
 import { PDFDocument, PrintScaling, StandardFonts, rgb } from 'pdf-lib'
 import type { NetLayout, Point2D } from '../geometry'
 import { validateNetBounds } from './svg'
+import { createPdfCalibrationGuide } from './calibration'
 import type { PrintLayout, PrintSettings, PrintTile } from './print-layout'
 import { computePrintLayout } from './print-layout'
 
@@ -185,6 +186,7 @@ export async function createTiledPdf(
     layout.pageHeightMm * PDF_POINTS_PER_MM,
   ] as [number, number]
 
+  const totalPages = layout.tiles.length + 1
   for (const tile of layout.tiles) {
     const page = pdf.addPage(pageSize)
     for (const edge of net.edges) {
@@ -206,8 +208,65 @@ export async function createTiledPdf(
       }
     }
     drawRegistrationGuides(page, tile, layout)
-    drawPageLabels(page, tile, layout, layout.tiles.length, font, net)
+    drawPageLabels(page, tile, layout, totalPages, font, net)
   }
+
+  const calibrationPage = pdf.addPage(pageSize)
+  const margin = settings.marginMm * PDF_POINTS_PER_MM
+  const calibration = createPdfCalibrationGuide(
+    layout.pageWidthMm,
+    layout.pageHeightMm,
+    settings.marginMm,
+  )
+  const squareX = calibration.square.x * PDF_POINTS_PER_MM
+  const squareY = calibration.square.y * PDF_POINTS_PER_MM
+  const size = calibration.square.sizeMm * PDF_POINTS_PER_MM
+  const blue = rgb(0.12, 0.38, 0.72)
+  calibrationPage.drawText('PRINT SCALE CALIBRATION', {
+    x: margin,
+    y: layout.pageHeightMm * PDF_POINTS_PER_MM - margin - 8,
+    size: 10,
+    font,
+    color: blue,
+  })
+  calibrationPage.drawRectangle({
+    x: squareX,
+    y: squareY,
+    width: size,
+    height: size,
+    borderColor: blue,
+    borderWidth: 0.6,
+  })
+  calibrationPage.drawLine({
+    start: {
+      x: calibration.line.x1 * PDF_POINTS_PER_MM,
+      y: calibration.line.y * PDF_POINTS_PER_MM,
+    },
+    end: {
+      x: calibration.line.x2 * PDF_POINTS_PER_MM,
+      y: calibration.line.y * PDF_POINTS_PER_MM,
+    },
+    thickness: 0.8,
+    color: blue,
+  })
+  calibrationPage.drawText('100 mm line', {
+    x: calibration.label.x * PDF_POINTS_PER_MM,
+    y: calibration.label.y * PDF_POINTS_PER_MM,
+    size: 8,
+    font,
+    color: blue,
+  })
+  calibrationPage.drawText(
+    'Print at Actual Size / 100%. Turn off Fit or Shrink. Measure the line and square before cutting.',
+    {
+      x: margin,
+      y: margin,
+      size: 7,
+      font,
+      color: rgb(0.25, 0.25, 0.25),
+      maxWidth: layout.pageWidthMm * PDF_POINTS_PER_MM - margin * 2,
+    },
+  )
 
   return pdf.save()
 }

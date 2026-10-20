@@ -18,7 +18,7 @@ describe('printable PDF export', () => {
       overlapMm: 8,
     })
     const document = await PDFDocument.load(bytes)
-    expect(document.getPages()).toHaveLength(2)
+    expect(document.getPages()).toHaveLength(3)
     expect(document.getPages()[0].getWidth()).toBeCloseTo(
       210 * PDF_POINTS_PER_MM,
       4,
@@ -40,7 +40,7 @@ describe('printable PDF export', () => {
       overlapMm: 8,
     })
     const document = await PDFDocument.load(bytes)
-    expect(document.getPages()).toHaveLength(1)
+    expect(document.getPages()).toHaveLength(2)
     expect(document.getPages()[0].getWidth()).toBeCloseTo(
       420 * PDF_POINTS_PER_MM,
       4,
