@@ -1,26 +1,34 @@
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import * as THREE from 'three'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createCuboid } from '../geometry'
 import { ThreeCuboidPreview } from './ThreeCuboidPreview'
 import { faceIdForMaterialIndex, materialIndexForFaceId } from './face-mapping'
 
-const { rendererDispose, controlsDispose } = vi.hoisted(() => ({
-  rendererDispose: vi.fn(),
-  controlsDispose: vi.fn(),
-}))
+const { rendererDispose, controlsDispose, rendererShouldFail } = vi.hoisted(
+  () => ({
+    rendererDispose: vi.fn(),
+    controlsDispose: vi.fn(),
+    rendererShouldFail: { current: false },
+  }),
+)
 
 vi.mock('three', async (importOriginal) => {
   const actual = await importOriginal<typeof import('three')>()
   return {
     ...actual,
     WebGLRenderer: class {
-      domElement = document.createElement('canvas')
+      domElement: HTMLCanvasElement
       outputColorSpace = actual.SRGBColorSpace
       setPixelRatio = vi.fn()
       setSize = vi.fn()
       render = vi.fn()
       dispose = rendererDispose
+
+      constructor() {
+        if (rendererShouldFail.current) throw new Error('WebGL unavailable')
+        this.domElement = document.createElement('canvas')
+      }
     },
   }
 })
@@ -73,6 +81,7 @@ describe('ThreeCuboidPreview lifecycle', () => {
   beforeEach(() => {
     rendererDispose.mockClear()
     controlsDispose.mockClear()
+    rendererShouldFail.current = false
     Object.defineProperty(window, 'requestAnimationFrame', {
       configurable: true,
       value: vi.fn(() => 1),
@@ -101,5 +110,22 @@ describe('ThreeCuboidPreview lifecycle', () => {
     expect(rendererDispose).toHaveBeenCalledOnce()
     expect(controlsDispose).toHaveBeenCalledOnce()
     expect(container.querySelector('canvas')).toBeNull()
+  })
+
+  it('shows a clear fallback when WebGL renderer creation fails', async () => {
+    rendererShouldFail.current = true
+    const cuboid = createCuboid({ widthMm: 100, depthMm: 80, heightMm: 60 })
+
+    render(
+      <ThreeCuboidPreview
+        cuboid={cuboid}
+        selectedFaceId={null}
+        onFaceSelect={vi.fn()}
+      />,
+    )
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      '이 브라우저에서는 WebGL을 사용할 수 없어 3D 미리보기를 표시하지 못합니다.',
+    )
   })
 })
