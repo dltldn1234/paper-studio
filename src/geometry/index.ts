@@ -12,6 +12,13 @@ export {
 } from './polyhedron'
 export type { PolyhedronAnalysis, PolyhedronIssue } from './polyhedron'
 export {
+  createRegularCube,
+  createRegularOctahedron,
+  createRegularPolyhedron,
+  createRegularTetrahedron,
+} from './regular-polyhedra'
+export type { RegularPolyhedronKind } from './regular-polyhedra'
+export {
   add2D,
   add3D,
   cross3D,
