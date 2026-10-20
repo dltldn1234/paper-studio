@@ -755,7 +755,9 @@ button:disabled {
 .export-dialog {
   display: grid;
   width: min(420px, 100%);
+  max-height: calc(100dvh - 40px);
   gap: 20px;
+  overflow-y: auto;
   border: 1px solid #343c49;
   border-radius: 12px;
   background: #171d28;
@@ -789,6 +791,88 @@ button:disabled {
   padding: 9px 10px;
   color: #f1f3f7;
   outline: none;
+}
+.export-dialog__field select {
+  width: 100%;
+  border: 1px solid #3a4352;
+  border-radius: 6px;
+  background: #10151e;
+  padding: 9px 10px;
+  color: #f1f3f7;
+  outline: none;
+}
+.export-dialog__field select:focus-visible {
+  border-color: #78a6ff;
+  box-shadow: 0 0 0 2px rgb(120 166 255 / 18%);
+}
+.pdf-print-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.print-preview-summary {
+  color: #d0d7e2;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.print-preview-grid {
+  display: grid;
+  max-height: 240px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  overflow: auto;
+  padding: 2px;
+}
+.print-preview-tile {
+  min-width: 0;
+}
+.print-preview-page {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #a8b1bf;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 28%);
+}
+.print-preview-page > rect:first-child {
+  fill: #fff;
+  stroke: #8993a2;
+  stroke-width: 0.5;
+}
+.print-preview-page__printable {
+  fill: none;
+  stroke: #d8dde5;
+  stroke-dasharray: 2 2;
+  stroke-width: 0.4;
+}
+.print-preview-pattern__cut {
+  fill: none;
+  stroke: #222;
+  stroke-width: 0.55;
+  vector-effect: non-scaling-stroke;
+}
+.print-preview-pattern__fold {
+  fill: none;
+  stroke: #666;
+  stroke-dasharray: 2 1;
+  stroke-width: 0.45;
+  vector-effect: non-scaling-stroke;
+}
+.print-preview-guides {
+  fill: none;
+  stroke: #a34b3e;
+  stroke-width: 0.6;
+}
+.print-preview-tile figcaption {
+  padding-top: 3px;
+  color: #aab4c3;
+  font-size: 9px;
+  text-align: center;
+}
+.print-preview-more {
+  align-self: center;
+  color: #aab4c3;
+  font-size: 10px;
 }
 .export-dialog__field input:focus-visible {
   border-color: #78a6ff;
