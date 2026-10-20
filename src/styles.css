@@ -1,0 +1,60 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-paper: #f6f4ef;
+  --color-ink: #292722;
+  --color-clay: #b86f50;
+  --font-sans: Inter, 'Noto Sans KR', system-ui, sans-serif;
+}
+
+@layer components {
+  .button-primary {
+    @apply bg-ink inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700;
+  }
+  .button-secondary {
+    @apply inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50;
+  }
+  .tool-button {
+    @apply flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-stone-600 transition hover:bg-stone-50;
+  }
+  .tool-button-active {
+    @apply text-ink bg-[#f8f4ed] font-medium;
+  }
+  .field {
+    @apply w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-700 outline-none;
+  }
+  .choice {
+    @apply rounded-lg border border-stone-200 py-2 text-sm text-stone-500;
+  }
+  .choice-active {
+    @apply border-ink text-ink rounded-lg border bg-stone-50 py-2 text-sm font-medium;
+  }
+}
+
+.canvas-grid {
+  background-image: radial-gradient(#d6d1c8 0.75px, transparent 0.75px);
+  background-size: 18px 18px;
+}
+
+.net-shadow {
+  filter: drop-shadow(0 12px 16px rgb(41 39 34 / 8%));
+}
+.face {
+  width: 100px;
+  height: 100px;
+  border: 1px solid #c3b8a7;
+  background: #eee8dc;
+}
+.face-fold {
+  background: linear-gradient(145deg, #f4efe5, #e9e0d1);
+}
+.face-center {
+  display: grid;
+  place-items: center;
+  background: #fffdf9;
+  border-color: #b86f50;
+}
+.face-center span {
+  color: #b86f50;
+  font-size: 13px;
+}
