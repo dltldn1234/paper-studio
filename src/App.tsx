@@ -35,6 +35,13 @@ import {
 } from './geometry'
 import type { CuboidDimensions, FaceId, GlueTabOptions } from './geometry'
 import { normalizeSvgFilename, serializeNetToSvg } from './export/svg'
+import {
+  computePrintLayout,
+  type PageOrientation,
+  type PaperSize,
+  type PrintSettings,
+} from './export/print-layout'
+import { PrintPagePreviews } from './export/PrintPagePreviews'
 
 const ThreeCuboidPreview = lazy(() =>
   import('./preview/ThreeCuboidPreview').then((module) => ({
@@ -91,12 +98,37 @@ function App() {
   const [resizeDrag, setResizeDrag] = useState<ResizeDrag | null>(null)
   const [svgExportOpen, setSvgExportOpen] = useState(false)
   const [svgFilename, setSvgFilename] = useState('paper-studio-net')
+  const [exportFormat, setExportFormat] = useState<'svg' | 'pdf'>('svg')
+  const [printSettings, setPrintSettings] = useState<PrintSettings>({
+    paperSize: 'A4',
+    orientation: 'portrait',
+    marginMm: 10,
+    overlapMm: 8,
+  })
+  const [exportBusy, setExportBusy] = useState(false)
+  const [exportError, setExportError] = useState('')
 
   const cuboid = useMemo(() => createCuboid(dimensions), [dimensions])
   const netLayout = useMemo(
     () => createCuboidNet(dimensions, glueTabOptions),
     [dimensions, glueTabOptions],
   )
+  const printLayoutResult = useMemo(() => {
+    try {
+      return {
+        layout: computePrintLayout(netLayout.bounds, printSettings),
+        error: '',
+      }
+    } catch (error) {
+      return {
+        layout: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'PDF 미리보기를 만들 수 없습니다.',
+      }
+    }
+  }, [netLayout, printSettings])
   const selectedFace = cuboid.faces.find((face) => face.id === selectedFaceId)
 
   useEffect(() => {
@@ -197,8 +229,7 @@ function App() {
     setGlueTabOptions((current) => ({ ...current, [field]: numericValue }))
   }
 
-  function downloadSvg(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function downloadSvg() {
     const svg = serializeNetToSvg(netLayout, svgFilename)
     const objectUrl = URL.createObjectURL(
       new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }),
@@ -209,6 +240,51 @@ function App() {
     link.click()
     URL.revokeObjectURL(objectUrl)
     setSvgExportOpen(false)
+  }
+
+  async function downloadPdf() {
+    if (!printLayoutResult.layout) return
+    setExportBusy(true)
+    setExportError('')
+    try {
+      const { createTiledPdf } = await import('./export/pdf')
+      const bytes = await createTiledPdf(netLayout, printSettings, svgFilename)
+      const objectUrl = URL.createObjectURL(
+        new Blob([bytes.slice().buffer as ArrayBuffer], {
+          type: 'application/pdf',
+        }),
+      )
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = normalizeSvgFilename(svgFilename).replace(
+        /\.svg$/i,
+        '.pdf',
+      )
+      link.click()
+      URL.revokeObjectURL(objectUrl)
+      setSvgExportOpen(false)
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : 'PDF 파일을 생성하지 못했습니다.',
+      )
+    } finally {
+      setExportBusy(false)
+    }
+  }
+
+  function handleExportSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (exportFormat === 'svg') downloadSvg()
+    else void downloadPdf()
+  }
+
+  function updatePrintSetting<K extends keyof PrintSettings>(
+    key: K,
+    value: PrintSettings[K],
+  ) {
+    setPrintSettings((current) => ({ ...current, [key]: value }))
   }
 
   const workspaceStyle = {
@@ -632,7 +708,7 @@ function App() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="svg-export-title"
-            onSubmit={downloadSvg}
+            onSubmit={handleExportSubmit}
             onKeyDown={(event) => {
               if (event.key === 'Escape') setSvgExportOpen(false)
             }}
@@ -652,18 +728,136 @@ function App() {
               </button>
             </div>
             <label className="export-dialog__field">
+              파일 형식
+              <select
+                aria-label="파일 형식"
+                value={exportFormat}
+                onChange={(event) => {
+                  setExportFormat(event.target.value as 'svg' | 'pdf')
+                  setExportError('')
+                }}
+              >
+                <option value="svg">SVG · 벡터 도면</option>
+                <option value="pdf">PDF · 인쇄용 페이지</option>
+              </select>
+            </label>
+            <label className="export-dialog__field">
               파일 이름
               <input
                 autoFocus
-                aria-label="SVG 파일 이름"
+                aria-label={
+                  exportFormat === 'svg' ? 'SVG 파일 이름' : 'PDF 파일 이름'
+                }
                 value={svgFilename}
                 onChange={(event) => setSvgFilename(event.target.value)}
               />
             </label>
-            <p className="export-dialog__note">
-              SVG 도면은 mm 단위 실제 크기로 생성됩니다. 인쇄할 때 배율을 100%로
-              설정하세요.
-            </p>
+            {exportFormat === 'svg' ? (
+              <p className="export-dialog__note">
+                SVG 도면은 mm 단위 실제 크기로 생성됩니다. 인쇄할 때 배율을
+                100%로 설정하세요.
+              </p>
+            ) : (
+              <>
+                <div className="pdf-print-settings">
+                  <label className="export-dialog__field">
+                    용지 크기
+                    <select
+                      aria-label="PDF 용지 크기"
+                      value={printSettings.paperSize}
+                      onChange={(event) =>
+                        updatePrintSetting(
+                          'paperSize',
+                          event.target.value as PaperSize,
+                        )
+                      }
+                    >
+                      <option value="A4">A4</option>
+                      <option value="A3">A3</option>
+                    </select>
+                  </label>
+                  <label className="export-dialog__field">
+                    방향
+                    <select
+                      aria-label="PDF 방향"
+                      value={printSettings.orientation}
+                      onChange={(event) =>
+                        updatePrintSetting(
+                          'orientation',
+                          event.target.value as PageOrientation,
+                        )
+                      }
+                    >
+                      <option value="portrait">세로</option>
+                      <option value="landscape">가로</option>
+                    </select>
+                  </label>
+                  <label className="export-dialog__field">
+                    여백 (mm)
+                    <input
+                      type="number"
+                      aria-label="PDF 여백 (mm)"
+                      min="2"
+                      max="30"
+                      step="1"
+                      value={printSettings.marginMm}
+                      onChange={(event) =>
+                        updatePrintSetting(
+                          'marginMm',
+                          Number(event.target.value),
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="export-dialog__field">
+                    페이지 겹침 (mm)
+                    <input
+                      type="number"
+                      aria-label="페이지 겹침 (mm)"
+                      min="2"
+                      max="20"
+                      step="1"
+                      value={printSettings.overlapMm}
+                      onChange={(event) =>
+                        updatePrintSetting(
+                          'overlapMm',
+                          Number(event.target.value),
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+                {printLayoutResult.layout ? (
+                  <>
+                    <p className="print-preview-summary" role="status">
+                      {printLayoutResult.layout.pageWidthMm} ×{' '}
+                      {printLayoutResult.layout.pageHeightMm} mm ·{' '}
+                      {printLayoutResult.layout.tiles.length}페이지 · 인쇄 가능
+                      영역 {printLayoutResult.layout.printableWidthMm} ×{' '}
+                      {printLayoutResult.layout.printableHeightMm} mm
+                    </p>
+                    <PrintPagePreviews
+                      net={netLayout}
+                      layout={printLayoutResult.layout}
+                    />
+                  </>
+                ) : (
+                  <p className="glue-tab-warning" role="alert">
+                    {printLayoutResult.error}
+                  </p>
+                )}
+                <p className="export-dialog__note">
+                  출력 창에서 “실제 크기” 또는 100%를 선택하고 페이지 맞춤,
+                  축소, 용지에 맞춤을 끄세요. PDF도 프린터 설정에 따라 실측이
+                  달라질 수 있습니다.
+                </p>
+              </>
+            )}
+            {exportError && (
+              <p className="dimension-error" role="alert">
+                {exportError}
+              </p>
+            )}
             <div className="export-dialog__actions">
               <button
                 className="secondary-button"
@@ -672,8 +866,20 @@ function App() {
               >
                 취소
               </button>
-              <button className="export-button" type="submit">
-                <Download size={15} /> SVG 다운로드
+              <button
+                className="export-button"
+                type="submit"
+                disabled={
+                  exportBusy ||
+                  (exportFormat === 'pdf' && !printLayoutResult.layout)
+                }
+              >
+                <Download size={15} />{' '}
+                {exportBusy
+                  ? 'PDF 생성 중…'
+                  : exportFormat === 'svg'
+                    ? 'SVG 다운로드'
+                    : 'PDF 다운로드'}
               </button>
             </div>
           </form>
