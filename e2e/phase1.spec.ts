@@ -92,3 +92,17 @@ test('selects a face from the 3D canvas and adapts to a narrow viewport', async 
     await page.locator('body').evaluate((element) => element.clientWidth),
   )
 })
+
+test('downloads an SVG using the requested filename', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '내보내기' }).click()
+  const dialog = page.getByRole('dialog', { name: '도면 내보내기' })
+  await dialog.getByLabel('SVG 파일 이름').fill('assembly-pattern')
+
+  const downloadPromise = page.waitForEvent('download')
+  await dialog.getByRole('button', { name: 'SVG 다운로드' }).click()
+  const download = await downloadPromise
+
+  expect(download.suggestedFilename()).toBe('assembly-pattern.svg')
+  await expect(dialog).toHaveCount(0)
+})

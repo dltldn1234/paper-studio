@@ -1,5 +1,9 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
+import type {
+  CSSProperties,
+  FormEvent,
+  PointerEvent as ReactPointerEvent,
+} from 'react'
 import {
   Box,
   ChevronDown,
@@ -30,6 +34,7 @@ import {
   validateCuboidDimensions,
 } from './geometry'
 import type { CuboidDimensions, FaceId, GlueTabOptions } from './geometry'
+import { normalizeSvgFilename, serializeNetToSvg } from './export/svg'
 
 const ThreeCuboidPreview = lazy(() =>
   import('./preview/ThreeCuboidPreview').then((module) => ({
@@ -84,6 +89,8 @@ function App() {
   const [sidebarWidth, setSidebarWidth] = useState(232)
   const [previewWidth, setPreviewWidth] = useState(410)
   const [resizeDrag, setResizeDrag] = useState<ResizeDrag | null>(null)
+  const [svgExportOpen, setSvgExportOpen] = useState(false)
+  const [svgFilename, setSvgFilename] = useState('paper-studio-net')
 
   const cuboid = useMemo(() => createCuboid(dimensions), [dimensions])
   const netLayout = useMemo(
@@ -190,6 +197,20 @@ function App() {
     setGlueTabOptions((current) => ({ ...current, [field]: numericValue }))
   }
 
+  function downloadSvg(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const svg = serializeNetToSvg(netLayout, svgFilename)
+    const objectUrl = URL.createObjectURL(
+      new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }),
+    )
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = normalizeSvgFilename(svgFilename)
+    link.click()
+    URL.revokeObjectURL(objectUrl)
+    setSvgExportOpen(false)
+  }
+
   const workspaceStyle = {
     '--sidebar-width': `${sidebarWidth}px`,
     '--preview-width': `${previewWidth}px`,
@@ -239,8 +260,7 @@ function App() {
         <button
           className="export-button"
           type="button"
-          disabled
-          title="PDF/SVG 내보내기는 다음 단계에서 제공됩니다"
+          onClick={() => setSvgExportOpen(true)}
         >
           <Download size={15} /> 내보내기
         </button>
@@ -604,6 +624,61 @@ function App() {
           </section>
         </aside>
       </main>
+
+      {svgExportOpen && (
+        <div className="export-dialog-backdrop">
+          <form
+            className="export-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="svg-export-title"
+            onSubmit={downloadSvg}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setSvgExportOpen(false)
+            }}
+          >
+            <div className="export-dialog__heading">
+              <div>
+                <span className="inspector-eyebrow">EXPORT</span>
+                <h2 id="svg-export-title">도면 내보내기</h2>
+              </div>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label="내보내기 닫기"
+                onClick={() => setSvgExportOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <label className="export-dialog__field">
+              파일 이름
+              <input
+                autoFocus
+                aria-label="SVG 파일 이름"
+                value={svgFilename}
+                onChange={(event) => setSvgFilename(event.target.value)}
+              />
+            </label>
+            <p className="export-dialog__note">
+              SVG 도면은 mm 단위 실제 크기로 생성됩니다. 인쇄할 때 배율을 100%로
+              설정하세요.
+            </p>
+            <div className="export-dialog__actions">
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setSvgExportOpen(false)}
+              >
+                취소
+              </button>
+              <button className="export-button" type="submit">
+                <Download size={15} /> SVG 다운로드
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <footer className="studio-statusbar">
         <div>
