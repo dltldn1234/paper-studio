@@ -58,3 +58,114 @@
   color: #b86f50;
   font-size: 13px;
 }
+
+.net-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #141821;
+  color: #e4e7ec;
+}
+
+.net-canvas__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  outline: none;
+  touch-action: none;
+}
+
+.net-canvas__svg.is-panning {
+  cursor: grabbing;
+}
+
+.net-canvas__svg:focus-visible {
+  outline: 1px solid #78a6ff;
+  outline-offset: -2px;
+}
+
+.net-canvas__face {
+  fill: #222936;
+  stroke: #697386;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+  transition:
+    fill 140ms ease,
+    stroke 140ms ease;
+}
+
+.net-canvas__face:hover,
+.net-canvas__face:focus-visible {
+  fill: #2b3545;
+  stroke: #9dbbff;
+}
+
+.net-canvas__face.is-selected {
+  fill: #293957;
+  stroke: #80a7ff;
+  stroke-width: 1.5;
+}
+
+.net-canvas__face-label {
+  fill: #e4e7ec;
+  font-size: 3.4px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.net-canvas__edge {
+  fill: none;
+  pointer-events: none;
+  stroke: #d9deea;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.net-canvas__edge.is-fold {
+  stroke: #f2ae65;
+  stroke-dasharray: 4 3;
+}
+
+.net-canvas__controls {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #343c49;
+  border-radius: 8px;
+  background: #1c222d;
+  padding: 4px;
+  color: #c9d0dc;
+}
+
+.net-canvas__controls button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 5px;
+}
+
+.net-canvas__controls button:hover {
+  background: #30394a;
+  color: white;
+}
+
+.net-canvas__controls output {
+  min-width: 44px;
+  text-align: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.net-canvas__hint {
+  position: absolute;
+  right: 16px;
+  bottom: 22px;
+  color: #98a2b3;
+  font-size: 11px;
+}
