@@ -13,7 +13,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tailwindcss/vite": "latest",
@@ -24,6 +25,9 @@
   },
   "devDependencies": {
     "@eslint/js": "latest",
+    "@playwright/test": "^1.64.1",
+    "@testing-library/jest-dom": "latest",
+    "@testing-library/react": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@types/three": "latest",
@@ -33,15 +37,13 @@
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
     "globals": "latest",
+    "jsdom": "latest",
     "prettier": "latest",
     "prettier-plugin-tailwindcss": "latest",
     "tailwindcss": "latest",
     "typescript": "^5.9.3",
     "typescript-eslint": "latest",
     "vite": "latest",
-    "vitest": "latest",
-    "jsdom": "latest",
-    "@testing-library/jest-dom": "latest",
-    "@testing-library/react": "latest"
+    "vitest": "latest"
   }
 }
