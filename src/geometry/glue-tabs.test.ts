@@ -99,7 +99,50 @@ describe('cuboid net glue tabs', () => {
     }
 
     expect(findGlueTabInterferences([first, second])).toEqual([
-      { firstTabId: 'tab-a', secondTabId: 'tab-b' },
+      { kind: 'tab-tab', firstTabId: 'tab-a', secondTabId: 'tab-b' },
+    ])
+  })
+
+  it('reports a tab that overlaps a non-host face', () => {
+    const tab: GlueTab = {
+      id: 'tab-a',
+      edgeId: 'edge-a',
+      faceId: 'front',
+      widthMm: 10,
+      angleDeg: 45,
+      polygon: {
+        vertices: [
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+          { x: 8, y: 5 },
+          { x: 2, y: 5 },
+        ],
+      },
+    }
+    const overlappingFace = {
+      id: 'right' as const,
+      label: 'right',
+      widthMm: 6,
+      heightMm: 4,
+      origin: { x: 3, y: 2 },
+      edgeNeighborIds: ['front', 'back', 'top', 'bottom'] as [
+        'front',
+        'back',
+        'top',
+        'bottom',
+      ],
+      polygon: {
+        vertices: [
+          { x: 3, y: 2 },
+          { x: 9, y: 2 },
+          { x: 9, y: 6 },
+          { x: 3, y: 6 },
+        ],
+      },
+    }
+
+    expect(findGlueTabInterferences([tab], [overlappingFace])).toEqual([
+      { kind: 'tab-face', tabId: 'tab-a', faceId: 'right' },
     ])
   })
 

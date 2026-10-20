@@ -295,7 +295,7 @@ export function createCuboidNet(
 
   const faces = createNetFaces(dimensions)
   const edges = createNetEdges(faces)
-  const { tabs, interferences } = generateGlueTabs(edges, tabOptions)
+  const { tabs, interferences } = generateGlueTabs(edges, tabOptions, faces)
   const points = [
     ...faces.flatMap((face) => face.polygon.vertices),
     ...tabs.flatMap((tab) => tab.polygon.vertices),

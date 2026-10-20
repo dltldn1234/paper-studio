@@ -80,10 +80,9 @@ export type GlueTabOptions = {
   angleDeg: number
 }
 
-export type GlueTabInterference = {
-  firstTabId: string
-  secondTabId: string
-}
+export type GlueTabInterference =
+  | { kind: 'tab-tab'; firstTabId: string; secondTabId: string }
+  | { kind: 'tab-face'; tabId: string; faceId: FaceId }
 
 export type NetLayout = {
   faces: NetFace[]

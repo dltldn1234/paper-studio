@@ -3,6 +3,7 @@ import type {
   GlueTabInterference,
   GlueTabOptions,
   NetEdge,
+  NetFace,
   Point2D,
 } from './types'
 
@@ -99,6 +100,7 @@ function polygonsOverlap(first: Point2D[], second: Point2D[]): boolean {
 
 export function findGlueTabInterferences(
   tabs: GlueTab[],
+  faces: NetFace[] = [],
 ): GlueTabInterference[] {
   const interferences: GlueTabInterference[] = []
   for (let firstIndex = 0; firstIndex < tabs.length; firstIndex += 1) {
@@ -110,7 +112,21 @@ export function findGlueTabInterferences(
       const first = tabs[firstIndex]
       const second = tabs[secondIndex]
       if (polygonsOverlap(first.polygon.vertices, second.polygon.vertices)) {
-        interferences.push({ firstTabId: first.id, secondTabId: second.id })
+        interferences.push({
+          kind: 'tab-tab',
+          firstTabId: first.id,
+          secondTabId: second.id,
+        })
+      }
+    }
+  }
+  for (const tab of tabs) {
+    for (const face of faces) {
+      if (
+        face.id !== tab.faceId &&
+        polygonsOverlap(tab.polygon.vertices, face.polygon.vertices)
+      ) {
+        interferences.push({ kind: 'tab-face', tabId: tab.id, faceId: face.id })
       }
     }
   }
@@ -120,6 +136,7 @@ export function findGlueTabInterferences(
 export function generateGlueTabs(
   edges: NetEdge[],
   options: GlueTabOptions = DEFAULT_GLUE_TAB_OPTIONS,
+  faces: NetFace[] = [],
 ): { tabs: GlueTab[]; interferences: GlueTabInterference[] } {
   validateOptions(options)
   if (!options.enabled) return { tabs: [], interferences: [] }
@@ -135,5 +152,5 @@ export function generateGlueTabs(
     })
     .map((edge) => createTab(edge, options))
     .filter((tab): tab is GlueTab => tab !== null)
-  return { tabs, interferences: findGlueTabInterferences(tabs) }
+  return { tabs, interferences: findGlueTabInterferences(tabs, faces) }
 }
