@@ -860,8 +860,8 @@ function App() {
             </label>
             {exportFormat === 'svg' ? (
               <p className="export-dialog__note">
-                SVG 도면은 mm 단위 실제 크기로 생성됩니다. 인쇄할 때 배율을
-                100%로 설정하세요.
+                SVG에는 100 mm 선과 100 × 100 mm 교정 사각형이 포함됩니다. 실제
+                크기/100%로 출력한 뒤 자로 치수를 확인하세요.
               </p>
             ) : (
               <>
@@ -938,8 +938,8 @@ function App() {
                     <p className="print-preview-summary" role="status">
                       {printLayoutResult.layout.pageWidthMm} ×{' '}
                       {printLayoutResult.layout.pageHeightMm} mm ·{' '}
-                      {printLayoutResult.layout.tiles.length}페이지 · 인쇄 가능
-                      영역 {printLayoutResult.layout.printableWidthMm} ×{' '}
+                      {printLayoutResult.layout.tiles.length + 1}페이지 · 인쇄
+                      가능 영역 {printLayoutResult.layout.printableWidthMm} ×{' '}
                       {printLayoutResult.layout.printableHeightMm} mm
                     </p>
                     <PrintPagePreviews
@@ -953,9 +953,10 @@ function App() {
                   </p>
                 )}
                 <p className="export-dialog__note">
-                  출력 창에서 “실제 크기” 또는 100%를 선택하고 페이지 맞춤,
-                  축소, 용지에 맞춤을 끄세요. PDF도 프린터 설정에 따라 실측이
-                  달라질 수 있습니다.
+                  마지막 페이지의 100 mm 선과 100 × 100 mm 사각형을 먼저
+                  측정하세요. 출력 창에서 “실제 크기”/100%를 선택하고 Fit,
+                  Shrink, 페이지 맞춤을 끄세요. 측정이 맞은 뒤 도면을
+                  조립하세요.
                 </p>
               </>
             )}

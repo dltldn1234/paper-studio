@@ -90,7 +90,7 @@ export function PrintPagePreviews({
   layout,
   maxVisiblePages = 8,
 }: PrintPagePreviewsProps) {
-  const visibleTiles = layout.tiles.slice(0, maxVisiblePages)
+  const visibleTiles = layout.tiles.slice(0, Math.max(0, maxVisiblePages - 1))
   return (
     <div className="print-preview-grid" aria-label="PDF 페이지 미리보기">
       {visibleTiles.map((tile) => (
@@ -101,9 +101,52 @@ export function PrintPagePreviews({
           tile={tile}
         />
       ))}
+      <figure className="print-preview-tile">
+        <svg
+          className="print-preview-page"
+          viewBox={`0 0 ${layout.pageWidthMm} ${layout.pageHeightMm}`}
+          role="img"
+          aria-label={`PDF 교정 페이지 미리보기, ${layout.tiles.length + 1}페이지 중 마지막`}
+        >
+          <rect
+            x="0"
+            y="0"
+            width={layout.pageWidthMm}
+            height={layout.pageHeightMm}
+          />
+          <rect
+            className="print-preview-page__printable"
+            x={layout.settings.marginMm}
+            y={layout.settings.marginMm}
+            width={layout.printableWidthMm}
+            height={layout.printableHeightMm}
+          />
+          <g className="print-preview-calibration">
+            <rect
+              x={layout.settings.marginMm + 20}
+              y={layout.settings.marginMm + 20}
+              width="100"
+              height="100"
+            />
+            <line
+              x1={layout.settings.marginMm + 20}
+              y1={layout.settings.marginMm + 130}
+              x2={layout.settings.marginMm + 120}
+              y2={layout.settings.marginMm + 130}
+            />
+            <text
+              x={layout.settings.marginMm + 20}
+              y={layout.settings.marginMm + 140}
+            >
+              100 mm
+            </text>
+          </g>
+        </svg>
+        <figcaption>교정 · 100%</figcaption>
+      </figure>
       {layout.tiles.length > visibleTiles.length && (
         <p className="print-preview-more">
-          외 {layout.tiles.length - visibleTiles.length}페이지
+          외 {layout.tiles.length - visibleTiles.length} 도면 페이지
         </p>
       )}
     </div>
