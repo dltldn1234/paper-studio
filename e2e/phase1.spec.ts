@@ -7,7 +7,7 @@ test('dimensions update the 2D net, 3D preview, and inspector together', async (
   await page.goto('/')
 
   await expect(
-    page.getByRole('img', { name: 'Three.js 직육면체 3D 미리보기' }),
+    page.getByRole('img', { name: '접힘 시뮬레이션 3D 미리보기' }),
   ).toBeVisible()
   await page.getByLabel('너비 (mm)', { exact: true }).fill('120')
 
@@ -92,6 +92,28 @@ test('selects a face from the 3D canvas and adapts to a narrow viewport', async 
     'scrollWidth',
     await page.locator('body').evaluate((element) => element.clientWidth),
   )
+})
+
+test('controls fold progress with the keyboard and playback buttons', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const progress = page.getByRole('slider', { name: '접힘 진행률' })
+  await progress.focus()
+  await page.keyboard.press('Home')
+  await expect(progress).toHaveValue('0')
+  await page.keyboard.press('ArrowRight')
+  await expect(progress).not.toHaveValue('0')
+
+  await page.getByRole('button', { name: '접힘 처음으로' }).click()
+  await expect(progress).toHaveValue('0')
+  await page.getByRole('button', { name: '접힘 재생' }).click()
+  await expect
+    .poll(async () => Number(await progress.inputValue()))
+    .toBeGreaterThan(0)
+  await page.getByRole('button', { name: '접힘 일시정지' }).click()
+  await page.getByLabel('재생 속도').selectOption('2')
+  await expect(page.getByLabel('재생 속도')).toHaveValue('2')
 })
 
 test('downloads an SVG using the requested filename', async ({ page }) => {
