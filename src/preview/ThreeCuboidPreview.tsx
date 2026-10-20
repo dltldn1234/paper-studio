@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { Cuboid, FaceId } from '../geometry'
@@ -43,6 +43,7 @@ export function ThreeCuboidPreview({
   const containerRef = useRef<HTMLDivElement>(null)
   const previewRef = useRef<PreviewScene | null>(null)
   const onFaceSelectRef = useRef(onFaceSelect)
+  const [webglUnavailable, setWebglUnavailable] = useState(false)
   const { widthMm, depthMm, heightMm } = cuboid.dimensions
 
   useEffect(() => {
@@ -57,7 +58,16 @@ export function ThreeCuboidPreview({
     scene.background = new THREE.Color('#151a23')
 
     const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100_000)
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
+    let renderer: THREE.WebGLRenderer
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
+    } catch {
+      const fallbackTimer = window.setTimeout(
+        () => setWebglUnavailable(true),
+        0,
+      )
+      return () => window.clearTimeout(fallbackTimer)
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.domElement.className = 'three-preview__canvas'
@@ -227,7 +237,14 @@ export function ThreeCuboidPreview({
 
   return (
     <section className="three-preview" aria-label="3D 미리보기 패널">
-      <div ref={containerRef} className="three-preview__viewport" />
+      {webglUnavailable ? (
+        <div className="preview-error" role="status">
+          이 브라우저에서는 WebGL을 사용할 수 없어 3D 미리보기를 표시하지
+          못합니다.
+        </div>
+      ) : (
+        <div ref={containerRef} className="three-preview__viewport" />
+      )}
       <span className="three-preview__hint">
         드래그하여 회전 · 스크롤하여 확대
       </span>
