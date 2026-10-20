@@ -65,4 +65,13 @@ describe('tiled print layout', () => {
   ])('rejects invalid print input %o', (bounds, settings) => {
     expect(() => computePrintLayout(bounds, settings)).toThrow(RangeError)
   })
+
+  it('rejects print jobs that would create an excessive number of pages', () => {
+    expect(() =>
+      computePrintLayout(
+        { x: 0, y: 0, width: 100_000, height: 100_000 },
+        a4Portrait,
+      ),
+    ).toThrow('500-page limit')
+  })
 })

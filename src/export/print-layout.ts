@@ -37,6 +37,8 @@ export type PrintLayout = {
   tiles: PrintTile[]
 }
 
+export const MAX_PRINT_PAGES = 500
+
 const PAPER_SIZES_MM: Record<PaperSize, { width: number; height: number }> = {
   A4: { width: 210, height: 297 },
   A3: { width: 297, height: 420 },
@@ -89,6 +91,11 @@ export function computePrintLayout(
 
   const columns = tileCount(bounds.width, printableWidthMm, overlapMm)
   const rows = tileCount(bounds.height, printableHeightMm, overlapMm)
+  if (columns * rows > MAX_PRINT_PAGES) {
+    throw new RangeError(
+      `Print layout exceeds the ${MAX_PRINT_PAGES}-page limit.`,
+    )
+  }
   const stepX = printableWidthMm - overlapMm
   const stepY = printableHeightMm - overlapMm
   const tiles: PrintTile[] = []
