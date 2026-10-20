@@ -6,6 +6,12 @@ export {
   validateCuboidDimensions,
 } from './cuboid'
 export {
+  analyzePolyhedron,
+  calculateFaceNormal,
+  POLYHEDRON_EPSILON,
+} from './polyhedron'
+export type { PolyhedronAnalysis, PolyhedronIssue } from './polyhedron'
+export {
   add2D,
   add3D,
   cross3D,
@@ -43,6 +49,10 @@ export type {
   NetLayout,
   Point2D,
   Point3D,
+  PolyhedronEdge,
+  PolyhedronFace,
+  PolyhedronMesh,
+  PolyhedronVertex,
   Polygon,
   ValidationIssue,
   ValidationResult,
