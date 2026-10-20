@@ -20,11 +20,16 @@ import { CuboidNetCanvas } from './canvas/CuboidNetCanvas'
 import {
   createCuboid,
   createCuboidNet,
+  DEFAULT_GLUE_TAB_OPTIONS,
+  MAX_GLUE_TAB_ANGLE_DEG,
+  MAX_GLUE_TAB_WIDTH_MM,
   MAX_DIMENSION_MM,
+  MIN_GLUE_TAB_ANGLE_DEG,
+  MIN_GLUE_TAB_WIDTH_MM,
   MIN_DIMENSION_MM,
   validateCuboidDimensions,
 } from './geometry'
-import type { CuboidDimensions, FaceId } from './geometry'
+import type { CuboidDimensions, FaceId, GlueTabOptions } from './geometry'
 
 const ThreeCuboidPreview = lazy(() =>
   import('./preview/ThreeCuboidPreview').then((module) => ({
@@ -65,12 +70,26 @@ function App() {
     Partial<Record<keyof CuboidDimensions, string>>
   >({})
   const [selectedFaceId, setSelectedFaceId] = useState<FaceId | null>('front')
+  const [glueTabOptions, setGlueTabOptions] = useState<GlueTabOptions>({
+    ...DEFAULT_GLUE_TAB_OPTIONS,
+    enabled: true,
+  })
+  const [glueTabDrafts, setGlueTabDrafts] = useState({
+    widthMm: '10',
+    angleDeg: '45',
+  })
+  const [glueTabErrors, setGlueTabErrors] = useState<
+    Partial<Record<'widthMm' | 'angleDeg', string>>
+  >({})
   const [sidebarWidth, setSidebarWidth] = useState(232)
   const [previewWidth, setPreviewWidth] = useState(410)
   const [resizeDrag, setResizeDrag] = useState<ResizeDrag | null>(null)
 
   const cuboid = useMemo(() => createCuboid(dimensions), [dimensions])
-  const netLayout = useMemo(() => createCuboidNet(dimensions), [dimensions])
+  const netLayout = useMemo(
+    () => createCuboidNet(dimensions, glueTabOptions),
+    [dimensions, glueTabOptions],
+  )
   const selectedFace = cuboid.faces.find((face) => face.id === selectedFaceId)
 
   useEffect(() => {
@@ -147,6 +166,28 @@ function App() {
         validation.issues.map((issue) => [issue.field, issue.message]),
       ),
     )
+  }
+
+  function updateGlueTabOption(field: 'widthMm' | 'angleDeg', value: string) {
+    setGlueTabDrafts((current) => ({ ...current, [field]: value }))
+    const numericValue = Number(value)
+    const minimum =
+      field === 'widthMm' ? MIN_GLUE_TAB_WIDTH_MM : MIN_GLUE_TAB_ANGLE_DEG
+    const maximum =
+      field === 'widthMm' ? MAX_GLUE_TAB_WIDTH_MM : MAX_GLUE_TAB_ANGLE_DEG
+    if (
+      !Number.isFinite(numericValue) ||
+      numericValue < minimum ||
+      numericValue > maximum
+    ) {
+      setGlueTabErrors((current) => ({
+        ...current,
+        [field]: `${minimum}–${maximum}${field === 'widthMm' ? ' mm' : '°'} 범위로 입력하세요.`,
+      }))
+      return
+    }
+    setGlueTabErrors((current) => ({ ...current, [field]: undefined }))
+    setGlueTabOptions((current) => ({ ...current, [field]: numericValue }))
   }
 
   const workspaceStyle = {
@@ -444,6 +485,101 @@ function App() {
                 </label>
               ))}
             </div>
+
+            <div className="inspector-section-title inspector-section-title--tabs">
+              <span>접착탭</span>
+              <label className="glue-tab-toggle">
+                <input
+                  type="checkbox"
+                  aria-label="접착탭 표시"
+                  checked={glueTabOptions.enabled}
+                  onChange={(event) =>
+                    setGlueTabOptions((current) => ({
+                      ...current,
+                      enabled: event.target.checked,
+                    }))
+                  }
+                />
+                표시
+              </label>
+            </div>
+            <div className="glue-tab-options">
+              <label className="dimension-field">
+                <span className="dimension-field__label">탭 너비</span>
+                <span
+                  className={`dimension-input-wrap${glueTabErrors.widthMm ? 'has-error' : ''}`}
+                >
+                  <input
+                    type="number"
+                    min={MIN_GLUE_TAB_WIDTH_MM}
+                    max={MAX_GLUE_TAB_WIDTH_MM}
+                    step="0.5"
+                    aria-label="접착탭 너비 (mm)"
+                    aria-invalid={Boolean(glueTabErrors.widthMm)}
+                    aria-describedby={
+                      glueTabErrors.widthMm ? 'glue-tab-width-error' : undefined
+                    }
+                    value={glueTabDrafts.widthMm}
+                    disabled={!glueTabOptions.enabled}
+                    onChange={(event) =>
+                      updateGlueTabOption('widthMm', event.target.value)
+                    }
+                  />
+                  <span>mm</span>
+                </span>
+                {glueTabErrors.widthMm && (
+                  <small
+                    id="glue-tab-width-error"
+                    className="dimension-error"
+                    role="alert"
+                  >
+                    {glueTabErrors.widthMm}
+                  </small>
+                )}
+              </label>
+              <label className="dimension-field">
+                <span className="dimension-field__label">경사각</span>
+                <span
+                  className={`dimension-input-wrap${glueTabErrors.angleDeg ? 'has-error' : ''}`}
+                >
+                  <input
+                    type="number"
+                    min={MIN_GLUE_TAB_ANGLE_DEG}
+                    max={MAX_GLUE_TAB_ANGLE_DEG}
+                    step="1"
+                    aria-label="접착탭 경사각 (도)"
+                    aria-invalid={Boolean(glueTabErrors.angleDeg)}
+                    aria-describedby={
+                      glueTabErrors.angleDeg
+                        ? 'glue-tab-angle-error'
+                        : undefined
+                    }
+                    value={glueTabDrafts.angleDeg}
+                    disabled={!glueTabOptions.enabled}
+                    onChange={(event) =>
+                      updateGlueTabOption('angleDeg', event.target.value)
+                    }
+                  />
+                  <span>°</span>
+                </span>
+                {glueTabErrors.angleDeg && (
+                  <small
+                    id="glue-tab-angle-error"
+                    className="dimension-error"
+                    role="alert"
+                  >
+                    {glueTabErrors.angleDeg}
+                  </small>
+                )}
+              </label>
+            </div>
+            {glueTabOptions.enabled &&
+              netLayout.tabInterferences.length > 0 && (
+                <p className="glue-tab-warning" role="status">
+                  접착탭이 서로 겹칩니다. 너비를 줄여주세요 (
+                  {netLayout.tabInterferences.length}곳)
+                </p>
+              )}
 
             <div className="inspector-section-title inspector-section-title--face">
               <span>선택한 면</span>

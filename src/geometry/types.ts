@@ -46,10 +46,12 @@ export type NetFace = {
   heightMm: number
   origin: Point2D
   polygon: Polygon
+  edgeNeighborIds: [FaceId, FaceId, FaceId, FaceId]
 }
 
 export type NetEdge = {
   id: string
+  hostFaceId: FaceId
   start: Point2D
   end: Point2D
   kind: 'cut' | 'fold'
@@ -63,9 +65,30 @@ export type NetBounds = {
   height: number
 }
 
+export type GlueTab = {
+  id: string
+  edgeId: string
+  faceId: FaceId
+  polygon: Polygon
+  widthMm: number
+  angleDeg: number
+}
+
+export type GlueTabOptions = {
+  enabled: boolean
+  widthMm: number
+  angleDeg: number
+}
+
+export type GlueTabInterference =
+  | { kind: 'tab-tab'; firstTabId: string; secondTabId: string }
+  | { kind: 'tab-face'; tabId: string; faceId: FaceId }
+
 export type NetLayout = {
   faces: NetFace[]
   edges: NetEdge[]
+  glueTabs: GlueTab[]
+  tabInterferences: GlueTabInterference[]
   bounds: NetBounds
 }
 

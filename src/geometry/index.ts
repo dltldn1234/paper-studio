@@ -19,12 +19,24 @@ export {
   subtract2D,
   subtract3D,
 } from './vectors'
+export {
+  DEFAULT_GLUE_TAB_OPTIONS,
+  findGlueTabInterferences,
+  generateGlueTabs,
+  MAX_GLUE_TAB_ANGLE_DEG,
+  MAX_GLUE_TAB_WIDTH_MM,
+  MIN_GLUE_TAB_ANGLE_DEG,
+  MIN_GLUE_TAB_WIDTH_MM,
+} from './glue-tabs'
 export type {
   Cuboid,
   CuboidDimensions,
   Edge,
   Face,
   FaceId,
+  GlueTab,
+  GlueTabInterference,
+  GlueTabOptions,
   NetBounds,
   NetEdge,
   NetFace,

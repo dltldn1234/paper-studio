@@ -12,6 +12,7 @@ import type {
   ValidationResult,
   Vector3D,
 } from './types'
+import { generateGlueTabs } from './glue-tabs'
 
 export const MIN_DIMENSION_MM = 0.1
 export const MAX_DIMENSION_MM = 10_000
@@ -182,21 +183,65 @@ function createNetFaces({
     y: number
     widthMm: number
     heightMm: number
+    edgeNeighborIds: [FaceId, FaceId, FaceId, FaceId]
   }[] = [
-    { id: 'front', x: d, y: d, widthMm: w, heightMm: h },
-    { id: 'right', x: d + w, y: d, widthMm: d, heightMm: h },
-    { id: 'back', x: 2 * d + w, y: d, widthMm: w, heightMm: h },
-    { id: 'left', x: 0, y: d, widthMm: d, heightMm: h },
-    { id: 'top', x: d, y: 0, widthMm: w, heightMm: d },
-    { id: 'bottom', x: d, y: d + h, widthMm: w, heightMm: d },
+    {
+      id: 'front',
+      x: d,
+      y: d,
+      widthMm: w,
+      heightMm: h,
+      edgeNeighborIds: ['top', 'right', 'bottom', 'left'],
+    },
+    {
+      id: 'right',
+      x: d + w,
+      y: d,
+      widthMm: d,
+      heightMm: h,
+      edgeNeighborIds: ['top', 'back', 'bottom', 'front'],
+    },
+    {
+      id: 'back',
+      x: 2 * d + w,
+      y: d,
+      widthMm: w,
+      heightMm: h,
+      edgeNeighborIds: ['top', 'left', 'bottom', 'right'],
+    },
+    {
+      id: 'left',
+      x: 0,
+      y: d,
+      widthMm: d,
+      heightMm: h,
+      edgeNeighborIds: ['top', 'front', 'bottom', 'back'],
+    },
+    {
+      id: 'top',
+      x: d,
+      y: 0,
+      widthMm: w,
+      heightMm: d,
+      edgeNeighborIds: ['back', 'right', 'front', 'left'],
+    },
+    {
+      id: 'bottom',
+      x: d,
+      y: d + h,
+      widthMm: w,
+      heightMm: d,
+      edgeNeighborIds: ['front', 'right', 'back', 'left'],
+    },
   ]
 
-  return placements.map(({ id, x, y, widthMm, heightMm }) => ({
+  return placements.map(({ id, x, y, widthMm, heightMm, edgeNeighborIds }) => ({
     id,
     label: faceLabels[id],
     widthMm,
     heightMm,
     origin: { x, y },
+    edgeNeighborIds,
     polygon: {
       vertices: [
         { x, y },
@@ -218,15 +263,15 @@ function createNetEdges(faces: NetFace[]): NetEdge[] {
       const key = edgeKey(point2Key(start), point2Key(end))
       const existing = edges.get(key)
       if (existing) {
-        existing.adjacentFaceIds.push(face.id)
         existing.kind = 'fold'
       } else {
         edges.set(key, {
           id: `net-edge-${edges.size + 1}`,
+          hostFaceId: face.id,
           start,
           end,
           kind: 'cut',
-          adjacentFaceIds: [face.id],
+          adjacentFaceIds: [face.id, face.edgeNeighborIds[index]],
         })
       }
     })
@@ -235,7 +280,10 @@ function createNetEdges(faces: NetFace[]): NetEdge[] {
   return [...edges.values()]
 }
 
-export function createCuboidNet(dimensions: CuboidDimensions): NetLayout {
+export function createCuboidNet(
+  dimensions: CuboidDimensions,
+  tabOptions?: import('./types').GlueTabOptions,
+): NetLayout {
   const validation = validateCuboidDimensions(dimensions)
   if (!validation.valid) {
     throw new RangeError(
@@ -246,14 +294,22 @@ export function createCuboidNet(dimensions: CuboidDimensions): NetLayout {
   }
 
   const faces = createNetFaces(dimensions)
-  const minX = Math.min(...faces.map((face) => face.origin.x))
-  const minY = Math.min(...faces.map((face) => face.origin.y))
-  const maxX = Math.max(...faces.map((face) => face.origin.x + face.widthMm))
-  const maxY = Math.max(...faces.map((face) => face.origin.y + face.heightMm))
+  const edges = createNetEdges(faces)
+  const { tabs, interferences } = generateGlueTabs(edges, tabOptions, faces)
+  const points = [
+    ...faces.flatMap((face) => face.polygon.vertices),
+    ...tabs.flatMap((tab) => tab.polygon.vertices),
+  ]
+  const minX = Math.min(...points.map((point) => point.x))
+  const minY = Math.min(...points.map((point) => point.y))
+  const maxX = Math.max(...points.map((point) => point.x))
+  const maxY = Math.max(...points.map((point) => point.y))
 
   return {
     faces,
-    edges: createNetEdges(faces),
+    edges,
+    glueTabs: tabs,
+    tabInterferences: interferences,
     bounds: { x: minX, y: minY, width: maxX - minX, height: maxY - minY },
   }
 }

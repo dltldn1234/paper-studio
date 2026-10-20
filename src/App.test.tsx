@@ -105,4 +105,29 @@ describe('Paper Studio editor', () => {
 
     expect(sidebarSplitter).toHaveAttribute('aria-valuenow', '244')
   })
+
+  it('shows configurable glue tabs and rejects out-of-range options', () => {
+    render(<App />)
+    expect(document.querySelectorAll('[data-tab-id]')).toHaveLength(7)
+    const firstTab = document.querySelector('[data-tab-id]')
+    const initialTabPoints = firstTab?.getAttribute('points')
+
+    fireEvent.change(
+      screen.getByRole('spinbutton', { name: '접착탭 너비 (mm)' }),
+      {
+        target: { value: '12' },
+      },
+    )
+    expect(firstTab?.getAttribute('points')).not.toBe(initialTabPoints)
+
+    const angleInput = screen.getByRole('spinbutton', {
+      name: '접착탭 경사각 (도)',
+    })
+    fireEvent.change(angleInput, { target: { value: '90' } })
+    expect(angleInput).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('alert')).toHaveTextContent('15–75°')
+
+    fireEvent.click(screen.getByRole('checkbox', { name: '접착탭 표시' }))
+    expect(document.querySelectorAll('[data-tab-id]')).toHaveLength(0)
+  })
 })
