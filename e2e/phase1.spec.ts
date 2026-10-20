@@ -106,3 +106,31 @@ test('downloads an SVG using the requested filename', async ({ page }) => {
   expect(download.suggestedFilename()).toBe('assembly-pattern.svg')
   await expect(dialog).toHaveCount(0)
 })
+
+test('previews and downloads a paginated PDF at the selected paper size', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '내보내기' }).click()
+  const dialog = page.getByRole('dialog', { name: '도면 내보내기' })
+  await dialog.getByLabel('파일 형식').selectOption('pdf')
+  await dialog.getByLabel('PDF 파일 이름').fill('assembly')
+
+  await expect(dialog.getByRole('status')).toContainText('2페이지')
+  await expect(
+    dialog.getByRole('img', { name: /PDF 1페이지 미리보기/ }),
+  ).toBeVisible()
+  await page.screenshot({
+    path: 'test-results/phase2-pdf-preview.png',
+    fullPage: true,
+  })
+  await dialog.getByLabel('PDF 용지 크기').selectOption('A3')
+  await dialog.getByLabel('PDF 방향').selectOption('landscape')
+  await expect(dialog.getByRole('status')).toContainText('1페이지')
+
+  const downloadPromise = page.waitForEvent('download')
+  await dialog.getByRole('button', { name: 'PDF 다운로드' }).click()
+  const download = await downloadPromise
+  expect(download.suggestedFilename()).toBe('assembly.pdf')
+  await expect(dialog).toHaveCount(0)
+})
