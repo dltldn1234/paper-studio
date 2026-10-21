@@ -33,12 +33,18 @@ export type UnfoldingOptions = {
   rootFaceId?: string
   maxCandidates?: number
   toleranceMm?: number
+  /** Use this exact set of shared edges instead of searching for a tree. */
+  foldEdgeIds?: string[]
 }
 export type UnfoldingResult =
   | { success: true; layout: UnfoldedNet; candidatesTried: number }
   | {
       success: false
-      reason: 'invalid-mesh' | 'no-non-overlapping-net' | 'search-limit'
+      reason:
+        | 'invalid-mesh'
+        | 'invalid-fold-tree'
+        | 'no-non-overlapping-net'
+        | 'search-limit'
       issues: string[]
       candidatesTried: number
       collisions: Array<{ firstFaceId: string; secondFaceId: string }>
@@ -393,6 +399,78 @@ export function unfoldPolyhedron(
   const edgeMap = new Map<string, Edge>()
   for (const edge of analysis.edges) {
     edgeMap.set(edge.id, edge)
+  }
+
+  if (options.foldEdgeIds) {
+    const requested = options.foldEdgeIds
+    const uniqueIds = new Set(requested)
+    const invalidIds = requested.filter((id) => {
+      const edge = edgeMap.get(id)
+      return !edge || edge.adjacentFaceIds.length !== 2
+    })
+    const issues: string[] = []
+    if (uniqueIds.size !== requested.length) issues.push('duplicate-fold-edge')
+    if (invalidIds.length) issues.push('unknown-or-boundary-fold-edge')
+    if (requested.length !== mesh.faces.length - 1) {
+      issues.push('fold-edge-count-must-equal-face-count-minus-one')
+    }
+    if (issues.length) {
+      return {
+        success: false,
+        reason: 'invalid-fold-tree',
+        issues,
+        candidatesTried: 0,
+        collisions: [],
+      }
+    }
+
+    const adjacency = new Map<string, ParentLink[]>()
+    for (const edgeId of requested) {
+      const edge = edgeMap.get(edgeId)!
+      const [firstFaceId, secondFaceId] = edge.adjacentFaceIds
+      adjacency.set(firstFaceId, [
+        ...(adjacency.get(firstFaceId) ?? []),
+        { edgeId, parentFaceId: firstFaceId, childFaceId: secondFaceId },
+      ])
+      adjacency.set(secondFaceId, [
+        ...(adjacency.get(secondFaceId) ?? []),
+        { edgeId, parentFaceId: secondFaceId, childFaceId: firstFaceId },
+      ])
+    }
+    const reached = new Set([rootId])
+    const links: ParentLink[] = []
+    const queue = [rootId]
+    while (queue.length) {
+      const parentFaceId = queue.shift()!
+      for (const link of adjacency.get(parentFaceId) ?? []) {
+        if (reached.has(link.childFaceId)) continue
+        reached.add(link.childFaceId)
+        links.push(link)
+        queue.push(link.childFaceId)
+      }
+    }
+    if (reached.size !== mesh.faces.length) {
+      return {
+        success: false,
+        reason: 'invalid-fold-tree',
+        issues: ['fold-edges-do-not-connect-all-faces'],
+        candidatesTried: 0,
+        collisions: [],
+      }
+    }
+    const attempt = unfoldTree(mesh, edgeMap, faceMap, rootId, links, tolerance)
+    if (attempt.layout) {
+      return { success: true, layout: attempt.layout, candidatesTried: 1 }
+    }
+    return {
+      success: false,
+      reason: 'no-non-overlapping-net',
+      issues: attempt.collisions.length
+        ? ['selected-fold-tree-overlaps']
+        : ['selected-fold-tree-could-not-be-unfolded'],
+      candidatesTried: 1,
+      collisions: attempt.collisions,
+    }
   }
 
   let candidatesTried = 0

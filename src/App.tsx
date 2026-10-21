@@ -1,4 +1,12 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import type {
   CSSProperties,
   FormEvent,
@@ -114,6 +122,18 @@ function App() {
     Partial<Record<keyof CuboidDimensions, string>>
   >({})
   const [selectedFaceId, setSelectedFaceId] = useState<string | null>('front')
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+  const [customFoldEdgeIds, setCustomFoldEdgeIds] = useState<string[] | null>(
+    null,
+  )
+  const [draftFoldEdgeIds, setDraftFoldEdgeIds] = useState<string[] | null>(
+    null,
+  )
+  const [foldTreeError, setFoldTreeError] = useState('')
+  const [foldTreeHistory, setFoldTreeHistory] = useState<
+    Array<string[] | null>
+  >([])
+  const [foldTreeHistoryIndex, setFoldTreeHistoryIndex] = useState(-1)
   const [foldProgress, setFoldProgress] = useState(1)
   const foldProgressRef = useRef(1)
   const [foldPlaying, setFoldPlaying] = useState(false)
@@ -158,8 +178,14 @@ function App() {
     [edgeLengthMm, solidKind],
   )
   const genericUnfolding = useMemo(
-    () => (genericMesh ? unfoldPolyhedron(genericMesh) : null),
-    [genericMesh],
+    () =>
+      genericMesh
+        ? unfoldPolyhedron(
+            genericMesh,
+            customFoldEdgeIds ? { foldEdgeIds: customFoldEdgeIds } : {},
+          )
+        : null,
+    [customFoldEdgeIds, genericMesh],
   )
   const genericFoldGraph = useMemo(() => {
     if (!genericMesh || !genericUnfolding?.success) return null
@@ -208,6 +234,12 @@ function App() {
   const selectedGenericFace = genericUnfolding?.success
     ? genericUnfolding.layout.faces.find((face) => face.id === selectedFaceId)
     : undefined
+  const selectedGenericEdge = genericUnfolding?.success
+    ? genericUnfolding.layout.edges.find((edge) => edge.id === selectedEdgeId)
+    : undefined
+  const displayedFoldEdgeIds =
+    draftFoldEdgeIds ??
+    (genericUnfolding?.success ? genericUnfolding.layout.foldEdgeIds : [])
   const solidLabel =
     solidKind === 'cuboid'
       ? '직육면체'
@@ -338,6 +370,114 @@ function App() {
     setEdgeLengthError('')
     setEdgeLengthMm(numeric)
   }
+
+  function commitFoldTree(nextFoldEdgeIds: string[] | null) {
+    const prefix =
+      foldTreeHistoryIndex >= 0
+        ? foldTreeHistory.slice(0, foldTreeHistoryIndex + 1)
+        : [customFoldEdgeIds]
+    const nextHistory = [...prefix, nextFoldEdgeIds]
+    setFoldTreeHistory(nextHistory)
+    setFoldTreeHistoryIndex(nextHistory.length - 1)
+    setCustomFoldEdgeIds(nextFoldEdgeIds)
+    setDraftFoldEdgeIds(null)
+    setFoldTreeError('')
+    foldProgressRef.current = 0
+    setFoldProgress(0)
+  }
+
+  function toggleFoldEdge(edgeId: string) {
+    if (!genericMesh || !genericUnfolding?.success) return
+    const current =
+      draftFoldEdgeIds ??
+      customFoldEdgeIds ??
+      genericUnfolding.layout.foldEdgeIds
+    const candidate = current.includes(edgeId)
+      ? current.filter((id) => id !== edgeId)
+      : [...current, edgeId]
+    setSelectedEdgeId(edgeId)
+    setDraftFoldEdgeIds(candidate)
+    const requiredFoldCount = genericMesh.faces.length - 1
+    if (candidate.length !== requiredFoldCount) {
+      setFoldTreeError(
+        `전개 트리를 검사하려면 접힘선을 ${requiredFoldCount}개 선택해야 합니다. 현재 ${candidate.length}개입니다.`,
+      )
+      return
+    }
+    const result = unfoldPolyhedron(genericMesh, {
+      foldEdgeIds: candidate,
+    })
+    if (!result.success) {
+      const messages: Record<string, string> = {
+        'duplicate-fold-edge': '같은 모서리가 접힘선에 중복되었습니다.',
+        'unknown-or-boundary-fold-edge':
+          '접힘선은 두 면을 공유하는 유효한 모서리여야 합니다.',
+        'fold-edge-count-must-equal-face-count-minus-one':
+          '접힘선 수가 면 수에 맞지 않습니다.',
+        'fold-edges-do-not-connect-all-faces':
+          '접힘선 그래프가 모든 면을 연결하지 않습니다.',
+        'selected-fold-tree-overlaps': `선택한 전개 트리에서 ${result.collisions.length}쌍의 면이 겹칩니다.`,
+        'selected-fold-tree-could-not-be-unfolded':
+          '선택한 전개 트리를 평면에 배치할 수 없습니다.',
+      }
+      setFoldTreeError(
+        result.issues.map((issue) => messages[issue] ?? issue).join(' '),
+      )
+      return
+    }
+    commitFoldTree(candidate)
+  }
+
+  const restoreFoldTreeAt = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= foldTreeHistory.length) return
+      setFoldTreeHistoryIndex(index)
+      setCustomFoldEdgeIds(foldTreeHistory[index])
+      setDraftFoldEdgeIds(null)
+      setFoldTreeError('')
+      foldProgressRef.current = 0
+      setFoldProgress(0)
+    },
+    [foldTreeHistory],
+  )
+
+  const undoFoldTree = useCallback(() => {
+    if (foldTreeHistoryIndex > 0) {
+      restoreFoldTreeAt(foldTreeHistoryIndex - 1)
+    }
+  }, [foldTreeHistoryIndex, restoreFoldTreeAt])
+
+  const redoFoldTree = useCallback(() => {
+    if (foldTreeHistoryIndex >= 0) {
+      restoreFoldTreeAt(foldTreeHistoryIndex + 1)
+    }
+  }, [foldTreeHistoryIndex, restoreFoldTreeAt])
+
+  function resetFoldTree() {
+    if (!genericMesh || !genericUnfolding?.success) return
+    if (customFoldEdgeIds === null && draftFoldEdgeIds === null) return
+    commitFoldTree(null)
+  }
+
+  useEffect(() => {
+    function handleHistoryShortcut(event: KeyboardEvent) {
+      if (solidKind === 'cuboid' || !(event.metaKey || event.ctrlKey)) return
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      ) {
+        return
+      }
+      if (event.key.toLowerCase() !== 'z') return
+      event.preventDefault()
+      if (event.shiftKey) redoFoldTree()
+      else undoFoldTree()
+    }
+    window.addEventListener('keydown', handleHistoryShortcut)
+    return () => window.removeEventListener('keydown', handleHistoryShortcut)
+  }, [redoFoldTree, solidKind, undoFoldTree])
 
   function updateGlueTabOption(field: 'widthMm' | 'angleDeg', value: string) {
     setGlueTabDrafts((current) => ({ ...current, [field]: value }))
@@ -526,6 +666,12 @@ function App() {
                 const nextKind = event.target.value as
                   'cuboid' | RegularPolyhedronKind
                 setSolidKind(nextKind)
+                setSelectedEdgeId(null)
+                setCustomFoldEdgeIds(null)
+                setDraftFoldEdgeIds(null)
+                setFoldTreeError('')
+                setFoldTreeHistory([])
+                setFoldTreeHistoryIndex(-1)
                 setSelectedFaceId(
                   nextKind === 'cuboid'
                     ? 'front'
@@ -616,8 +762,26 @@ function App() {
               <span className="subtle-label">
                 {solidKind === 'cuboid' ? 'A4 · 세로' : '1:1 · mm'}
               </span>
+              {solidKind !== 'cuboid' && (
+                <span className="subtle-label net-edit-hint">
+                  모서리를 선택해 재단선/접힘선 전환 · Ctrl+Z 취소
+                </span>
+              )}
             </div>
             <div className="panel-toolbar__actions">
+              {selectedGenericEdge && (
+                <span className="net-selected-edge" aria-live="polite">
+                  {displayedFoldEdgeIds.includes(selectedGenericEdge.id)
+                    ? '접힘선'
+                    : '재단선'}{' '}
+                  ·{' '}
+                  {Math.hypot(
+                    selectedGenericEdge.end.x - selectedGenericEdge.start.x,
+                    selectedGenericEdge.end.y - selectedGenericEdge.start.y,
+                  ).toFixed(1)}{' '}
+                  mm
+                </span>
+              )}
               <span className="legend-item">
                 <i className="legend-line legend-line--cut" /> 재단선
               </span>
@@ -638,6 +802,17 @@ function App() {
                 layout={genericUnfolding.layout}
                 selectedFaceId={selectedFaceId}
                 onFaceSelect={setSelectedFaceId}
+                foldEdgeIds={displayedFoldEdgeIds}
+                selectedEdgeId={selectedEdgeId}
+                onEdgeToggle={toggleFoldEdge}
+                onUndo={undoFoldTree}
+                onRedo={redoFoldTree}
+                onReset={resetFoldTree}
+                canUndo={foldTreeHistoryIndex > 0}
+                canRedo={
+                  foldTreeHistoryIndex >= 0 &&
+                  foldTreeHistoryIndex < foldTreeHistory.length - 1
+                }
               />
             ) : (
               <div className="preview-error" role="alert">
@@ -645,6 +820,11 @@ function App() {
               </div>
             )}
           </div>
+          {solidKind !== 'cuboid' && foldTreeError && (
+            <p className="net-edit-error" role="alert">
+              {foldTreeError}
+            </p>
+          )}
         </section>
 
         <div

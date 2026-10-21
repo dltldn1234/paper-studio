@@ -116,3 +116,66 @@ it('rejects an invalid candidate search budget', () => {
     expect(result.issues).toContain('invalid-search-options')
   }
 })
+
+it('unfolds an explicitly selected spanning tree without changing its hinges', () => {
+  const mesh = createRegularCube(40)
+  const automatic = unfoldPolyhedron(mesh)
+  expect(automatic.success).toBe(true)
+  if (!automatic.success) return
+
+  const selected = unfoldPolyhedron(mesh, {
+    foldEdgeIds: automatic.layout.foldEdgeIds,
+  })
+  expect(selected.success).toBe(true)
+  if (selected.success) {
+    expect(selected.layout.foldEdgeIds).toEqual(automatic.layout.foldEdgeIds)
+    expect(selected.layout.faces).toHaveLength(mesh.faces.length)
+  }
+})
+
+it('rejects incomplete, duplicate, and disconnected selected fold graphs', () => {
+  const mesh = createRegularCube(40)
+  const automatic = unfoldPolyhedron(mesh)
+  expect(automatic.success).toBe(true)
+  if (!automatic.success) return
+
+  const foldIds = automatic.layout.foldEdgeIds
+  const incomplete = unfoldPolyhedron(mesh, {
+    foldEdgeIds: foldIds.slice(1),
+  })
+  expect(incomplete).toMatchObject({
+    success: false,
+    reason: 'invalid-fold-tree',
+    issues: expect.arrayContaining([
+      'fold-edge-count-must-equal-face-count-minus-one',
+    ]),
+  })
+
+  const duplicate = unfoldPolyhedron(mesh, {
+    foldEdgeIds: [...foldIds.slice(1), foldIds[0], foldIds[0]],
+  })
+  expect(duplicate).toMatchObject({
+    success: false,
+    reason: 'invalid-fold-tree',
+    issues: expect.arrayContaining(['duplicate-fold-edge']),
+  })
+
+  const analysis = analyzePolyhedron(mesh)
+  const cutIds = analysis.edges
+    .filter((edge) => !foldIds.includes(edge.id))
+    .map((edge) => edge.id)
+  const disconnected = foldIds.flatMap((removedId) =>
+    cutIds.map((addedId) =>
+      unfoldPolyhedron(mesh, {
+        foldEdgeIds: [...foldIds.filter((id) => id !== removedId), addedId],
+      }),
+    ),
+  )
+  expect(
+    disconnected.some(
+      (result) =>
+        !result.success &&
+        result.issues.includes('fold-edges-do-not-connect-all-faces'),
+    ),
+  ).toBe(true)
+})
