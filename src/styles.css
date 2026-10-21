@@ -1089,6 +1089,45 @@ button:disabled {
   color: #aab4c3;
   font-size: 10px;
 }
+.print-calibration-editor {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #2c394d;
+  border-radius: 8px;
+  background: #111a27;
+}
+.print-calibration-editor > div,
+.print-calibration-editor label {
+  display: grid;
+  gap: 5px;
+  color: #d8e0eb;
+  font-size: 10px;
+}
+.print-calibration-editor > div {
+  grid-column: 1 / -1;
+}
+.print-calibration-editor > div span,
+.print-calibration-editor label span {
+  color: #98a7bb;
+  font-size: 9px;
+}
+.print-calibration-editor input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #35435a;
+  border-radius: 5px;
+  color: #e5edf7;
+  background: #0e1622;
+}
+.print-calibration-editor [data-calibration-status='within-tolerance'] {
+  color: #74d4a0;
+}
+.print-calibration-editor [data-calibration-status='adjust-print-scale'] {
+  color: #f2b564;
+}
 .export-dialog__field input:focus-visible {
   border-color: #78a6ff;
   box-shadow: 0 0 0 2px rgb(120 166 255 / 18%);

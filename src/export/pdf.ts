@@ -456,25 +456,27 @@ export async function createTiledPdf(
     borderColor: blue,
     borderWidth: 0.6,
   })
-  calibrationPage.drawLine({
-    start: {
-      x: calibration.line.x1 * PDF_POINTS_PER_MM,
-      y: calibration.line.y * PDF_POINTS_PER_MM,
-    },
-    end: {
-      x: calibration.line.x2 * PDF_POINTS_PER_MM,
-      y: calibration.line.y * PDF_POINTS_PER_MM,
-    },
-    thickness: 0.8,
-    color: blue,
-  })
-  calibrationPage.drawText('100 mm line', {
-    x: calibration.label.x * PDF_POINTS_PER_MM,
-    y: calibration.label.y * PDF_POINTS_PER_MM,
-    size: 8,
-    font,
-    color: blue,
-  })
+  for (const reference of calibration.lines) {
+    calibrationPage.drawLine({
+      start: {
+        x: reference.x1 * PDF_POINTS_PER_MM,
+        y: reference.y * PDF_POINTS_PER_MM,
+      },
+      end: {
+        x: reference.x2 * PDF_POINTS_PER_MM,
+        y: reference.y * PDF_POINTS_PER_MM,
+      },
+      thickness: 0.8,
+      color: blue,
+    })
+    calibrationPage.drawText(`${reference.lengthMm} mm line`, {
+      x: reference.x1 * PDF_POINTS_PER_MM,
+      y: reference.labelY * PDF_POINTS_PER_MM,
+      size: 8,
+      font,
+      color: blue,
+    })
+  }
   calibrationPage.drawText(
     'Print at Actual Size / 100%. Turn off Fit or Shrink. Measure the line and square before cutting.',
     {

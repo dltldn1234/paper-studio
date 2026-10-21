@@ -43,6 +43,35 @@ test('loads a local face texture and captures its editor state', async ({
   })
 })
 
+test('records measured print calibration locally without implying physical verification', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1200 })
+  await page.goto('/')
+  await page.getByRole('button', { name: '내보내기' }).click()
+  await page.getByLabel('파일 형식').selectOption('pdf')
+  await expect(page.getByText('미측정 · 물리 출력 미검증')).toHaveCount(3)
+  await page.getByLabel('A4 100 mm 실측값').fill('98')
+  await expect(
+    page.getByText(/인쇄 배율 조정 권장 · 배율 98.00%/),
+  ).toBeVisible()
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        localStorage.getItem('paper-studio.print-calibration.v1'),
+      ),
+    )
+    .toContain('98')
+  await page.screenshot({
+    path: '/tmp/paper-studio-phase7-calibration.png',
+    fullPage: true,
+  })
+  await page.reload()
+  await page.getByRole('button', { name: '내보내기' }).click()
+  await page.getByLabel('파일 형식').selectOption('pdf')
+  await expect(page.getByLabel('A4 100 mm 실측값')).toHaveValue('98')
+})
+
 test('exports a local WebP face texture to PDF in the browser', async ({
   page,
 }) => {
