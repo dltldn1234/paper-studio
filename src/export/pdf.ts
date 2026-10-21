@@ -531,7 +531,8 @@ export async function createTiledPdf(
       layout.printableWidthMm - 20 ||
       calibration.square.sizeMm * options.calibration.yScale >
         layout.printableHeightMm - 20 ||
-      150 * options.calibration.xScale > layout.printableWidthMm - 20)
+      150 * options.calibration.xScale > layout.printableWidthMm - 20 ||
+      150 * options.calibration.yScale > layout.printableHeightMm - 20)
   ) {
     throw new Error(
       'The selected correction makes the calibration marks exceed the printable page area. Use a smaller correction or a larger paper size.',
@@ -579,6 +580,26 @@ export async function createTiledPdf(
     })
     calibrationPage.drawText(`${reference.lengthMm} mm line`, {
       x: mmToPdfPoints(reference.x1),
+      y: mmToPdfPoints(reference.labelY),
+      size: 8,
+      font,
+      color: blue,
+    })
+  }
+  for (const reference of calibration.verticalLines) {
+    const x = mmToPdfPoints(reference.x)
+    const y1 = mmToPdfPoints(reference.y1)
+    const y2 = mmToPdfPoints(
+      reference.y1 + reference.lengthMm * (options.calibration?.yScale ?? 1),
+    )
+    calibrationPage.drawLine({
+      start: { x, y: y1 },
+      end: { x, y: y2 },
+      thickness: 0.8,
+      color: blue,
+    })
+    calibrationPage.drawText(`${reference.lengthMm} mm Y`, {
+      x: mmToPdfPoints(reference.labelX),
       y: mmToPdfPoints(reference.labelY),
       size: 8,
       font,

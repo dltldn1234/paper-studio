@@ -31,6 +31,14 @@ export type PdfCalibrationGuide = {
     labelY: number
     lengthMm: CalibrationReferenceLength
   }>
+  verticalLines: Array<{
+    x: number
+    y1: number
+    y2: number
+    labelX: number
+    labelY: number
+    lengthMm: CalibrationReferenceLength
+  }>
 }
 
 export function calculateCalibrationResult(
@@ -80,7 +88,8 @@ export function createPdfCalibrationGuide(
   if (
     x + 150 > pageWidthMm - marginMm ||
     lowestLineY - 7 < marginMm ||
-    y + sizeMm > pageHeightMm - marginMm
+    y + sizeMm > pageHeightMm - marginMm ||
+    marginMm + 20 + 150 > pageHeightMm - marginMm
   ) {
     throw new RangeError(
       'Calibration marks do not fit inside the printable page area.',
@@ -95,6 +104,18 @@ export function createPdfCalibrationGuide(
         x2: x + lengthMm,
         y: lineY,
         labelY: lineY - 4,
+        lengthMm,
+      }
+    }),
+    verticalLines: CALIBRATION_REFERENCE_LENGTHS.map((lengthMm) => {
+      const x = pageWidthMm - marginMm - 20
+      const y1 = marginMm + 20
+      return {
+        x,
+        y1,
+        y2: y1 + lengthMm,
+        labelX: x - 28,
+        labelY: y1 - 4,
         lengthMm,
       }
     }),
