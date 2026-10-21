@@ -20,8 +20,10 @@ import type { PrintLayout, PrintSettings, PrintTile } from './print-layout'
 import { computePrintLayout } from './print-layout'
 import type { FaceMaterial } from '../materials/materials'
 import { preparePdfTexture } from './pdf-texture'
+import { PDF_POINTS_PER_MM } from './pdf-units'
+import { runPrintPreflight } from './preflight'
 
-export const PDF_POINTS_PER_MM = 72 / 25.4
+export { PDF_POINTS_PER_MM } from './pdf-units'
 
 type Rect = { x: number; y: number; width: number; height: number }
 
@@ -362,6 +364,13 @@ export async function createTiledPdf(
       ? (net as PrintableNet)
       : createPrintableNet(net as NetLayout | UnfoldedNet)
   const layout = createPrintLayout(printable, settings)
+  const preflight = runPrintPreflight(printable, layout, options.faceMaterials)
+  if (preflight.hasErrors) {
+    const errors = preflight.issues
+      .filter(({ severity }) => severity === 'error')
+      .map(({ message }) => message)
+    throw new Error(`Print preflight failed: ${errors.join(' ')}`)
+  }
   const pdf = await PDFDocument.create()
   pdf.setTitle(title)
   pdf.setCreator('Paper Studio')

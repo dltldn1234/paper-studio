@@ -81,6 +81,7 @@ import {
 } from './export/print-layout'
 import { PrintPagePreviews } from './export/PrintPagePreviews'
 import { createPrintableNet } from './export/printable-net'
+import { runPrintPreflight } from './export/preflight'
 import {
   CALIBRATION_REFERENCE_LENGTHS,
   calculateCalibrationResult,
@@ -329,6 +330,17 @@ function App() {
       }
     }
   }, [printableNet, printSettings])
+  const preflightReport = useMemo(
+    () =>
+      printLayoutResult.layout
+        ? runPrintPreflight(
+            printableNet,
+            printLayoutResult.layout,
+            faceMaterials,
+          )
+        : null,
+    [faceMaterials, printableNet, printLayoutResult.layout],
+  )
   const selectedFace = cuboid.faces.find((face) => face.id === selectedFaceId)
   const selectedGenericFace = genericUnfolding?.success
     ? genericUnfolding.layout.faces.find((face) => face.id === selectedFaceId)
@@ -2084,6 +2096,31 @@ function App() {
                     {printLayoutResult.error}
                   </p>
                 )}
+                {preflightReport && (
+                  <section
+                    className="print-preflight"
+                    aria-label="PDF 사전 검사 결과"
+                  >
+                    <strong>
+                      PDF 사전 검사 · {preflightReport.pageCount}페이지
+                    </strong>
+                    <ul>
+                      {preflightReport.issues.map((issue, index) => (
+                        <li key={`${issue.code}-${issue.itemId ?? index}`}>
+                          <span data-preflight-severity={issue.severity}>
+                            {issue.severity === 'error'
+                              ? '오류'
+                              : issue.severity === 'warning'
+                                ? '경고'
+                                : '정보'}
+                          </span>
+                          {' · '}
+                          {issue.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
                 <section
                   className="print-calibration-editor"
                   aria-label="인쇄 배율 교정"
@@ -2172,6 +2209,8 @@ function App() {
                 disabled={
                   exportBusy ||
                   (exportFormat === 'pdf' && !printLayoutResult.layout) ||
+                  (exportFormat === 'pdf' &&
+                    Boolean(preflightReport?.hasErrors)) ||
                   (exportFormat === 'guide-pdf' && !assemblyGuide)
                 }
               >
