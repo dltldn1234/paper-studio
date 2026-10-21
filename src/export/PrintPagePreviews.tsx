@@ -1,8 +1,8 @@
-import type { NetLayout } from '../geometry'
+import type { PrintableNet } from './printable-net'
 import type { PrintLayout, PrintTile } from './print-layout'
 
 type PrintPagePreviewsProps = {
-  net: NetLayout
+  net: PrintableNet
   layout: PrintLayout
   maxVisiblePages?: number
 }
@@ -12,7 +12,7 @@ function PrintPagePreview({
   layout,
   tile,
 }: {
-  net: NetLayout
+  net: PrintableNet
   layout: PrintLayout
   tile: PrintTile
 }) {
@@ -64,6 +64,26 @@ function PrintPagePreview({
                 .join(' ')}
             />
           ))}
+          {net.faces.map((face, index) => {
+            const center = face.polygon.reduce(
+              (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }),
+              { x: 0, y: 0 },
+            )
+            const x = center.x / face.polygon.length
+            const y = center.y / face.polygon.length
+            return (
+              <text
+                key={face.id}
+                className="print-preview-pattern__face-number"
+                x={x}
+                y={y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+              >
+                {index + 1}
+              </text>
+            )
+          })}
         </g>
         <g className="print-preview-guides">
           {tile.guides.map(({ id, point }) => {
