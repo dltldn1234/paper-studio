@@ -241,7 +241,43 @@ export function ThreePolyhedronPreview({
       )
       faceMesh.material.emissive.set(selected ? '#102342' : '#000000')
     })
-  }, [faceMaterials, selectedFaceId])
+  }, [faceMaterials, layout, selectedFaceId])
+
+  useEffect(() => {
+    const preview = previewRef.current
+    if (!preview) return
+    let cancelled = false
+    const loader = new THREE.TextureLoader()
+    preview.faceMeshes.forEach((mesh, faceId) => {
+      const settings = faceMaterials[faceId]?.texture
+      mesh.material.map?.dispose()
+      mesh.material.map = null
+      mesh.material.needsUpdate = true
+      if (!settings) return
+      loader.load(settings.dataUrl, (texture) => {
+        if (cancelled) {
+          texture.dispose()
+          return
+        }
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.wrapS = THREE.RepeatWrapping
+        texture.wrapT = THREE.RepeatWrapping
+        texture.repeat.set(1 / settings.scale, 1 / settings.scale)
+        texture.offset.set(settings.offsetX / 100, settings.offsetY / 100)
+        texture.center.set(0.5, 0.5)
+        texture.rotation = (settings.rotationDeg * Math.PI) / 180
+        mesh.material.map = texture
+        mesh.material.needsUpdate = true
+      })
+    })
+    return () => {
+      cancelled = true
+      preview.faceMeshes.forEach((mesh) => {
+        mesh.material.map?.dispose()
+        mesh.material.map = null
+      })
+    }
+  }, [faceMaterials, layout])
 
   useEffect(() => {
     const preview = previewRef.current

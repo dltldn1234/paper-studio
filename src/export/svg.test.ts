@@ -56,6 +56,27 @@ describe('SVG net export', () => {
     expect(svg).toContain('Box &lt;A&gt; &amp; &quot;B&quot;')
   })
 
+  it('exports per-face colors and locally embedded texture images', () => {
+    const svg = serializeNetToSvg(createCuboidNet(dimensions), 'Colored', {
+      front: {
+        color: '#aabbcc',
+        texture: {
+          dataUrl: 'data:image/png;base64,aGVsbG8=',
+          offsetX: 3,
+          offsetY: 4,
+          scale: 2,
+          rotationDeg: 90,
+        },
+      },
+      back: { color: '#123456' },
+    })
+
+    expect(svg).toContain('fill="url(#texture-front)"')
+    expect(svg).toContain('data:image/png;base64,aGVsbG8=')
+    expect(svg).toContain('fill="#123456"')
+    expect(svg).toContain('translate(3 4) rotate(90)')
+  })
+
   it.each([
     ['box', 'box.svg'],
     ['folder/box.svg', 'folder-box.svg'],

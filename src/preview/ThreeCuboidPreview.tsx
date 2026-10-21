@@ -212,7 +212,46 @@ export function ThreeCuboidPreview({
       )
       material.emissive.set(selected ? '#102342' : '#000000')
     }
-  }, [faceMaterials, selectedFaceId])
+  }, [cuboid, faceMaterials, selectedFaceId])
+
+  useEffect(() => {
+    const preview = previewRef.current
+    if (!preview) return
+    let cancelled = false
+    const loader = new THREE.TextureLoader()
+    preview.faceMeshes.forEach((mesh, faceId) => {
+      const textureSettings = faceMaterials[faceId]?.texture
+      mesh.material.map?.dispose()
+      mesh.material.map = null
+      mesh.material.needsUpdate = true
+      if (!textureSettings) return
+      loader.load(textureSettings.dataUrl, (texture) => {
+        if (cancelled) {
+          texture.dispose()
+          return
+        }
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.wrapS = THREE.RepeatWrapping
+        texture.wrapT = THREE.RepeatWrapping
+        texture.repeat.set(1 / textureSettings.scale, 1 / textureSettings.scale)
+        texture.offset.set(
+          textureSettings.offsetX / 100,
+          textureSettings.offsetY / 100,
+        )
+        texture.center.set(0.5, 0.5)
+        texture.rotation = (textureSettings.rotationDeg * Math.PI) / 180
+        mesh.material.map = texture
+        mesh.material.needsUpdate = true
+      })
+    })
+    return () => {
+      cancelled = true
+      preview.faceMeshes.forEach((mesh) => {
+        mesh.material.map?.dispose()
+        mesh.material.map = null
+      })
+    }
+  }, [cuboid, faceMaterials])
 
   useEffect(() => {
     const preview = previewRef.current

@@ -608,8 +608,9 @@ function App() {
           genericUnfolding.layout,
           svgFilename,
           genericPrintableNet?.glueTabs,
+          faceMaterials,
         )
-      : serializeNetToSvg(netLayout, svgFilename)
+      : serializeNetToSvg(netLayout, svgFilename, faceMaterials)
     const objectUrl = URL.createObjectURL(
       new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }),
     )
