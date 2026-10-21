@@ -949,6 +949,8 @@ button:disabled {
 }
 .export-dialog--pdf {
   width: min(860px, 100%);
+  height: calc(100dvh - 40px);
+  min-height: 0;
   gap: 12px;
 }
 .export-dialog__heading,
@@ -1202,6 +1204,49 @@ button:disabled {
   font-size: 10px;
   line-height: 1.45;
 }
+.printer-profile-analysis,
+.printer-profile-verification,
+.printer-correction-summary {
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 1px solid #2c394d;
+  border-radius: 7px;
+  color: #cbd5e2;
+  background: #111a27;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.printer-profile-analysis p,
+.printer-profile-verification span,
+.printer-correction-summary span {
+  color: #9eacc0;
+}
+.printer-profile-analysis [data-analysis-status='ready'] {
+  color: #74d4a0;
+}
+.printer-profile-analysis [data-analysis-status='inconsistent'],
+.printer-profile-analysis [data-analysis-status='invalid'] {
+  color: #f2b564;
+}
+.printer-profile-verification[data-verification-status='verified'] {
+  border-color: #39795a;
+  color: #a5e9bf;
+}
+.printer-profile-physical-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #e4ebf4;
+  font-size: 10px;
+}
+.printer-profile-physical-confirmation input {
+  width: auto;
+  accent-color: #78a6ff;
+}
+.printer-correction-summary strong {
+  color: #a9c2ff;
+}
 .printer-calibration-panel__file-actions input {
   position: absolute;
   width: 1px;
@@ -1233,7 +1278,8 @@ button:disabled {
 }
 .printer-profile-create input,
 .printer-profile-select-row select,
-.printer-profile-measurements input {
+.printer-profile-measurements input,
+.printer-profile-edit select {
   width: 100%;
   min-width: 0;
   padding: 7px 8px;
@@ -1310,6 +1356,7 @@ button:disabled {
 @media (max-width: 700px) {
   .export-dialog--pdf {
     width: min(100%, 100%);
+    height: calc(100dvh - 20px);
     max-height: calc(100dvh - 20px);
     padding: 14px;
   }

@@ -58,7 +58,7 @@ export function analyzeCalibrationAxis(
       correctionPercent: null,
       scaleSpreadPercent: null,
       message:
-        'Check the entered measurements. Values must be finite, positive, and within a plausible range.',
+        '입력값을 확인하세요. 측정값은 유한한 양수이며 기준 길이의 2배 이하여야 합니다.',
     }
   }
 
@@ -76,7 +76,7 @@ export function analyzeCalibrationAxis(
       correctionPercent: null,
       scaleSpreadPercent: null,
       message:
-        'Measure at least two different reference lengths on this axis before calculating a correction.',
+        '이 축에서 서로 다른 기준 길이를 2개 이상 측정해야 보정값을 계산할 수 있습니다.',
     }
   }
 
@@ -112,7 +112,7 @@ export function analyzeCalibrationAxis(
       correctionPercent: null,
       scaleSpreadPercent: null,
       message:
-        'The measurements do not provide enough consistent samples for a reliable correction.',
+        '이상치를 제외한 뒤 서로 다른 기준 길이 2개가 남지 않아 신뢰할 보정값을 계산할 수 없습니다.',
     }
   }
 
@@ -132,7 +132,7 @@ export function analyzeCalibrationAxis(
       correctionPercent: (correctionScale - 1) * 100,
       scaleSpreadPercent,
       message:
-        'Reference lengths disagree by more than 1%. Check printer scaling, measurement technique, and driver settings before using a correction.',
+        '기준 길이 측정값의 차이가 1%를 넘습니다. 출력 배율, 측정 방법, 드라이버 설정을 확인한 뒤 다시 측정하세요.',
     }
   }
 
@@ -145,7 +145,7 @@ export function analyzeCalibrationAxis(
     correctionPercent: (correctionScale - 1) * 100,
     scaleSpreadPercent,
     message:
-      'Measurements are consistent enough to recommend a scale correction. Reprint and measure again to verify it.',
+      '측정값이 일관되어 배율 보정을 권장합니다. 적용 후 다시 출력해 실제 치수를 확인하세요.',
   }
 }
 

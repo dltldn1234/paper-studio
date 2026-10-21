@@ -9,11 +9,16 @@ import {
   setDefaultPrinterProfile,
 } from '../persistence/printer-profiles'
 import type { PageOrientation, PaperSize } from '../export/print-layout'
+import {
+  analyzeCalibrationAxis,
+  compareCalibrationMeasurement,
+} from './precision'
 
 const TARGETS = [50, 100, 150] as const
 
 export type PrinterCorrectionSelection = {
   profileId: string
+  profileName: string
   xScale: number
   yScale: number
 }
@@ -53,6 +58,11 @@ export function PrinterCalibrationPanel({
   const [measurementDrafts, setMeasurementDrafts] = useState<
     Record<string, string>
   >({})
+  const [verificationDrafts, setVerificationDrafts] = useState<
+    Record<string, string>
+  >({})
+  const [physicalConfirmationProfileId, setPhysicalConfirmationProfileId] =
+    useState<string | null>(null)
   const [profileDrafts, setProfileDrafts] = useState<Record<string, string>>({})
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -70,12 +80,19 @@ export function PrinterCalibrationPanel({
         ) ?? null)
   }, [orientation, paperSize, profiles, selectedProfileId])
   const correction = profile?.correction ?? null
+  const xAnalysis = profile
+    ? analyzeCalibrationAxis(profile.xMeasurements)
+    : null
+  const yAnalysis = profile
+    ? analyzeCalibrationAxis(profile.yMeasurements)
+    : null
 
   useEffect(() => {
     onCorrectionChange?.(
       includedCorrectionProfileId === profile?.id && profile && correction
         ? {
             profileId: profile.id,
+            profileName: profile.name,
             xScale: correction.xScale,
             yScale: correction.yScale,
           }
@@ -134,6 +151,24 @@ export function PrinterCalibrationPanel({
         ),
         updatedAt: new Date().toISOString(),
       }
+      const xAnalysis = analyzeCalibrationAxis(
+        axis === 'x' ? next.xMeasurements : profile.xMeasurements,
+      )
+      const yAnalysis = analyzeCalibrationAxis(
+        axis === 'y' ? next.yMeasurements : profile.yMeasurements,
+      )
+      next.correction =
+        xAnalysis.status === 'ready' &&
+        yAnalysis.status === 'ready' &&
+        xAnalysis.correctionScale !== null &&
+        yAnalysis.correctionScale !== null
+          ? {
+              xScale: xAnalysis.correctionScale,
+              yScale: yAnalysis.correctionScale,
+            }
+          : null
+      next.verification = null
+      setPhysicalConfirmationProfileId(null)
       if (savePrinterProfile(next)) refresh(profile.id)
       return
     }
@@ -157,6 +192,24 @@ export function PrinterCalibrationPanel({
       measuredAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
+    const xAnalysis = analyzeCalibrationAxis(
+      axis === 'x' ? measurements : profile.xMeasurements,
+    )
+    const yAnalysis = analyzeCalibrationAxis(
+      axis === 'y' ? measurements : profile.yMeasurements,
+    )
+    next.correction =
+      xAnalysis.status === 'ready' &&
+      yAnalysis.status === 'ready' &&
+      xAnalysis.correctionScale !== null &&
+      yAnalysis.correctionScale !== null
+        ? {
+            xScale: xAnalysis.correctionScale,
+            yScale: yAnalysis.correctionScale,
+          }
+        : null
+    next.verification = null
+    setPhysicalConfirmationProfileId(null)
     if (!savePrinterProfile(next)) {
       setError('실측값을 로컬 저장소에 기록하지 못했습니다.')
       return
@@ -165,14 +218,123 @@ export function PrinterCalibrationPanel({
     setMessage(`${axis.toUpperCase()}축 ${targetMm} mm 실측값을 저장했습니다.`)
   }
 
+  function saveVerificationMeasurement(
+    axis: 'x' | 'y',
+    targetMm: (typeof TARGETS)[number],
+    value: string,
+  ) {
+    if (!profile?.correction) return
+    const draftKey = `${profile.id}-${axis}-${targetMm}`
+    setVerificationDrafts((current) => ({ ...current, [draftKey]: value }))
+    const oldVerification = profile.verification
+    const currentMeasurements = oldVerification?.[`${axis}Measurements`] ?? []
+    let measurements = currentMeasurements.filter(
+      (measurement) => measurement.targetMm !== targetMm,
+    )
+    if (value.trim()) {
+      const measuredMm = Number(value)
+      if (
+        !Number.isFinite(measuredMm) ||
+        measuredMm <= 0 ||
+        measuredMm > targetMm * 2
+      ) {
+        setError('검증 실측값은 0보다 크고 기준 길이의 2배 이하여야 합니다.')
+        return
+      }
+      measurements = [...measurements, { targetMm, measuredMm }]
+    }
+    const xMeasurements =
+      axis === 'x' ? measurements : (oldVerification?.xMeasurements ?? [])
+    const yMeasurements =
+      axis === 'y' ? measurements : (oldVerification?.yMeasurements ?? [])
+    const xAnalysis = analyzeCalibrationAxis(xMeasurements)
+    const yAnalysis = analyzeCalibrationAxis(yMeasurements)
+    const physicallyMeasured =
+      oldVerification?.physicallyMeasured ??
+      physicalConfirmationProfileId === profile.id
+    const verified =
+      physicallyMeasured &&
+      xAnalysis.status === 'ready' &&
+      yAnalysis.status === 'ready' &&
+      xAnalysis.correctionScale !== null &&
+      yAnalysis.correctionScale !== null &&
+      Math.abs(xAnalysis.correctionScale - 1) <= 0.01 &&
+      Math.abs(yAnalysis.correctionScale - 1) <= 0.01
+    const next = {
+      ...profile,
+      updatedAt: new Date().toISOString(),
+      verification:
+        xMeasurements.length || yMeasurements.length
+          ? {
+              measuredAt: new Date().toISOString(),
+              xMeasurements,
+              yMeasurements,
+              physicallyMeasured,
+              status: verified
+                ? ('verified' as const)
+                : ('needs-review' as const),
+            }
+          : null,
+    }
+    if (!savePrinterProfile(next)) {
+      setError('검증 실측값을 로컬 저장소에 기록하지 못했습니다.')
+      return
+    }
+    setError('')
+    refresh(profile.id)
+    setMessage(
+      verified
+        ? '실제 재출력 측정값이 두 축에서 허용 오차 안에 있습니다.'
+        : '재출력 측정값을 저장했습니다. 두 축의 2개 이상 기준 길이가 필요하고 1% 허용 오차를 확인해야 합니다.',
+    )
+  }
+
+  function confirmPhysicalMeasurement(checked: boolean) {
+    if (!profile) return
+    setPhysicalConfirmationProfileId(checked ? profile.id : null)
+    if (!profile.verification) return
+    const verification = profile.verification
+    const xAnalysis = analyzeCalibrationAxis(verification.xMeasurements)
+    const yAnalysis = analyzeCalibrationAxis(verification.yMeasurements)
+    const verified =
+      checked &&
+      xAnalysis.status === 'ready' &&
+      yAnalysis.status === 'ready' &&
+      xAnalysis.correctionScale !== null &&
+      yAnalysis.correctionScale !== null &&
+      Math.abs(xAnalysis.correctionScale - 1) <= 0.01 &&
+      Math.abs(yAnalysis.correctionScale - 1) <= 0.01
+    const next = {
+      ...profile,
+      updatedAt: new Date().toISOString(),
+      verification: {
+        ...verification,
+        physicallyMeasured: checked,
+        status: verified ? ('verified' as const) : ('needs-review' as const),
+      },
+    }
+    if (savePrinterProfile(next)) refresh(profile.id)
+  }
+
   function saveProfileField(
-    field: 'name' | 'manufacturer' | 'model' | 'driverInfo',
+    field:
+      | 'name'
+      | 'manufacturer'
+      | 'model'
+      | 'driverInfo'
+      | 'paperSize'
+      | 'orientation',
     value: string,
   ) {
     if (!profile) return
     const updated = {
       ...profile,
-      [field]: value.trim(),
+      [field]:
+        field === 'paperSize'
+          ? (value as PaperSize)
+          : field === 'orientation'
+            ? (value as PageOrientation)
+            : value.trim(),
       updatedAt: new Date().toISOString(),
     }
     if (!savePrinterProfile(updated)) {
@@ -250,7 +412,6 @@ export function PrinterCalibrationPanel({
           프로필 이름
           <input
             aria-label="새 프로필 이름"
-            required
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="예: 사무실 프린터 A4"
@@ -304,6 +465,7 @@ export function PrinterCalibrationPanel({
             onChange={(event) => {
               setSelectedProfileId(event.target.value)
               setIncludedCorrectionProfileId(null)
+              setPhysicalConfirmationProfileId(null)
               setError('')
             }}
           >
@@ -363,25 +525,53 @@ export function PrinterCalibrationPanel({
                 ['manufacturer', '제조사'],
                 ['model', '모델'],
                 ['driverInfo', '드라이버 또는 출력 경로'],
+                ['paperSize', '용지 크기'],
+                ['orientation', '방향'],
               ] as const
             ).map(([field, label]) => {
               const key = `${profile.id}-${field}`
               return (
                 <label key={field}>
                   {label}
-                  <input
-                    aria-label={label}
-                    value={profileDrafts[key] ?? profile[field]}
-                    onChange={(event) =>
-                      setProfileDrafts((current) => ({
-                        ...current,
-                        [key]: event.target.value,
-                      }))
-                    }
-                    onBlur={(event) =>
-                      saveProfileField(field, event.target.value)
-                    }
-                  />
+                  {field === 'paperSize' || field === 'orientation' ? (
+                    <select
+                      aria-label={label}
+                      value={profileDrafts[key] ?? profile[field]}
+                      onChange={(event) => {
+                        setProfileDrafts((current) => ({
+                          ...current,
+                          [key]: event.target.value,
+                        }))
+                        saveProfileField(field, event.target.value)
+                      }}
+                    >
+                      {field === 'paperSize' ? (
+                        <>
+                          <option value="A4">A4</option>
+                          <option value="A3">A3</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="portrait">세로</option>
+                          <option value="landscape">가로</option>
+                        </>
+                      )}
+                    </select>
+                  ) : (
+                    <input
+                      aria-label={label}
+                      value={profileDrafts[key] ?? profile[field]}
+                      onChange={(event) =>
+                        setProfileDrafts((current) => ({
+                          ...current,
+                          [key]: event.target.value,
+                        }))
+                      }
+                      onBlur={(event) =>
+                        saveProfileField(field, event.target.value)
+                      }
+                    />
+                  )}
                 </label>
               )
             })}
@@ -391,6 +581,12 @@ export function PrinterCalibrationPanel({
             <span>
               X축은 가로 기준선, Y축은 세로 기준선과 사각형을 자로 재세요.
               프린터 모델과 드라이버는 자동으로 읽지 않습니다.
+            </span>
+            <span>
+              기준 실측일 ·{' '}
+              {profile.measuredAt
+                ? new Date(profile.measuredAt).toLocaleDateString()
+                : '아직 측정하지 않음'}
             </span>
           </div>
           {(['x', 'y'] as const).map((axis) => (
@@ -429,6 +625,36 @@ export function PrinterCalibrationPanel({
               })}
             </fieldset>
           ))}
+          <section
+            className="printer-profile-analysis"
+            aria-label="배율 오차 분석"
+          >
+            <strong>실측 분석 · 목표 길이 ÷ 실제 측정 길이</strong>
+            {(
+              [
+                ['X', xAnalysis],
+                ['Y', yAnalysis],
+              ] as const
+            ).map(([axis, analysis]) => (
+              <p key={axis} data-analysis-status={analysis?.status}>
+                {axis}축 · {analysis?.message}
+                {analysis?.correctionScale !== null &&
+                analysis?.correctionScale !== undefined
+                  ? ` · 권장 ${(analysis.correctionScale * 100).toFixed(2)}% · 측정 간 편차 ${analysis.scaleSpreadPercent?.toFixed(2)}%`
+                  : ''}
+                {analysis?.outlierTargetsMm.length
+                  ? ` · 이상치 ${analysis.outlierTargetsMm.join(', ')} mm 제외 검토`
+                  : ''}
+              </p>
+            ))}
+            {profile.correction && (
+              <p>
+                두 축 모두 일관된 실측값이 있어 보정 추천값을 저장했습니다. 단일
+                결과로 다른 용지·드라이버·환경의 오차까지 해결된다는 뜻은
+                아닙니다.
+              </p>
+            )}
+          </section>
           {profile.correction && onCorrectionChange ? (
             <label className="printer-profile-correction-toggle">
               <input
@@ -454,18 +680,123 @@ export function PrinterCalibrationPanel({
               뒤 배율을 권장합니다.
             </p>
           )}
-          {profile.verification ? (
-            <p role="status">
-              마지막 재출력 실측 ·{' '}
-              {new Date(profile.verification.measuredAt).toLocaleDateString()} ·{' '}
-              {profile.verification.status === 'verified'
-                ? '측정 완료'
-                : '재검토 필요'}
-            </p>
-          ) : (
-            <p className="export-dialog__note">
-              보정 후 재출력 측정은 아직 기록되지 않았습니다.
-            </p>
+          {profile.correction && (
+            <>
+              <div className="printer-profile-measurements__intro">
+                <strong>3 · 보정 PDF를 다시 출력하고 검증 실측값 입력</strong>
+                <span>
+                  X/Y 각 축에서 서로 다른 길이 두 개 이상을 재세요. 입력값은
+                  보정 전 측정값과 분리해 저장합니다.
+                </span>
+              </div>
+              {(['x', 'y'] as const).map((axis) => (
+                <fieldset
+                  key={`verification-${axis}`}
+                  className="printer-profile-axis-measurements"
+                >
+                  <legend>{axis.toUpperCase()}축 보정 후 실측값 (mm)</legend>
+                  {TARGETS.map((targetMm) => {
+                    const stored = profile.verification?.[
+                      `${axis}Measurements`
+                    ].find((measurement) => measurement.targetMm === targetMm)
+                    const draftKey = `${profile.id}-${axis}-${targetMm}`
+                    return (
+                      <label key={targetMm}>
+                        {targetMm} mm 재출력
+                        <input
+                          type="number"
+                          min="0.1"
+                          max={targetMm * 2}
+                          step="0.1"
+                          aria-label={`${axis.toUpperCase()}축 보정 후 ${targetMm} mm 실측값`}
+                          value={
+                            verificationDrafts[draftKey] ??
+                            stored?.measuredMm ??
+                            ''
+                          }
+                          placeholder="재출력 후 측정"
+                          onChange={(event) =>
+                            setVerificationDrafts((current) => ({
+                              ...current,
+                              [draftKey]: event.target.value,
+                            }))
+                          }
+                          onBlur={(event) =>
+                            saveVerificationMeasurement(
+                              axis,
+                              targetMm,
+                              event.target.value,
+                            )
+                          }
+                        />
+                      </label>
+                    )
+                  })}
+                </fieldset>
+              ))}
+              <label className="printer-profile-physical-confirmation">
+                <input
+                  type="checkbox"
+                  aria-label="실제 재출력물을 자로 측정했습니다"
+                  checked={
+                    physicalConfirmationProfileId === profile.id ||
+                    profile.verification?.physicallyMeasured === true
+                  }
+                  onChange={(event) =>
+                    confirmPhysicalMeasurement(event.target.checked)
+                  }
+                />
+                보정 PDF를 실제로 출력하고 자로 측정했습니다.
+              </label>
+              {profile.verification ? (
+                <div
+                  className="printer-profile-verification"
+                  data-verification-status={profile.verification.status}
+                  role="status"
+                >
+                  {profile.verification.status === 'verified'
+                    ? '두 축에서 2개 이상 실제 측정값이 1% 이내로 확인됐습니다.'
+                    : '실측값을 기록했습니다. 두 축의 일관성과 1% 허용 오차를 더 확인해야 합니다.'}
+                  <span>
+                    마지막 재출력 실측 ·{' '}
+                    {new Date(
+                      profile.verification.measuredAt,
+                    ).toLocaleDateString()}
+                  </span>
+                  {(['x', 'y'] as const).map((axis) => {
+                    const baseline = profile[`${axis}Measurements`].find(
+                      (measurement) => measurement.targetMm === 100,
+                    )
+                    const after = profile.verification?.[
+                      `${axis}Measurements`
+                    ].find((measurement) => measurement.targetMm === 100)
+                    if (!baseline || !after) return null
+                    const beforeError = compareCalibrationMeasurement(
+                      100,
+                      baseline.measuredMm,
+                    ).errorPercent
+                    const afterError = compareCalibrationMeasurement(
+                      100,
+                      after.measuredMm,
+                    ).errorPercent
+                    return (
+                      <span key={axis}>
+                        {axis.toUpperCase()} 100 mm 오차 · 전{' '}
+                        {beforeError >= 0 ? '+' : ''}
+                        {beforeError.toFixed(2)}% → 후{' '}
+                        {afterError >= 0 ? '+' : ''}
+                        {afterError.toFixed(2)}%
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="export-dialog__note">
+                  보정 후 재출력 측정은 아직 기록되지 않았습니다. 실제로 측정한
+                  값만 입력하세요.
+                </p>
+              )}
+            </>
           )}
         </div>
       ) : (
@@ -487,8 +818,8 @@ export function PrinterCalibrationPanel({
       )}
       <p className="export-dialog__note">
         교정값은 현재 브라우저에만 저장됩니다. PDF는 실물 프린터의 출력 정확도를
-        보장하지 않습니다. 비균일한 X/Y 보정은 면과 접착탭의 비율 및 조립 결과에
-        영향을 줄 수 있습니다.
+        보장하지 않습니다. 비균일한 X/Y 보정은 면·접착탭·텍스처의 비율과 조립
+        결과에 영향을 줄 수 있습니다.
       </p>
     </section>
   )
