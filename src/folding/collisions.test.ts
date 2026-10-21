@@ -3,6 +3,7 @@ import { createRegularCube, unfoldPolyhedron } from '../geometry'
 import type { Point3D } from '../geometry'
 import {
   createPolyhedronFoldGraph,
+  createIdealSurfaceCollisionEngine,
   detectPolyhedronFaceIntersections,
   intersectTriangles3D,
   solveFoldPoses,
@@ -10,6 +11,20 @@ import {
 import type { FoldPose } from './types'
 
 describe('3D face collision detection', () => {
+  it('exposes zero-thickness 2D and 3D diagnostics through the engine boundary', () => {
+    const mesh = createRegularCube(20)
+    const unfolded = unfoldPolyhedron(mesh)
+    expect(unfolded.success).toBe(true)
+    if (!unfolded.success) return
+    const engine = createIdealSurfaceCollisionEngine()
+    expect(engine.model).toEqual({ kind: 'ideal-surfaces', thicknessMm: 0 })
+    expect(engine.inspectNet(unfolded.layout)).toEqual([])
+    const graph = createPolyhedronFoldGraph(unfolded.layout, mesh)
+    expect(
+      engine.inspectFolded(mesh, unfolded.layout, solveFoldPoses(graph, 1)),
+    ).toEqual([])
+  })
+
   it('detects a non-coplanar triangle crossing with representative points', () => {
     const hit = intersectTriangles3D(
       [

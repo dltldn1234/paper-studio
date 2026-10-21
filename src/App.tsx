@@ -63,7 +63,7 @@ import {
 } from './export/svg'
 import {
   createPolyhedronFoldGraph,
-  detectPolyhedronFaceIntersections,
+  createIdealSurfaceCollisionEngine,
   solveFoldPoses,
 } from './folding'
 import {
@@ -90,6 +90,8 @@ const ThreePolyhedronPreview = lazy(() =>
     default: module.ThreePolyhedronPreview,
   })),
 )
+
+const collisionEngine = createIdealSurfaceCollisionEngine()
 
 const DEFAULT_DIMENSIONS: CuboidDimensions = {
   widthMm: 100,
@@ -227,7 +229,7 @@ function App() {
       return []
     }
     try {
-      return detectPolyhedronFaceIntersections(
+      return collisionEngine.inspectFolded(
         genericMesh,
         genericUnfolding.layout,
         solveFoldPoses(genericFoldGraph, foldProgress),
