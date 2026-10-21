@@ -66,6 +66,10 @@ test('exports a local WebP face texture to PDF in the browser', async ({
   })
   await page.getByRole('button', { name: '내보내기' }).click()
   await page.getByLabel('파일 형식').selectOption('pdf')
+  await page.screenshot({
+    path: '/tmp/paper-studio-phase7-webp-pdf.png',
+    fullPage: true,
+  })
   const downloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: 'PDF 다운로드' }).click()
   const download = await downloadPromise
