@@ -29,6 +29,7 @@ export type PrinterProfile = {
     measuredAt: string
     xMeasurements: AxisMeasurement[]
     yMeasurements: AxisMeasurement[]
+    physicallyMeasured: boolean
     status: 'verified' | 'needs-review'
   } | null
 }
@@ -100,6 +101,9 @@ export function isPrinterProfile(value: unknown): value is PrinterProfile {
         Number.isFinite(Date.parse(verification.measuredAt)) &&
         isMeasurements(verification.xMeasurements) &&
         isMeasurements(verification.yMeasurements) &&
+        typeof verification.physicallyMeasured === 'boolean' &&
+        (verification.status !== 'verified' ||
+          verification.physicallyMeasured) &&
         (verification.status === 'verified' ||
           verification.status === 'needs-review')))
   )

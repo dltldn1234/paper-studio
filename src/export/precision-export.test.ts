@@ -4,6 +4,7 @@ import { computePrintLayout } from './print-layout'
 import { createPrintableNet, scalePrintableNet } from './printable-net'
 import {
   createCorrectedPrintableNet,
+  scaleFaceMaterialOffsets,
   validatePdfCalibrationSelection,
 } from './precision-export'
 import { createPrintLayout, createTiledPdf, PDF_POINTS_PER_MM } from './pdf'
@@ -59,6 +60,32 @@ describe('precision PDF geometry', () => {
       expect(page.getWidth()).toBeCloseTo(210 * PDF_POINTS_PER_MM, 4)
       expect(page.getHeight()).toBeCloseTo(297 * PDF_POINTS_PER_MM, 4)
     }
+
+    const texturedBytes = await createTiledPdf(
+      source,
+      settings,
+      'Corrected texture and glue tabs',
+      {
+        calibration: selection,
+        faceMaterials: {
+          front: {
+            color: '#aabbcc',
+            texture: {
+              dataUrl:
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+              offsetX: 2,
+              offsetY: 3,
+              scale: 1,
+              rotationDeg: 15,
+            },
+          },
+        },
+      },
+    )
+    const texturedDocument = await PDFDocument.load(texturedBytes)
+    expect(texturedDocument.getPages()).toHaveLength(
+      correctedLayout.tiles.length + 1,
+    )
   })
 
   it('rejects duplicate and out-of-range correction selections', () => {
@@ -77,6 +104,30 @@ describe('precision PDF geometry', () => {
         yScale: 1,
       }),
     ).toThrow('between 0.5 and 2')
+  })
+
+  it('keeps face texture offsets in the same calibrated coordinate transform', () => {
+    const materials = scaleFaceMaterialOffsets(
+      {
+        front: {
+          color: '#aabbcc',
+          texture: {
+            dataUrl: 'data:image/png;base64,AA==',
+            offsetX: 10,
+            offsetY: 20,
+            scale: 0.5,
+            rotationDeg: 30,
+          },
+        },
+      },
+      { profileId: 'office', xScale: 1.02, yScale: 0.99 },
+    )
+    expect(materials.front.texture).toMatchObject({
+      offsetX: 10.2,
+      offsetY: 19.8,
+      scale: 0.5,
+      rotationDeg: 30,
+    })
   })
 
   it('blocks correction when its calibration marks cannot fit the page', async () => {

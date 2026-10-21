@@ -83,10 +83,16 @@ import { PrintPagePreviews } from './export/PrintPagePreviews'
 import { createPrintableNet } from './export/printable-net'
 import { runPrintPreflight } from './export/preflight'
 import {
+  createCorrectedPrintableNet,
+  scaleFaceMaterialOffsets,
+} from './export/precision-export'
+import {
   CALIBRATION_REFERENCE_LENGTHS,
   calculateCalibrationResult,
 } from './export/calibration'
 import type { CalibrationReferenceLength } from './export/calibration'
+import { PrinterCalibrationPanel } from './calibration/PrinterCalibrationPanel'
+import type { PrinterCorrectionSelection } from './calibration/PrinterCalibrationPanel'
 import {
   readCalibrationMeasurements,
   removeCalibrationMeasurement,
@@ -220,8 +226,15 @@ function App() {
     ),
   )
   const [calibrationStorageError, setCalibrationStorageError] = useState('')
+  const [printerCorrection, setPrinterCorrection] =
+    useState<PrinterCorrectionSelection | null>(null)
   const [exportBusy, setExportBusy] = useState(false)
   const [exportError, setExportError] = useState('')
+  const handlePrinterCorrectionChange = useCallback(
+    (selection: PrinterCorrectionSelection | null) =>
+      setPrinterCorrection(selection),
+    [],
+  )
 
   const cuboid = useMemo(() => createCuboid(dimensions), [dimensions])
   const netLayout = useMemo(
@@ -295,6 +308,20 @@ function App() {
     () => genericPrintableNet ?? createPrintableNet(netLayout),
     [genericPrintableNet, netLayout],
   )
+  const calibratedPrintableNet = useMemo(
+    () =>
+      printerCorrection
+        ? createCorrectedPrintableNet(printableNet, printerCorrection)
+        : printableNet,
+    [printableNet, printerCorrection],
+  )
+  const calibratedFaceMaterials = useMemo(
+    () =>
+      printerCorrection
+        ? scaleFaceMaterialOffsets(faceMaterials, printerCorrection)
+        : faceMaterials,
+    [faceMaterials, printerCorrection],
+  )
   const genericIntersections = useMemo(() => {
     if (
       !genericMesh ||
@@ -317,7 +344,10 @@ function App() {
   const printLayoutResult = useMemo(() => {
     try {
       return {
-        layout: computePrintLayout(printableNet.bounds, printSettings),
+        layout: computePrintLayout(
+          calibratedPrintableNet.bounds,
+          printSettings,
+        ),
         error: '',
       }
     } catch (error) {
@@ -329,17 +359,17 @@ function App() {
             : 'PDF 미리보기를 만들 수 없습니다.',
       }
     }
-  }, [printableNet, printSettings])
+  }, [calibratedPrintableNet, printSettings])
   const preflightReport = useMemo(
     () =>
       printLayoutResult.layout
         ? runPrintPreflight(
-            printableNet,
+            calibratedPrintableNet,
             printLayoutResult.layout,
-            faceMaterials,
+            calibratedFaceMaterials,
           )
         : null,
-    [faceMaterials, printableNet, printLayoutResult.layout],
+    [calibratedFaceMaterials, calibratedPrintableNet, printLayoutResult.layout],
   )
   const selectedFace = cuboid.faces.find((face) => face.id === selectedFaceId)
   const selectedGenericFace = genericUnfolding?.success
@@ -748,6 +778,7 @@ function App() {
           showCutLines: printSettings.showCutLines,
           showFoldLines: printSettings.showFoldLines,
           showAssemblyNumbers: printSettings.showAssemblyNumbers,
+          calibration: printerCorrection ?? undefined,
         },
       )
       const objectUrl = URL.createObjectURL(
@@ -1900,7 +1931,11 @@ function App() {
       {svgExportOpen && (
         <div className="export-dialog-backdrop">
           <form
-            className="export-dialog"
+            className={
+              exportFormat === 'pdf'
+                ? 'export-dialog export-dialog--pdf'
+                : 'export-dialog'
+            }
             role="dialog"
             aria-modal="true"
             aria-labelledby="svg-export-title"
@@ -2085,10 +2120,30 @@ function App() {
                       가능 영역 {printLayoutResult.layout.printableWidthMm} ×{' '}
                       {printLayoutResult.layout.printableHeightMm} mm
                     </p>
+                    {printerCorrection && (
+                      <section
+                        className="printer-correction-summary"
+                        aria-label="보정 적용 미리보기"
+                      >
+                        <strong>
+                          보정 적용 · {printerCorrection.profileName} · X{' '}
+                          {(printerCorrection.xScale * 100).toFixed(2)}% · Y{' '}
+                          {(printerCorrection.yScale * 100).toFixed(2)}%
+                        </strong>
+                        <span>
+                          전개도 크기 {printableNet.bounds.width.toFixed(1)} ×{' '}
+                          {printableNet.bounds.height.toFixed(1)} mm →{' '}
+                          {calibratedPrintableNet.bounds.width.toFixed(1)} ×{' '}
+                          {calibratedPrintableNet.bounds.height.toFixed(1)} mm.
+                          용지 크기는 유지하고 보정된 전개도 기준으로 타일을
+                          다시 계산했습니다.
+                        </span>
+                      </section>
+                    )}
                     <PrintPagePreviews
-                      net={printableNet}
+                      net={calibratedPrintableNet}
                       layout={printLayoutResult.layout}
-                      faceMaterials={faceMaterials}
+                      faceMaterials={calibratedFaceMaterials}
                     />
                   </>
                 ) : (
@@ -2188,6 +2243,11 @@ function App() {
                   맞춤을 끄세요. PDF와 브라우저만으로 실제 프린터 정확도는
                   보장되지 않습니다. 기록은 이 브라우저에만 저장됩니다.
                 </p>
+                <PrinterCalibrationPanel
+                  paperSize={printSettings.paperSize}
+                  orientation={printSettings.orientation}
+                  onCorrectionChange={handlePrinterCorrectionChange}
+                />
               </>
             )}
             {exportError && (
