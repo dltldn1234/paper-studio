@@ -18,3 +18,27 @@ test('edits glue tab shape and edge state', async ({ page }) => {
     fullPage: true,
   })
 })
+
+test('loads a local face texture and captures its editor state', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'kraft 재질 프리셋' }).click()
+  await page.getByLabel('로컬 이미지 텍스처').setInputFiles({
+    name: 'texture.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+      'base64',
+    ),
+  })
+  await expect(page.getByLabel('텍스처 크기')).toBeVisible()
+  await expect(page.locator('[data-face-id="front"]')).toHaveAttribute(
+    'style',
+    /url\(/,
+  )
+  await page.screenshot({
+    path: '/tmp/paper-studio-phase6-material-texture.png',
+    fullPage: true,
+  })
+})
