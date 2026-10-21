@@ -103,7 +103,11 @@ export function validateProject(
     tabs.widthMm > MAX_GLUE_TAB_WIDTH_MM ||
     !isFiniteNumber(tabs.angleDeg) ||
     tabs.angleDeg < MIN_GLUE_TAB_ANGLE_DEG ||
-    tabs.angleDeg > MAX_GLUE_TAB_ANGLE_DEG
+    tabs.angleDeg > MAX_GLUE_TAB_ANGLE_DEG ||
+    (tabs.shape !== undefined &&
+      !['beveled', 'trapezoid', 'rectangular'].includes(String(tabs.shape))) ||
+    (tabs.direction !== undefined &&
+      !['outward', 'inward'].includes(String(tabs.direction)))
   ) {
     throw new RangeError('Project glue tab options are invalid.')
   }

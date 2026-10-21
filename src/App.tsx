@@ -1342,6 +1342,42 @@ function App() {
                     </small>
                   )}
                 </label>
+                <label className="dimension-field">
+                  <span className="dimension-field__label">탭 형태</span>
+                  <select
+                    aria-label="접착탭 형태"
+                    value={glueTabOptions.shape ?? 'trapezoid'}
+                    disabled={!glueTabOptions.enabled}
+                    onChange={(event) =>
+                      setGlueTabOptions((current) => ({
+                        ...current,
+                        shape: event.target.value as GlueTabOptions['shape'],
+                      }))
+                    }
+                  >
+                    <option value="trapezoid">사다리꼴</option>
+                    <option value="beveled">좁은 베벨</option>
+                    <option value="rectangular">직사각형</option>
+                  </select>
+                </label>
+                <label className="dimension-field">
+                  <span className="dimension-field__label">탭 방향</span>
+                  <select
+                    aria-label="접착탭 방향"
+                    value={glueTabOptions.direction ?? 'outward'}
+                    disabled={!glueTabOptions.enabled}
+                    onChange={(event) =>
+                      setGlueTabOptions((current) => ({
+                        ...current,
+                        direction: event.target
+                          .value as GlueTabOptions['direction'],
+                      }))
+                    }
+                  >
+                    <option value="outward">외향</option>
+                    <option value="inward">내향</option>
+                  </select>
+                </label>
               </div>
               {glueTabOptions.enabled && activeTabInterferences.length > 0 && (
                 <p className="glue-tab-warning" role="status">
