@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPrinterProfile, type PrinterProfile } from './printer-profiles'
+import { createMeasurementHistoryEntry } from './measurement-history'
+import type { MeasurementHistoryEntry } from './measurement-history'
 import {
   deletePrinterProfile,
   exportPrinterProfiles,
@@ -8,6 +10,13 @@ import {
   savePrinterProfile,
   setDefaultPrinterProfile,
 } from '../persistence/printer-profiles'
+import {
+  deleteMeasurementHistoryEntry,
+  exportMeasurementHistory,
+  importMeasurementHistory,
+  readMeasurementHistory,
+  saveMeasurementHistoryEntry,
+} from '../persistence/measurement-history'
 import type { PageOrientation, PaperSize } from '../export/print-layout'
 import {
   analyzeCalibrationAxis,
@@ -66,6 +75,17 @@ export function PrinterCalibrationPanel({
   const [profileDrafts, setProfileDrafts] = useState<Record<string, string>>({})
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [history, setHistory] = useState<MeasurementHistoryEntry[]>(() =>
+    readMeasurementHistory(),
+  )
+  const [historyAxis, setHistoryAxis] = useState<'x' | 'y'>('x')
+  const [historyTarget, setHistoryTarget] =
+    useState<(typeof TARGETS)[number]>(50)
+  const [historyValue, setHistoryValue] = useState('')
+  const [historyPhase, setHistoryPhase] = useState<
+    'calibration' | 'verification'
+  >('calibration')
+  const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null)
 
   const profile = useMemo(() => {
     const selected = profiles.find((item) => item.id === selectedProfileId)
@@ -103,6 +123,76 @@ export function PrinterCalibrationPanel({
   function refresh(nextSelectedId = selectedProfileId) {
     setProfiles(readPrinterProfiles())
     setSelectedProfileId(nextSelectedId)
+    setHistory(readMeasurementHistory())
+  }
+
+  function saveHistoryEntry() {
+    if (!profile) {
+      setError('측정 이력을 연결할 프로필을 먼저 선택하세요.')
+      return
+    }
+    const measuredMm = Number(historyValue)
+    if (
+      !Number.isFinite(measuredMm) ||
+      measuredMm <= 0 ||
+      measuredMm > historyTarget * 2
+    ) {
+      setError('실측값은 0보다 크고 기준 길이의 2배 이하여야 합니다.')
+      return
+    }
+    try {
+      const entry = createMeasurementHistoryEntry({
+        id: editingHistoryId ?? undefined,
+        profileId: profile.id,
+        paperSize: profile.paperSize,
+        phase: historyPhase,
+        axis: historyAxis,
+        targetMm: historyTarget,
+        measuredMm,
+        measuredAt: new Date().toISOString(),
+      })
+      if (!saveMeasurementHistoryEntry(entry))
+        throw new Error('측정 이력을 저장하지 못했습니다.')
+      setError('')
+      setMessage(
+        editingHistoryId
+          ? '측정 이력을 수정했습니다.'
+          : '측정 이력을 추가했습니다.',
+      )
+      setEditingHistoryId(null)
+      setHistoryValue('')
+      refresh(profile.id)
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : '측정 이력을 저장하지 못했습니다.',
+      )
+    }
+  }
+
+  function downloadHistory() {
+    const blob = new Blob([exportMeasurementHistory()], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'paper-studio-measurement-history.json'
+    link.click()
+    URL.revokeObjectURL(url)
+    setMessage('측정 이력 JSON을 내보냈습니다.')
+  }
+
+  async function loadHistory(file: File | undefined) {
+    if (!file) return
+    if (!importMeasurementHistory(await file.text())) {
+      setError('유효한 Paper Studio 측정 이력 JSON 파일이 아닙니다.')
+      return
+    }
+    setError('')
+    setMessage('측정 이력을 가져왔습니다.')
+    refresh()
   }
 
   function createProfile() {
@@ -404,6 +494,22 @@ export function PrinterCalibrationPanel({
               onChange={(event) => void loadProfiles(event.target.files?.[0])}
             />
           </label>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={downloadHistory}
+          >
+            이력 JSON 내보내기
+          </button>
+          <label className="secondary-button">
+            이력 JSON 가져오기
+            <input
+              aria-label="측정 이력 JSON 가져오기"
+              type="file"
+              accept="application/json,.json"
+              onChange={(event) => void loadHistory(event.target.files?.[0])}
+            />
+          </label>
         </div>
       </div>
 
@@ -517,6 +623,140 @@ export function PrinterCalibrationPanel({
 
       {profile ? (
         <div className="printer-profile-measurements">
+          <fieldset
+            className="printer-profile-edit"
+            aria-label="측정 이력 관리"
+          >
+            <legend>측정 이력 추가 및 수정</legend>
+            <label>
+              축
+              <select
+                aria-label="이력 측정 축"
+                value={historyAxis}
+                onChange={(event) =>
+                  setHistoryAxis(event.target.value as 'x' | 'y')
+                }
+              >
+                <option value="x">X축</option>
+                <option value="y">Y축</option>
+              </select>
+            </label>
+            <label>
+              기준 길이
+              <select
+                aria-label="이력 기준 길이"
+                value={historyTarget}
+                onChange={(event) =>
+                  setHistoryTarget(
+                    Number(event.target.value) as (typeof TARGETS)[number],
+                  )
+                }
+              >
+                {TARGETS.map((target) => (
+                  <option key={target} value={target}>
+                    {target} mm
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              구분
+              <select
+                aria-label="이력 종류"
+                value={historyPhase}
+                onChange={(event) =>
+                  setHistoryPhase(
+                    event.target.value as 'calibration' | 'verification',
+                  )
+                }
+              >
+                <option value="calibration">교정</option>
+                <option value="verification">재검증</option>
+              </select>
+            </label>
+            <label>
+              실측값 (mm)
+              <input
+                aria-label="이력 실측값"
+                type="number"
+                min="0.1"
+                max={historyTarget * 2}
+                step="0.1"
+                value={historyValue}
+                onChange={(event) => setHistoryValue(event.target.value)}
+              />
+            </label>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={saveHistoryEntry}
+            >
+              {editingHistoryId ? '이력 수정 저장' : '이력 추가'}
+            </button>
+            {editingHistoryId && (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => {
+                  setEditingHistoryId(null)
+                  setHistoryValue('')
+                }}
+              >
+                수정 취소
+              </button>
+            )}
+          </fieldset>
+          <div aria-label="측정 이력 목록">
+            <strong>
+              측정 이력 ·{' '}
+              {history.filter((entry) => entry.profileId === profile.id).length}
+              건
+            </strong>
+            {history
+              .filter((entry) => entry.profileId === profile.id)
+              .map((entry) => (
+                <div key={entry.id} className="printer-profile-select-row">
+                  <span>
+                    {entry.phase === 'verification'
+                      ? '재검증'
+                      : entry.phase === 'legacy'
+                        ? '이전 기록'
+                        : '교정'}{' '}
+                    · {entry.axis.toUpperCase()} · {entry.targetMm} →{' '}
+                    {entry.measuredMm} mm ·{' '}
+                    {new Date(entry.measuredAt).toLocaleString()}
+                  </span>
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => {
+                      setEditingHistoryId(entry.id)
+                      setHistoryAxis(entry.axis)
+                      setHistoryTarget(entry.targetMm)
+                      setHistoryPhase(
+                        entry.phase === 'verification'
+                          ? 'verification'
+                          : 'calibration',
+                      )
+                      setHistoryValue(String(entry.measuredMm))
+                    }}
+                  >
+                    수정
+                  </button>
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => {
+                      if (deleteMeasurementHistoryEntry(entry.id))
+                        refresh(profile.id)
+                      else setError('측정 이력을 삭제하지 못했습니다.')
+                    }}
+                  >
+                    삭제
+                  </button>
+                </div>
+              ))}
+          </div>
           <fieldset className="printer-profile-edit">
             <legend>프로필 정보 수정</legend>
             {(
