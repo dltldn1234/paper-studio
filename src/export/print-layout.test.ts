@@ -49,7 +49,23 @@ describe('tiled print layout', () => {
     expect(layout.columns).toBe(3)
     expect(layout.rows).toBe(3)
     expect(layout.tiles).toHaveLength(9)
-    expect(layout.tiles[8]).toMatchObject({ row: 3, column: 3, pageNumber: 9 })
+    expect(
+      layout.tiles.map(({ row, column, pageNumber }) => [
+        row,
+        column,
+        pageNumber,
+      ]),
+    ).toEqual([
+      [1, 1, 1],
+      [1, 2, 2],
+      [1, 3, 3],
+      [2, 1, 4],
+      [2, 2, 5],
+      [2, 3, 6],
+      [3, 1, 7],
+      [3, 2, 8],
+      [3, 3, 9],
+    ])
   })
 
   it.each([

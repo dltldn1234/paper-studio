@@ -20,7 +20,11 @@ import type { PrintLayout, PrintSettings, PrintTile } from './print-layout'
 import { computePrintLayout } from './print-layout'
 import type { FaceMaterial } from '../materials/materials'
 import { preparePdfTexture } from './pdf-texture'
-import { PDF_POINTS_PER_MM } from './pdf-units'
+import {
+  mmToPdfPoints,
+  PDF_POINTS_PER_MM,
+  worldPointToPdfPage,
+} from './pdf-units'
 import { runPrintPreflight } from './preflight'
 
 export { PDF_POINTS_PER_MM } from './pdf-units'
@@ -106,18 +110,32 @@ async function drawFaceMaterials(
     Promise<Awaited<ReturnType<PDFDocument['embedPng']>>>
   >(),
 ) {
-  const margin = layout.settings.marginMm * PDF_POINTS_PER_MM
-  const pageHeight = layout.pageHeightMm * PDF_POINTS_PER_MM
+  const marginMm = layout.settings.marginMm
   for (const face of net.faces) {
     const material = materials[face.id]
     if (!material?.color || !/^#[\da-f]{6}$/i.test(material.color)) continue
+    const faceMinX = Math.min(...face.polygon.map(({ x }) => x))
+    const faceMaxX = Math.max(...face.polygon.map(({ x }) => x))
+    const faceMinY = Math.min(...face.polygon.map(({ y }) => y))
+    const faceMaxY = Math.max(...face.polygon.map(({ y }) => y))
+    if (
+      faceMaxX < tile.visibleBounds.x ||
+      faceMinX > tile.visibleBounds.x + tile.visibleBounds.width ||
+      faceMaxY < tile.visibleBounds.y ||
+      faceMinY > tile.visibleBounds.y + tile.visibleBounds.height
+    ) {
+      continue
+    }
     const clipped = clipPolygon(face.polygon, tile.visibleBounds)
     if (clipped.length < 3) continue
     const path = clipped
       .map((point, index) => {
-        const x = margin + (point.x - tile.origin.x) * PDF_POINTS_PER_MM
-        const y =
-          pageHeight - margin - (point.y - tile.origin.y) * PDF_POINTS_PER_MM
+        const { x, y } = worldPointToPdfPage(
+          point,
+          tile.origin,
+          marginMm,
+          layout.pageHeightMm,
+        )
         return `${index === 0 ? 'M' : 'L'} ${x} ${y}`
       })
       .join(' ')
@@ -146,10 +164,12 @@ async function drawFaceMaterials(
       )
     }
     const clipPoints = clipped.map((point) => {
-      const x = margin + (point.x - tile.origin.x) * PDF_POINTS_PER_MM
-      const y =
-        pageHeight - margin - (point.y - tile.origin.y) * PDF_POINTS_PER_MM
-      return { x, y }
+      return worldPointToPdfPage(
+        point,
+        tile.origin,
+        marginMm,
+        layout.pageHeightMm,
+      )
     })
     page.pushOperators(
       pushGraphicsState(),
@@ -159,22 +179,37 @@ async function drawFaceMaterials(
       clip(),
       endPath(),
     )
-    const xs = face.polygon.map(({ x }) => x)
-    const ys = face.polygon.map(({ y }) => y)
-    const minX = Math.min(...xs) + texture.offsetX
-    const minY = Math.min(...ys) + texture.offsetY
-    const tileWidth = Math.max(...xs) - Math.min(...xs)
-    const tileHeight = Math.max(...ys) - Math.min(...ys)
+    const minX = faceMinX + texture.offsetX
+    const minY = faceMinY + texture.offsetY
+    const tileWidth = faceMaxX - faceMinX
+    const tileHeight = faceMaxY - faceMinY
     const stepX = tileWidth * texture.scale
     const stepY = tileHeight * texture.scale
-    for (let x = minX; x < Math.max(...xs); x += stepX) {
-      for (let y = minY; y < Math.max(...ys); y += stepY) {
+    const firstVisibleX =
+      minX +
+      Math.max(0, Math.floor((tile.visibleBounds.x - minX) / stepX)) * stepX
+    const firstVisibleY =
+      minY +
+      Math.max(0, Math.floor((tile.visibleBounds.y - minY) / stepY)) * stepY
+    const lastVisibleX = Math.min(
+      faceMaxX,
+      tile.visibleBounds.x + tile.visibleBounds.width,
+    )
+    const lastVisibleY = Math.min(
+      faceMaxY,
+      tile.visibleBounds.y + tile.visibleBounds.height,
+    )
+    for (let x = firstVisibleX; x < lastVisibleX; x += stepX) {
+      for (let y = firstVisibleY; y < lastVisibleY; y += stepY) {
+        const imageOrigin = worldPointToPdfPage(
+          { x, y: y + stepY },
+          tile.origin,
+          marginMm,
+          layout.pageHeightMm,
+        )
         page.drawImage(image, {
-          x: margin + (x - tile.origin.x) * PDF_POINTS_PER_MM,
-          y:
-            pageHeight -
-            margin -
-            (y + stepY - tile.origin.y) * PDF_POINTS_PER_MM,
+          x: imageOrigin.x,
+          y: imageOrigin.y,
           width: stepX * PDF_POINTS_PER_MM,
           height: stepY * PDF_POINTS_PER_MM,
           rotate: degrees(texture.rotationDeg),
@@ -225,27 +260,22 @@ function drawWorldLine(
 ) {
   const clipped = clipLine(start, end, tile.visibleBounds)
   if (!clipped) return
-  const margin = printLayout.settings.marginMm * PDF_POINTS_PER_MM
-  const pointToPage = ({ x, y }: Point2D) => ({
-    x: margin + (x - tile.origin.x) * PDF_POINTS_PER_MM,
-    y:
-      printLayout.pageHeightMm * PDF_POINTS_PER_MM -
-      margin -
-      (y - tile.origin.y) * PDF_POINTS_PER_MM,
-  })
+  const pointToPage = (point: Point2D) =>
+    worldPointToPdfPage(
+      point,
+      tile.origin,
+      printLayout.settings.marginMm,
+      printLayout.pageHeightMm,
+    )
   const first = pointToPage(clipped.start)
   const second = pointToPage(clipped.end)
   page.drawLine({
     start: first,
     end: second,
     thickness:
-      kind === 'guide'
-        ? 0.35
-        : (kind === 'cut' ? 0.25 : 0.2) * PDF_POINTS_PER_MM,
+      kind === 'guide' ? 0.35 : mmToPdfPoints(kind === 'cut' ? 0.25 : 0.2),
     color: kind === 'guide' ? rgb(0.45, 0.45, 0.45) : rgb(0.08, 0.08, 0.08),
-    ...(kind === 'fold'
-      ? { dashArray: [2, 1].map((value) => value * PDF_POINTS_PER_MM) }
-      : {}),
+    ...(kind === 'fold' ? { dashArray: [2, 1].map(mmToPdfPoints) } : {}),
   })
 }
 
@@ -286,7 +316,7 @@ function drawPageLabels(
   showAssemblyNumbers = true,
 ) {
   const pageHeight = layout.pageHeightMm * PDF_POINTS_PER_MM
-  const margin = layout.settings.marginMm * PDF_POINTS_PER_MM
+  const margin = mmToPdfPoints(layout.settings.marginMm)
   const header = `Sheet ${tile.pageNumber}/${totalPages}  |  Row ${tile.row}, Col ${tile.column}  |  Join ${tile.guides.map(({ label }) => label).join(', ') || '-'}`
   page.drawText(header, {
     x: margin,
@@ -323,15 +353,14 @@ function drawPageLabels(
     }
     const text = `Face ${index + 1} · ${face.id}`
     const textSize = 5.5
-    const x =
-      margin +
-      (center.x - tile.origin.x) * PDF_POINTS_PER_MM -
-      font.widthOfTextAtSize(text, textSize) / 2
-    const y =
-      pageHeight -
-      margin -
-      (center.y - tile.origin.y) * PDF_POINTS_PER_MM -
-      textSize / 2
+    const centerPoint = worldPointToPdfPage(
+      center,
+      tile.origin,
+      layout.settings.marginMm,
+      layout.pageHeightMm,
+    )
+    const x = centerPoint.x - font.widthOfTextAtSize(text, textSize) / 2
+    const y = centerPoint.y - textSize / 2
     page.drawText(text, {
       x,
       y,
@@ -379,8 +408,8 @@ export async function createTiledPdf(
   const font = await pdf.embedFont(StandardFonts.Helvetica)
   const tabbedEdgeIds = new Set(printable.glueTabs.map((tab) => tab.edgeId))
   const pageSize = [
-    layout.pageWidthMm * PDF_POINTS_PER_MM,
-    layout.pageHeightMm * PDF_POINTS_PER_MM,
+    mmToPdfPoints(layout.pageWidthMm),
+    mmToPdfPoints(layout.pageHeightMm),
   ] as [number, number]
 
   const totalPages = layout.tiles.length + 1
@@ -440,19 +469,19 @@ export async function createTiledPdf(
   }
 
   const calibrationPage = pdf.addPage(pageSize)
-  const margin = settings.marginMm * PDF_POINTS_PER_MM
+  const margin = mmToPdfPoints(settings.marginMm)
   const calibration = createPdfCalibrationGuide(
     layout.pageWidthMm,
     layout.pageHeightMm,
     settings.marginMm,
   )
-  const squareX = calibration.square.x * PDF_POINTS_PER_MM
-  const squareY = calibration.square.y * PDF_POINTS_PER_MM
-  const size = calibration.square.sizeMm * PDF_POINTS_PER_MM
+  const squareX = mmToPdfPoints(calibration.square.x)
+  const squareY = mmToPdfPoints(calibration.square.y)
+  const size = mmToPdfPoints(calibration.square.sizeMm)
   const blue = rgb(0.12, 0.38, 0.72)
   calibrationPage.drawText('PRINT SCALE CALIBRATION', {
     x: margin,
-    y: layout.pageHeightMm * PDF_POINTS_PER_MM - margin - 8,
+    y: mmToPdfPoints(layout.pageHeightMm) - margin - 8,
     size: 10,
     font,
     color: blue,
@@ -468,19 +497,19 @@ export async function createTiledPdf(
   for (const reference of calibration.lines) {
     calibrationPage.drawLine({
       start: {
-        x: reference.x1 * PDF_POINTS_PER_MM,
-        y: reference.y * PDF_POINTS_PER_MM,
+        x: mmToPdfPoints(reference.x1),
+        y: mmToPdfPoints(reference.y),
       },
       end: {
-        x: reference.x2 * PDF_POINTS_PER_MM,
-        y: reference.y * PDF_POINTS_PER_MM,
+        x: mmToPdfPoints(reference.x2),
+        y: mmToPdfPoints(reference.y),
       },
       thickness: 0.8,
       color: blue,
     })
     calibrationPage.drawText(`${reference.lengthMm} mm line`, {
-      x: reference.x1 * PDF_POINTS_PER_MM,
-      y: reference.labelY * PDF_POINTS_PER_MM,
+      x: mmToPdfPoints(reference.x1),
+      y: mmToPdfPoints(reference.labelY),
       size: 8,
       font,
       color: blue,
@@ -494,7 +523,7 @@ export async function createTiledPdf(
       size: 7,
       font,
       color: rgb(0.25, 0.25, 0.25),
-      maxWidth: layout.pageWidthMm * PDF_POINTS_PER_MM - margin * 2,
+      maxWidth: mmToPdfPoints(layout.pageWidthMm) - margin * 2,
     },
   )
 
