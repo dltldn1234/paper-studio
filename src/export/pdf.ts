@@ -15,7 +15,10 @@ import {
 import type { NetLayout, Point2D, UnfoldedNet } from '../geometry'
 import { createPdfCalibrationGuide } from './calibration'
 import { createPrintableNet } from './printable-net'
-import { createCorrectedPrintableNet } from './precision-export'
+import {
+  createCorrectedPrintableNet,
+  scaleFaceMaterialOffsets,
+} from './precision-export'
 import type { PdfCalibrationSelection } from './precision-export'
 import type { PrintableNet } from './printable-net'
 import type { PrintLayout, PrintSettings, PrintTile } from './print-layout'
@@ -338,7 +341,7 @@ function drawPageLabels(
   })
   if (calibration) {
     page.drawText(
-      `Calibration profile ${calibration.profileId} · X ${(calibration.xScale * 100).toFixed(2)}% · Y ${(calibration.yScale * 100).toFixed(2)}%`,
+      `Calibration profile ${calibration.profileName ?? calibration.profileId} · X ${(calibration.xScale * 100).toFixed(2)}% · Y ${(calibration.yScale * 100).toFixed(2)}%`,
       {
         x: margin,
         y: margin / 2 + 8,
@@ -416,25 +419,7 @@ export async function createTiledPdf(
     ? createCorrectedPrintableNet(sourcePrintable, options.calibration)
     : sourcePrintable
   const faceMaterials = options.calibration
-    ? Object.fromEntries(
-        Object.entries(options.faceMaterials ?? {}).map(
-          ([faceId, material]) => [
-            faceId,
-            material.texture
-              ? {
-                  ...material,
-                  texture: {
-                    ...material.texture,
-                    offsetX:
-                      material.texture.offsetX * options.calibration!.xScale,
-                    offsetY:
-                      material.texture.offsetY * options.calibration!.yScale,
-                  },
-                }
-              : material,
-          ],
-        ),
-      )
+    ? scaleFaceMaterialOffsets(options.faceMaterials ?? {}, options.calibration)
     : options.faceMaterials
   const layout = createPrintLayout(printable, settings)
   const preflight = runPrintPreflight(printable, layout, faceMaterials)
@@ -449,7 +434,7 @@ export async function createTiledPdf(
   pdf.setCreator('Paper Studio')
   if (options.calibration) {
     pdf.setSubject(
-      `Printer profile ${options.calibration.profileId}; X ${options.calibration.xScale}; Y ${options.calibration.yScale}`,
+      `Printer profile ${options.calibration.profileName ?? options.calibration.profileId}; ID ${options.calibration.profileId}; X ${options.calibration.xScale}; Y ${options.calibration.yScale}`,
     )
   }
   pdf.catalog.getOrCreateViewerPreferences().setPrintScaling(PrintScaling.None)
@@ -607,7 +592,7 @@ export async function createTiledPdf(
     })
   }
   calibrationPage.drawText(
-    `${options.calibration ? `Profile ${options.calibration.profileId}: X ${(options.calibration.xScale * 100).toFixed(2)}%, Y ${(options.calibration.yScale * 100).toFixed(2)}%. ` : ''}Print at Actual Size / 100%. Turn off Fit or Shrink. Measure the line and square before cutting. X/Y scaling changes face and tab proportions and can affect assembly.`,
+    `${options.calibration ? `Profile ${options.calibration.profileName ?? options.calibration.profileId}: X ${(options.calibration.xScale * 100).toFixed(2)}%, Y ${(options.calibration.yScale * 100).toFixed(2)}%. ` : ''}Print at Actual Size / 100%. Turn off Fit or Shrink. Measure the line and square before cutting. X/Y scaling changes face and tab proportions and can affect assembly.`,
     {
       x: margin,
       y: margin,

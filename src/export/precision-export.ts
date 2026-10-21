@@ -1,8 +1,10 @@
 import { scalePrintableNet } from './printable-net'
 import type { PrintableNet } from './printable-net'
+import type { FaceMaterial } from '../materials/materials'
 
 export type PdfCalibrationSelection = {
   profileId: string
+  profileName?: string
   xScale: number
   yScale: number
   alreadyAppliedProfileIds?: string[]
@@ -37,4 +39,26 @@ export function createCorrectedPrintableNet(
 ) {
   validatePdfCalibrationSelection(selection)
   return scalePrintableNet(net, selection.xScale, selection.yScale)
+}
+
+export function scaleFaceMaterialOffsets(
+  materials: Record<string, FaceMaterial>,
+  selection: PdfCalibrationSelection,
+) {
+  validatePdfCalibrationSelection(selection)
+  return Object.fromEntries(
+    Object.entries(materials).map(([faceId, material]) => [
+      faceId,
+      material.texture
+        ? {
+            ...material,
+            texture: {
+              ...material.texture,
+              offsetX: material.texture.offsetX * selection.xScale,
+              offsetY: material.texture.offsetY * selection.yScale,
+            },
+          }
+        : material,
+    ]),
+  )
 }
