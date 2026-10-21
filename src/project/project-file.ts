@@ -1,4 +1,10 @@
-import { validateCuboidDimensions } from '../geometry'
+import {
+  MAX_GLUE_TAB_ANGLE_DEG,
+  MAX_GLUE_TAB_WIDTH_MM,
+  MIN_GLUE_TAB_ANGLE_DEG,
+  MIN_GLUE_TAB_WIDTH_MM,
+  validateCuboidDimensions,
+} from '../geometry'
 import type {
   CuboidDimensions,
   GlueTabOptions,
@@ -20,6 +26,7 @@ export type PaperStudioProject = {
   customFoldEdgeIds: string[] | null
   selectedFaceId: string | null
   selectedEdgeId: string | null
+  foldProgress: number
   printSettings: PrintSettings
 }
 
@@ -92,10 +99,11 @@ export function validateProject(
   if (
     typeof tabs.enabled !== 'boolean' ||
     !isFiniteNumber(tabs.widthMm) ||
-    tabs.widthMm <= 0 ||
+    tabs.widthMm < MIN_GLUE_TAB_WIDTH_MM ||
+    tabs.widthMm > MAX_GLUE_TAB_WIDTH_MM ||
     !isFiniteNumber(tabs.angleDeg) ||
-    tabs.angleDeg <= 0 ||
-    tabs.angleDeg >= 90
+    tabs.angleDeg < MIN_GLUE_TAB_ANGLE_DEG ||
+    tabs.angleDeg > MAX_GLUE_TAB_ANGLE_DEG
   ) {
     throw new RangeError('Project glue tab options are invalid.')
   }
@@ -113,6 +121,13 @@ export function validateProject(
     (value.selectedEdgeId !== null && typeof value.selectedEdgeId !== 'string')
   ) {
     throw new RangeError('Project selection state is invalid.')
+  }
+  if (
+    !isFiniteNumber(value.foldProgress) ||
+    value.foldProgress < 0 ||
+    value.foldProgress > 1
+  ) {
+    throw new RangeError('Project fold progress must be between 0 and 1.')
   }
   if (!isRecord(value.printSettings)) {
     throw new RangeError('Project print settings are missing.')

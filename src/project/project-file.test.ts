@@ -14,6 +14,7 @@ const validProject = () =>
     customFoldEdgeIds: ['edge-1', 'edge-3'],
     selectedFaceId: 'face-1',
     selectedEdgeId: 'edge-2',
+    foldProgress: 0.4,
     printSettings: {
       paperSize: 'A3',
       orientation: 'landscape',
@@ -58,5 +59,11 @@ describe('versioned project files', () => {
         }),
       ),
     ).toThrow('print settings are invalid')
+  })
+
+  it('rejects fold progress outside the animation range', () => {
+    expect(() =>
+      parseProject(JSON.stringify({ ...validProject(), foldProgress: 1.1 })),
+    ).toThrow('fold progress must be between 0 and 1')
   })
 })
