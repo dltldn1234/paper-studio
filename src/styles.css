@@ -947,6 +947,10 @@ button:disabled {
   padding: 22px;
   box-shadow: 0 18px 60px rgb(0 0 0 / 45%);
 }
+.export-dialog--pdf {
+  width: min(860px, 100%);
+  gap: 12px;
+}
 .export-dialog__heading,
 .export-dialog__actions {
   display: flex;
@@ -1165,6 +1169,154 @@ button:disabled {
   color: #9aa5b5;
   font-size: 11px;
   line-height: 1.6;
+}
+.printer-calibration-panel {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #34435a;
+  border-radius: 9px;
+  background: #101722;
+}
+.printer-calibration-panel__heading,
+.printer-profile-select-row,
+.printer-profile-select-row__actions,
+.printer-calibration-panel__file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.printer-calibration-panel__heading > div:first-child,
+.printer-profile-measurements__intro {
+  display: grid;
+  gap: 4px;
+  color: #dce5f2;
+  font-size: 11px;
+}
+.printer-calibration-panel__heading span,
+.printer-profile-select-row__actions span,
+.printer-profile-measurements__intro span {
+  color: #98a7bb;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.printer-calibration-panel__file-actions input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.printer-calibration-panel__file-actions label {
+  cursor: pointer;
+}
+.printer-profile-create {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #29374b;
+  border-radius: 7px;
+  background: #141d2a;
+}
+.printer-profile-create label,
+.printer-profile-select-row label,
+.printer-profile-measurements fieldset label {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  color: #bdc9d9;
+  font-size: 10px;
+}
+.printer-profile-create input,
+.printer-profile-select-row select,
+.printer-profile-measurements input {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid #35435a;
+  border-radius: 5px;
+  color: #e5edf7;
+  background: #0e1622;
+}
+.printer-profile-create__paper {
+  align-self: center;
+  color: #98a7bb;
+  font-size: 10px;
+}
+.printer-profile-create .primary-button {
+  justify-self: end;
+}
+.printer-profile-select-row > label {
+  flex: 1 1 200px;
+}
+.printer-profile-measurements {
+  display: grid;
+  gap: 9px;
+}
+.printer-profile-axis-measurements {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+  padding: 9px;
+  border: 1px solid #29374b;
+  border-radius: 7px;
+}
+.printer-profile-measurements legend {
+  padding: 0 5px;
+  color: #dce5f2;
+  font-size: 10px;
+}
+.printer-profile-edit {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 9px;
+  border: 1px solid #29374b;
+  border-radius: 7px;
+}
+.printer-profile-edit label {
+  display: grid;
+  gap: 5px;
+  color: #bdc9d9;
+  font-size: 10px;
+}
+.printer-profile-create .primary-button {
+  border: 1px solid #5079c4;
+  border-radius: 6px;
+  background: #294779;
+  padding: 8px 12px;
+  color: #f2f6ff;
+  font-size: 11px;
+}
+.printer-profile-correction-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #e5edf7;
+  font-size: 10px;
+}
+.printer-profile-correction-toggle input {
+  width: auto;
+  accent-color: #78a6ff;
+}
+.printer-profile-status {
+  color: #74d4a0;
+  font-size: 10px;
+}
+@media (max-width: 700px) {
+  .export-dialog--pdf {
+    width: min(100%, 100%);
+    max-height: calc(100dvh - 20px);
+    padding: 14px;
+  }
+  .printer-profile-create,
+  .printer-profile-edit {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .export-dialog__actions {
   justify-content: flex-end;

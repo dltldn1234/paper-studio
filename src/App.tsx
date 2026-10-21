@@ -87,6 +87,7 @@ import {
   calculateCalibrationResult,
 } from './export/calibration'
 import type { CalibrationReferenceLength } from './export/calibration'
+import { PrinterCalibrationPanel } from './calibration/PrinterCalibrationPanel'
 import {
   readCalibrationMeasurements,
   removeCalibrationMeasurement,
@@ -1900,7 +1901,7 @@ function App() {
       {svgExportOpen && (
         <div className="export-dialog-backdrop">
           <form
-            className="export-dialog"
+            className={`export-dialog${exportFormat === 'pdf' ? 'export-dialog--pdf' : ''}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="svg-export-title"
@@ -2188,6 +2189,10 @@ function App() {
                   맞춤을 끄세요. PDF와 브라우저만으로 실제 프린터 정확도는
                   보장되지 않습니다. 기록은 이 브라우저에만 저장됩니다.
                 </p>
+                <PrinterCalibrationPanel
+                  paperSize={printSettings.paperSize}
+                  orientation={printSettings.orientation}
+                />
               </>
             )}
             {exportError && (
