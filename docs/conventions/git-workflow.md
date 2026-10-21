@@ -29,8 +29,8 @@ Commit after each coherent unit has passed its relevant checks. A Phase 2 sized 
 
 ## Pull requests
 
-Use `[Type] concise task`, complete `.github/PULL_REQUEST_TEMPLATE.md`, and connect the Issue with `Closes #<number>`. Confirm lint, typecheck, format, tests, and production build. Attach UI screenshots where practical. Merge only after required CI passes. Use a normal merge commit to preserve individual commits; squash and rebase merging are disabled in this repository. Delete the merged branch and confirm Issue closure after merge.
+Use `[Type] concise task`, complete `.github/PULL_REQUEST_TEMPLATE.md`, and connect the Issue with `Closes #<number>`. Confirm lint, typecheck, format, tests, and production build. Attach UI screenshots where practical. Before merge, verify that every check run and legacy status on the current PR HEAD is complete and successful. Use `pnpm merge:checked <pr-number>`; it rechecks the HEAD, rejects missing, pending, failed, cancelled, skipped, or stale checks, and sends the exact verified SHA to GitHub's merge endpoint. This creates a normal merge commit and deletes the head branch after success. Squash and rebase merging are disabled in this repository. Confirm PR and Issue closure after merge.
 
 ## Main branch protection
 
-Use a repository ruleset requiring pull requests and successful CI, disallow force pushes, and prevent deletion when the current GitHub plan and permissions support it. The repository merge strategy is normal merge commits only. Do not weaken or bypass rules to complete a merge; document unavailable controls.
+Use a repository ruleset requiring pull requests and successful CI, disallow force pushes, and prevent deletion when the current GitHub plan and permissions support it. If rulesets are unavailable, the checked CLI merge is the required workflow. The repository merge strategy is normal merge commits only. Do not weaken or bypass rules to complete a merge; document unavailable controls.

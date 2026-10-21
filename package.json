@@ -14,7 +14,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "merge:checked": "node scripts/merge-pr-checked.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "latest",
