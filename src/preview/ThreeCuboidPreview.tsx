@@ -7,10 +7,12 @@ import {
   solveFoldPoses,
   transformPoint,
 } from '../folding'
+import type { FaceMaterial } from '../materials/materials'
 
 type ThreeCuboidPreviewProps = {
   cuboid: Cuboid
   netLayout: NetLayout
+  faceMaterials?: Record<string, FaceMaterial>
   foldProgress: number
   cameraResetToken: number
   selectedFaceId: FaceId | null
@@ -32,6 +34,7 @@ type PreviewScene = {
 export function ThreeCuboidPreview({
   cuboid,
   netLayout,
+  faceMaterials = {},
   foldProgress,
   cameraResetToken,
   selectedFaceId,
@@ -202,10 +205,14 @@ export function ThreeCuboidPreview({
       ([id, mesh]) => [id, mesh.material] as const,
     )) {
       const selected = faceId === selectedFaceId
-      material.color.set(selected ? SELECTED_FACE_COLOR : BASE_FACE_COLOR)
+      material.color.set(
+        selected
+          ? SELECTED_FACE_COLOR
+          : (faceMaterials[faceId]?.color ?? BASE_FACE_COLOR),
+      )
       material.emissive.set(selected ? '#102342' : '#000000')
     }
-  }, [selectedFaceId])
+  }, [faceMaterials, selectedFaceId])
 
   useEffect(() => {
     const preview = previewRef.current

@@ -2,9 +2,11 @@ import { useId, useState } from 'react'
 import type { PointerEvent, WheelEvent } from 'react'
 import { Minus, Plus, Redo2, RotateCcw, Scan, Undo2 } from 'lucide-react'
 import type { Point2D, UnfoldedNet } from '../geometry'
+import type { FaceMaterial } from '../materials/materials'
 
 type PolyhedronNetCanvasProps = {
   layout: UnfoldedNet
+  faceMaterials?: Record<string, FaceMaterial>
   selectedFaceId: string | null
   onFaceSelect: (faceId: string) => void
   foldEdgeIds: string[]
@@ -25,6 +27,7 @@ function pointsAttribute(points: Point2D[]) {
 
 export function PolyhedronNetCanvas({
   layout,
+  faceMaterials = {},
   selectedFaceId,
   onFaceSelect,
   foldEdgeIds,
@@ -116,6 +119,7 @@ export function PolyhedronNetCanvas({
             <polygon
               className={`net-canvas__face ${selectedFaceId === face.id ? 'is-selected' : ''}`}
               data-face-id={face.id}
+              style={{ fill: faceMaterials[face.id]?.color }}
               points={pointsAttribute(face.polygon)}
               role="button"
               tabIndex={0}

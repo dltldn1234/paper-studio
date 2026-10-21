@@ -28,6 +28,18 @@ const validProject = () =>
       marginMm: 10,
       overlapMm: 8,
     },
+    faceMaterials: {
+      'face-1': {
+        color: '#aabbcc',
+        texture: {
+          dataUrl: 'data:image/png;base64,aGVsbG8=',
+          offsetX: 2,
+          offsetY: -3,
+          scale: 1.5,
+          rotationDeg: 45,
+        },
+      },
+    },
   })
 
 describe('versioned project files', () => {

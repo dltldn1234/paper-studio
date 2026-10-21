@@ -2,9 +2,11 @@ import { useId, useRef, useState } from 'react'
 import type { PointerEvent, WheelEvent } from 'react'
 import { Minus, Plus, Scan } from 'lucide-react'
 import type { FaceId, NetLayout, Point2D } from '../geometry'
+import type { FaceMaterial } from '../materials/materials'
 
 type CuboidNetCanvasProps = {
   layout: NetLayout
+  faceMaterials?: Record<string, FaceMaterial>
   selectedFaceId: FaceId | null
   onFaceSelect: (faceId: FaceId) => void
 }
@@ -28,6 +30,7 @@ function pointsToAttribute(points: Point2D[]): string {
 
 export function CuboidNetCanvas({
   layout,
+  faceMaterials = {},
   selectedFaceId,
   onFaceSelect,
 }: CuboidNetCanvasProps) {
@@ -121,6 +124,7 @@ export function CuboidNetCanvas({
             <polygon
               className={`net-canvas__face ${selectedFaceId === face.id ? 'is-selected' : ''}`}
               data-face-id={face.id}
+              style={{ fill: faceMaterials[face.id]?.color }}
               points={pointsToAttribute(face.polygon.vertices)}
               role="button"
               tabIndex={0}

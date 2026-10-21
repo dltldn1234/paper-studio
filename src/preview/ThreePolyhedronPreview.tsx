@@ -4,10 +4,12 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { PolyhedronMesh, UnfoldedNet } from '../geometry'
 import { solveFoldPoses, transformPoint } from '../folding'
 import type { FoldGraph } from '../folding'
+import type { FaceMaterial } from '../materials/materials'
 
 type ThreePolyhedronPreviewProps = {
   mesh: PolyhedronMesh
   layout: UnfoldedNet
+  faceMaterials?: Record<string, FaceMaterial>
   foldGraph: FoldGraph
   foldProgress: number
   cameraResetToken: number
@@ -39,6 +41,7 @@ function centerOf(points: Array<{ x: number; y: number }>) {
 export function ThreePolyhedronPreview({
   mesh,
   layout,
+  faceMaterials = {},
   foldGraph,
   foldProgress,
   cameraResetToken,
@@ -232,11 +235,13 @@ export function ThreePolyhedronPreview({
     preview.faceMeshes.forEach((faceMesh, faceId) => {
       const selected = faceId === selectedFaceId
       faceMesh.material.color.set(
-        selected ? SELECTED_FACE_COLOR : BASE_FACE_COLOR,
+        selected
+          ? SELECTED_FACE_COLOR
+          : (faceMaterials[faceId]?.color ?? BASE_FACE_COLOR),
       )
       faceMesh.material.emissive.set(selected ? '#102342' : '#000000')
     })
-  }, [selectedFaceId])
+  }, [faceMaterials, selectedFaceId])
 
   useEffect(() => {
     const preview = previewRef.current

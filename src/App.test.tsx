@@ -259,4 +259,13 @@ describe('Paper Studio editor', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: '접착탭 표시' }))
     expect(document.querySelectorAll('[data-tab-id]')).toHaveLength(0)
   })
+
+  it('applies a selected face color to the net editor', () => {
+    render(<App />)
+    const face = document.querySelector('[data-face-id="front"]')
+    fireEvent.change(screen.getByLabelText('선택 면 색상'), {
+      target: { value: '#aabbcc' },
+    })
+    expect(face).toHaveStyle({ fill: '#aabbcc' })
+  })
 })
