@@ -19,6 +19,7 @@ import type { PrintableNet } from './printable-net'
 import type { PrintLayout, PrintSettings, PrintTile } from './print-layout'
 import { computePrintLayout } from './print-layout'
 import type { FaceMaterial } from '../materials/materials'
+import { preparePdfTexture } from './pdf-texture'
 
 export const PDF_POINTS_PER_MM = 72 / 25.4
 
@@ -98,6 +99,10 @@ async function drawFaceMaterials(
   layout: PrintLayout,
   net: PrintableNet,
   materials: Record<string, FaceMaterial> = {},
+  imageCache = new Map<
+    string,
+    Promise<Awaited<ReturnType<PDFDocument['embedPng']>>>
+  >(),
 ) {
   const margin = layout.settings.marginMm * PDF_POINTS_PER_MM
   const pageHeight = layout.pageHeightMm * PDF_POINTS_PER_MM
@@ -116,17 +121,28 @@ async function drawFaceMaterials(
       .join(' ')
     page.drawSvgPath(`${path} Z`, { color: parseColor(material.color) })
     const texture = material.texture
-    if (!texture || !/^data:image\/(png|jpeg);base64,/i.test(texture.dataUrl)) {
-      continue
+    if (!texture) continue
+    let imagePromise = imageCache.get(texture.dataUrl)
+    if (!imagePromise) {
+      imagePromise = (async () => {
+        const prepared = await preparePdfTexture(texture.dataUrl)
+        return prepared.mime === 'png'
+          ? pdf.embedPng(prepared.bytes)
+          : pdf.embedJpg(prepared.bytes)
+      })()
+      imageCache.set(texture.dataUrl, imagePromise)
     }
-    const encoded = texture.dataUrl.slice(texture.dataUrl.indexOf(',') + 1)
-    const binary = atob(encoded)
-    const imageBytes = Uint8Array.from(binary, (character) =>
-      character.charCodeAt(0),
-    )
-    const image = texture.dataUrl.toLowerCase().startsWith('data:image/png')
-      ? await pdf.embedPng(imageBytes)
-      : await pdf.embedJpg(imageBytes)
+    let image
+    try {
+      image = await imagePromise
+    } catch (error) {
+      const detail =
+        error instanceof Error ? error.message : 'Unknown image error.'
+      throw new Error(
+        `Could not prepare the texture on face ${face.id} for PDF export: ${detail}`,
+        { cause: error },
+      )
+    }
     const clipPoints = clipped.map((point) => {
       const x = margin + (point.x - tile.origin.x) * PDF_POINTS_PER_MM
       const y =
@@ -359,6 +375,10 @@ export async function createTiledPdf(
   ] as [number, number]
 
   const totalPages = layout.tiles.length + 1
+  const imageCache = new Map<
+    string,
+    Promise<Awaited<ReturnType<PDFDocument['embedPng']>>>
+  >()
   for (const tile of layout.tiles) {
     const page = pdf.addPage(pageSize)
     await drawFaceMaterials(
@@ -368,6 +388,7 @@ export async function createTiledPdf(
       layout,
       printable,
       options.faceMaterials,
+      imageCache,
     )
     for (const edge of printable.edges) {
       const kind = tabbedEdgeIds.has(edge.id) ? 'fold' : edge.kind
