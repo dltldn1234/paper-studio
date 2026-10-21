@@ -189,4 +189,18 @@ describe('cuboid net glue tabs', () => {
       generateGlueTabs([edge], { ...enabled, enabled: false }).tabs,
     ).toEqual([])
   })
+
+  it('omits individually disabled cut edges', () => {
+    const source = createCuboidNet(dimensions)
+    const disabledEdgeId = source.edges.find(({ kind }) => kind === 'cut')?.id
+    expect(disabledEdgeId).toBeDefined()
+    const net = createCuboidNet(dimensions, {
+      ...enabled,
+      disabledEdgeIds: [disabledEdgeId!],
+    })
+    expect(net.glueTabs.some((tab) => tab.edgeId === disabledEdgeId)).toBe(
+      false,
+    )
+    expect(net.glueTabs).toHaveLength(6)
+  })
 })

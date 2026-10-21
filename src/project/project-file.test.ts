@@ -16,6 +16,7 @@ const validProject = () =>
       angleDeg: 45,
       shape: 'beveled',
       direction: 'inward',
+      disabledEdgeIds: ['edge-9'],
     },
     customFoldEdgeIds: ['edge-1', 'edge-3'],
     selectedFaceId: 'face-1',

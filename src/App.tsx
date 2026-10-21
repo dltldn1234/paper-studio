@@ -263,6 +263,19 @@ function App() {
     : undefined
   const activeTabInterferences =
     genericPrintableNet?.tabInterferences ?? netLayout.tabInterferences
+  const glueTabEdges = useMemo(() => {
+    const edges = genericUnfolding?.success
+      ? genericUnfolding.layout.edges
+      : netLayout.edges
+    const seenConnections = new Set<string>()
+    return edges.filter((edge) => {
+      if (edge.kind !== 'cut' || edge.adjacentFaceIds.length !== 2) return false
+      const key = [...edge.adjacentFaceIds].sort().join('|')
+      if (seenConnections.has(key)) return false
+      seenConnections.add(key)
+      return true
+    })
+  }, [genericUnfolding, netLayout.edges])
   const displayedFoldEdgeIds =
     draftFoldEdgeIds ??
     (genericUnfolding?.success ? genericUnfolding.layout.foldEdgeIds : [])
@@ -1379,6 +1392,42 @@ function App() {
                   </select>
                 </label>
               </div>
+              {glueTabOptions.enabled && (
+                <div
+                  className="glue-tab-edge-list"
+                  aria-label="접착탭 연결 모서리"
+                >
+                  {glueTabEdges.map((edge) => {
+                    const disabled =
+                      glueTabOptions.disabledEdgeIds?.includes(edge.id) ?? false
+                    const connectedFaces = edge.adjacentFaceIds.join(' ↔ ')
+                    return (
+                      <label key={edge.id}>
+                        <input
+                          type="checkbox"
+                          aria-label={`${connectedFaces} 접착탭`}
+                          checked={!disabled}
+                          onChange={(event) =>
+                            setGlueTabOptions((current) => {
+                              const disabledEdgeIds = new Set(
+                                current.disabledEdgeIds ?? [],
+                              )
+                              if (event.target.checked)
+                                disabledEdgeIds.delete(edge.id)
+                              else disabledEdgeIds.add(edge.id)
+                              return {
+                                ...current,
+                                disabledEdgeIds: [...disabledEdgeIds],
+                              }
+                            })
+                          }
+                        />
+                        {connectedFaces}
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
               {glueTabOptions.enabled && activeTabInterferences.length > 0 && (
                 <p className="glue-tab-warning" role="status">
                   접착탭이 서로 겹칩니다. 너비를 줄여주세요 (

@@ -239,6 +239,11 @@ describe('Paper Studio editor', () => {
     const beforeShapeChange = firstTab?.getAttribute('points')
     fireEvent.change(shapeSelect, { target: { value: 'rectangular' } })
     expect(firstTab?.getAttribute('points')).not.toBe(beforeShapeChange)
+    const firstEdgeTab = screen.getAllByRole('checkbox', {
+      name: /접착탭$/,
+    })[0]
+    fireEvent.click(firstEdgeTab)
+    expect(document.querySelectorAll('[data-tab-id]')).toHaveLength(6)
     fireEvent.change(screen.getByRole('combobox', { name: '접착탭 방향' }), {
       target: { value: 'inward' },
     })

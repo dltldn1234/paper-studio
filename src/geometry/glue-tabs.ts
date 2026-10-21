@@ -32,6 +32,7 @@ function validateOptions({
   angleDeg,
   shape,
   direction,
+  disabledEdgeIds,
 }: GlueTabOptions): void {
   if (
     !Number.isFinite(widthMm) ||
@@ -59,6 +60,14 @@ function validateOptions({
   }
   if (direction !== undefined && !['outward', 'inward'].includes(direction)) {
     throw new RangeError('Glue tab direction is unsupported.')
+  }
+  if (
+    disabledEdgeIds !== undefined &&
+    (!Array.isArray(disabledEdgeIds) ||
+      disabledEdgeIds.some((edgeId) => typeof edgeId !== 'string') ||
+      new Set(disabledEdgeIds).size !== disabledEdgeIds.length)
+  ) {
+    throw new RangeError('Glue tab edge overrides are invalid.')
   }
 }
 
@@ -176,13 +185,14 @@ export function generateGlueTabs(
   if (!options.enabled) return { tabs: [], interferences: [] }
 
   const joinedFaces = new Set<string>()
+  const disabledEdgeIds = new Set(options.disabledEdgeIds ?? [])
   const tabs = edges
     .filter((edge) => {
       if (edge.kind !== 'cut' || edge.adjacentFaceIds.length !== 2) return false
       const key = [...edge.adjacentFaceIds].sort().join('|')
       if (joinedFaces.has(key)) return false
       joinedFaces.add(key)
-      return true
+      return !disabledEdgeIds.has(edge.id)
     })
     .map((edge) => createTab(edge, options))
     .filter((tab): tab is GlueTab => tab !== null)

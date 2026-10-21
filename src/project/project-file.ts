@@ -107,7 +107,11 @@ export function validateProject(
     (tabs.shape !== undefined &&
       !['beveled', 'trapezoid', 'rectangular'].includes(String(tabs.shape))) ||
     (tabs.direction !== undefined &&
-      !['outward', 'inward'].includes(String(tabs.direction)))
+      !['outward', 'inward'].includes(String(tabs.direction))) ||
+    (tabs.disabledEdgeIds !== undefined &&
+      (!Array.isArray(tabs.disabledEdgeIds) ||
+        tabs.disabledEdgeIds.some((id) => typeof id !== 'string') ||
+        new Set(tabs.disabledEdgeIds).size !== tabs.disabledEdgeIds.length))
   ) {
     throw new RangeError('Project glue tab options are invalid.')
   }

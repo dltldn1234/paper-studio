@@ -98,6 +98,7 @@ export type GlueTabOptions = {
   angleDeg: number
   shape?: GlueTabShape
   direction?: GlueTabDirection
+  disabledEdgeIds?: string[]
 }
 
 export type GlueTabInterference =
