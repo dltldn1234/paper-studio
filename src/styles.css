@@ -214,6 +214,20 @@ button:disabled {
   padding: 9px 8px;
   color: #bdc6d4;
 }
+
+.project-file-error {
+  position: fixed;
+  z-index: 10;
+  top: 58px;
+  right: 16px;
+  max-width: min(520px, calc(100vw - 32px));
+  border: 1px solid #7f1d1d;
+  border-radius: 6px;
+  padding: 9px 12px;
+  background: #291617;
+  color: #fecaca;
+  font-size: 12px;
+}
 .project-card__icon {
   display: grid;
   width: 26px;
@@ -1236,6 +1250,9 @@ button:disabled {
   .export-button,
   .panel-toolbar__actions {
     display: none;
+  }
+  .project-file-action {
+    display: inline-flex;
   }
   .document-title {
     flex: 1;

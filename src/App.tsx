@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Download,
   FilePlus2,
+  FolderOpen,
   FolderTree,
   Grid2X2,
   Layers3,
@@ -30,6 +31,7 @@ import {
   Redo2,
   Ruler,
   Settings2,
+  Save,
   Undo2,
 } from 'lucide-react'
 import { CuboidNetCanvas } from './canvas/CuboidNetCanvas'
@@ -72,6 +74,11 @@ import {
 } from './export/print-layout'
 import { PrintPagePreviews } from './export/PrintPagePreviews'
 import { createPrintableNet } from './export/printable-net'
+import {
+  createProjectDocument,
+  parseProject,
+  serializeProject,
+} from './project/project-file'
 
 const ThreeCuboidPreview = lazy(() =>
   import('./preview/ThreeCuboidPreview').then((module) => ({
@@ -110,6 +117,9 @@ function App() {
   const [solidKind, setSolidKind] = useState<'cuboid' | RegularPolyhedronKind>(
     'cuboid',
   )
+  const [projectName, setProjectName] = useState('새 프로젝트')
+  const [projectError, setProjectError] = useState('')
+  const projectFileInput = useRef<HTMLInputElement>(null)
   const [edgeLengthMm, setEdgeLengthMm] = useState(100)
   const [edgeLengthDraft, setEdgeLengthDraft] = useState('100')
   const [edgeLengthError, setEdgeLengthError] = useState('')
@@ -576,6 +586,117 @@ function App() {
     else void downloadPdf()
   }
 
+  function saveProjectFile() {
+    try {
+      const project = createProjectDocument({
+        name: projectName,
+        solidKind,
+        dimensions,
+        edgeLengthMm,
+        glueTabOptions,
+        customFoldEdgeIds,
+        selectedFaceId,
+        selectedEdgeId,
+        foldProgress,
+        printSettings,
+      })
+      const objectUrl = URL.createObjectURL(
+        new Blob([serializeProject(project)], {
+          type: 'application/json;charset=utf-8',
+        }),
+      )
+      const link = document.createElement('a')
+      link.href = objectUrl
+      const safeName = project.name.replace(/[<>:"/\\|?*]/g, '-').trim()
+      link.download = `${safeName || 'paper-studio'}.paperstudio.json`
+      link.click()
+      URL.revokeObjectURL(objectUrl)
+      setProjectError('')
+    } catch (error) {
+      setProjectError(
+        error instanceof Error
+          ? error.message
+          : '프로젝트를 저장하지 못했습니다.',
+      )
+    }
+  }
+
+  async function loadProjectFile(file: File) {
+    try {
+      const project = parseProject(await file.text())
+      let faceIds: string[]
+      let edgeIds: string[]
+      if (project.solidKind === 'cuboid') {
+        const model = createCuboid(project.dimensions)
+        faceIds = model.faces.map(({ id }) => id)
+        edgeIds = model.edges.map(({ id }) => id)
+      } else {
+        const mesh = createRegularPolyhedron(
+          project.solidKind,
+          project.edgeLengthMm,
+        )
+        const unfolding = unfoldPolyhedron(
+          mesh,
+          project.customFoldEdgeIds
+            ? { foldEdgeIds: project.customFoldEdgeIds }
+            : {},
+        )
+        if (!unfolding.success) {
+          throw new RangeError(
+            `프로젝트 전개 트리가 유효하지 않습니다: ${unfolding.issues.join(', ')}`,
+          )
+        }
+        faceIds = unfolding.layout.faces.map(({ id }) => id)
+        edgeIds = unfolding.layout.edges.map(({ id }) => id)
+      }
+      if (
+        (project.selectedFaceId && !faceIds.includes(project.selectedFaceId)) ||
+        (project.selectedEdgeId && !edgeIds.includes(project.selectedEdgeId))
+      ) {
+        throw new RangeError(
+          '프로젝트 선택 상태가 현재 구조와 일치하지 않습니다.',
+        )
+      }
+
+      setProjectName(project.name)
+      setSolidKind(project.solidKind)
+      setDimensions(project.dimensions)
+      setDimensionDrafts({
+        widthMm: String(project.dimensions.widthMm),
+        depthMm: String(project.dimensions.depthMm),
+        heightMm: String(project.dimensions.heightMm),
+      })
+      setDimensionErrors({})
+      setEdgeLengthMm(project.edgeLengthMm)
+      setEdgeLengthDraft(String(project.edgeLengthMm))
+      setEdgeLengthError('')
+      setGlueTabOptions(project.glueTabOptions)
+      setGlueTabDrafts({
+        widthMm: String(project.glueTabOptions.widthMm),
+        angleDeg: String(project.glueTabOptions.angleDeg),
+      })
+      setGlueTabErrors({})
+      setCustomFoldEdgeIds(project.customFoldEdgeIds)
+      setDraftFoldEdgeIds(null)
+      setFoldTreeError('')
+      setFoldTreeHistory([])
+      setFoldTreeHistoryIndex(-1)
+      setSelectedFaceId(project.selectedFaceId)
+      setSelectedEdgeId(project.selectedEdgeId)
+      setPrintSettings(project.printSettings)
+      setFoldPlaying(false)
+      foldProgressRef.current = project.foldProgress
+      setFoldProgress(project.foldProgress)
+      setProjectError('')
+    } catch (error) {
+      setProjectError(
+        error instanceof Error
+          ? error.message
+          : '프로젝트 파일을 불러오지 못했습니다.',
+      )
+    }
+  }
+
   function updatePrintSetting<K extends keyof PrintSettings>(
     key: K,
     value: PrintSettings[K],
@@ -605,7 +726,7 @@ function App() {
         </a>
         <div className="topbar-divider" />
         <div className="document-title">
-          <span className="document-title__eyebrow">새 프로젝트</span>
+          <span className="document-title__eyebrow">로컬 프로젝트</span>
           <strong>{solidLabel} 설계</strong>
           <ChevronDown size={13} />
         </div>
@@ -613,6 +734,34 @@ function App() {
         <span className="local-state">
           <span /> 브라우저에서 작업 중
         </span>
+        <button
+          className="icon-button topbar-icon project-file-action"
+          type="button"
+          aria-label="프로젝트 저장"
+          onClick={saveProjectFile}
+        >
+          <Save size={16} />
+        </button>
+        <button
+          className="icon-button topbar-icon project-file-action"
+          type="button"
+          aria-label="프로젝트 열기"
+          onClick={() => projectFileInput.current?.click()}
+        >
+          <FolderOpen size={16} />
+        </button>
+        <input
+          ref={projectFileInput}
+          type="file"
+          hidden
+          accept=".paperstudio.json,application/json"
+          aria-label="프로젝트 파일"
+          onChange={(event) => {
+            const [file] = event.currentTarget.files ?? []
+            event.currentTarget.value = ''
+            if (file) void loadProjectFile(file)
+          }}
+        />
         <button
           className="icon-button topbar-icon"
           type="button"
@@ -664,7 +813,7 @@ function App() {
               <FolderTree size={15} />
             </span>
             <span className="project-card__copy">
-              <strong>새 프로젝트</strong>
+              <strong>{projectName}</strong>
               <small>수정 중</small>
             </span>
             <ChevronDown size={13} />
@@ -1229,6 +1378,12 @@ function App() {
           </section>
         </aside>
       </main>
+
+      {projectError && (
+        <div className="project-file-error" role="alert">
+          {projectError}
+        </div>
+      )}
 
       {svgExportOpen && (
         <div className="export-dialog-backdrop">

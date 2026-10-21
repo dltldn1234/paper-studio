@@ -123,6 +123,44 @@ test('selects a regular solid and synchronizes its net, folding, and SVG output'
   expect((await pdfDownload).suggestedFilename()).toBe('paper-studio-net.pdf')
 })
 
+test('saves and restores a versioned local polyhedron project', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByLabel('다면체 종류').selectOption('tetrahedron')
+  const edgeLength = page.getByLabel('모서리 길이 (mm)')
+  await edgeLength.fill('135')
+  const selectedFace = page.locator('[data-face-id^="face-"]').first()
+  await selectedFace.focus()
+  await page.keyboard.press('Enter')
+  await expect(selectedFace).toHaveAttribute('aria-pressed', 'true')
+
+  const savedFilePromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: '프로젝트 저장' }).click()
+  const savedFile = await savedFilePromise
+  expect(savedFile.suggestedFilename()).toBe('새 프로젝트.paperstudio.json')
+  const savedPath = await savedFile.path()
+  expect(savedPath).not.toBeNull()
+
+  await page.getByLabel('다면체 종류').selectOption('octahedron')
+  await edgeLength.fill('150')
+  await page.locator('[aria-label="프로젝트 파일"]').setInputFiles(savedPath!)
+
+  await expect(page.getByLabel('다면체 종류')).toHaveValue('tetrahedron')
+  await expect(page.getByLabel('모서리 길이 (mm)')).toHaveValue('135')
+  await expect(page.locator('.project-card__copy strong')).toHaveText(
+    '새 프로젝트',
+  )
+  await expect(page.locator('[data-face-id^="face-"]').first()).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await page.screenshot({
+    path: 'test-results/phase5-local-project-restored.png',
+    fullPage: true,
+  })
+})
+
 test('dimensions update the 2D net, 3D preview, and inspector together', async ({
   page,
 }) => {
