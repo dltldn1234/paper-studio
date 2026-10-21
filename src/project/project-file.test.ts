@@ -27,6 +27,9 @@ const validProject = () =>
       orientation: 'landscape',
       marginMm: 10,
       overlapMm: 8,
+      showCutLines: false,
+      showFoldLines: true,
+      showAssemblyNumbers: false,
     },
     faceMaterials: {
       'face-1': {

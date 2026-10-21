@@ -1006,6 +1006,22 @@ button:disabled {
   overflow: auto;
   padding: 2px;
 }
+.pdf-production-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 14px;
+  padding: 8px 0;
+}
+.pdf-production-toggles label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #b8c2d1;
+  font-size: 9px;
+}
+.pdf-production-toggles input {
+  accent-color: #78a6ff;
+}
 .print-preview-tile {
   min-width: 0;
 }

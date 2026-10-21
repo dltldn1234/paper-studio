@@ -76,3 +76,32 @@ test('restores the saved assembly guide position', async ({ page }) => {
   await page.getByLabel('프로젝트 파일').setInputFiles(path)
   await expect(page.locator('.assembly-guide__step')).toContainText('단계 1 /')
 })
+
+test('configures production print layers and downloads the assembly PDF', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '내보내기' }).click()
+  await page.getByLabel('파일 형식').selectOption('pdf')
+  await expect(page.locator('.print-preview-pattern__fold')).not.toHaveCount(0)
+  await page.getByLabel('접힘선 표시').uncheck()
+  await expect(page.locator('.print-preview-pattern__fold')).toHaveCount(0)
+  await page.getByLabel('조립 번호 표시').uncheck()
+  await expect(page.locator('.print-preview-pattern__face-number')).toHaveCount(
+    0,
+  )
+  await page.screenshot({
+    path: '/tmp/paper-studio-phase6-production-print.png',
+    fullPage: true,
+  })
+
+  await page.getByLabel('파일 형식').selectOption('guide-pdf')
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'PDF 다운로드' }).click()
+  const download = await downloadPromise
+  const path = await download.path()
+  if (!path) throw new Error('Assembly guide PDF has no temporary file')
+  const { readFile } = await import('node:fs/promises')
+  const bytes = await readFile(path)
+  expect(bytes.subarray(0, 4).toString()).toBe('%PDF')
+})

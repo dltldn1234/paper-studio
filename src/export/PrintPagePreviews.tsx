@@ -1,9 +1,11 @@
 import type { PrintableNet } from './printable-net'
 import type { PrintLayout, PrintTile } from './print-layout'
+import type { FaceMaterial } from '../materials/materials'
 
 type PrintPagePreviewsProps = {
   net: PrintableNet
   layout: PrintLayout
+  faceMaterials?: Record<string, FaceMaterial>
   maxVisiblePages?: number
 }
 
@@ -11,10 +13,12 @@ function PrintPagePreview({
   net,
   layout,
   tile,
+  faceMaterials,
 }: {
   net: PrintableNet
   layout: PrintLayout
   tile: PrintTile
+  faceMaterials?: Record<string, FaceMaterial>
 }) {
   const margin = layout.settings.marginMm
   const pageWidth = layout.pageWidthMm
@@ -39,8 +43,52 @@ function PrintPagePreview({
           height={layout.printableHeightMm}
         />
         <g transform={transform} className="print-preview-pattern">
+          {net.faces.map((face, index) => {
+            const material = faceMaterials?.[face.id]
+            const texture = material?.texture
+            const xs = face.polygon.map(({ x }) => x)
+            const ys = face.polygon.map(({ y }) => y)
+            const width = Math.max(...xs) - Math.min(...xs)
+            const height = Math.max(...ys) - Math.min(...ys)
+            return (
+              <g key={face.id}>
+                {texture && (
+                  <defs>
+                    <pattern
+                      id={`print-preview-texture-${index}`}
+                      width={width * texture.scale}
+                      height={height * texture.scale}
+                      patternUnits="userSpaceOnUse"
+                      patternTransform={`translate(${texture.offsetX} ${texture.offsetY}) rotate(${texture.rotationDeg})`}
+                    >
+                      <image
+                        href={texture.dataUrl}
+                        width={width}
+                        height={height}
+                        preserveAspectRatio="none"
+                      />
+                    </pattern>
+                  </defs>
+                )}
+                <polygon
+                  points={face.polygon.map(({ x, y }) => `${x},${y}`).join(' ')}
+                  fill={
+                    texture
+                      ? `url(#print-preview-texture-${index})`
+                      : (material?.color ?? 'none')
+                  }
+                />
+              </g>
+            )
+          })}
           {net.edges.map((edge) => {
             const kind = tabbedEdgeIds.has(edge.id) ? 'fold' : edge.kind
+            if (
+              (kind === 'cut' && layout.settings.showCutLines === false) ||
+              (kind === 'fold' && layout.settings.showFoldLines === false)
+            ) {
+              return null
+            }
             return (
               <line
                 key={edge.id}
@@ -52,38 +100,42 @@ function PrintPagePreview({
               />
             )
           })}
-          {net.glueTabs.map((tab) => (
-            <polyline
-              key={tab.id}
-              className="print-preview-pattern__cut"
-              points={[
-                ...tab.polygon.vertices.slice(1),
-                tab.polygon.vertices[0],
-              ]
-                .map(({ x, y }) => `${x},${y}`)
-                .join(' ')}
-            />
-          ))}
-          {net.faces.map((face, index) => {
-            const center = face.polygon.reduce(
-              (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }),
-              { x: 0, y: 0 },
-            )
-            const x = center.x / face.polygon.length
-            const y = center.y / face.polygon.length
-            return (
-              <text
-                key={face.id}
-                className="print-preview-pattern__face-number"
-                x={x}
-                y={y}
-                textAnchor="middle"
-                dominantBaseline="middle"
-              >
-                {index + 1}
-              </text>
-            )
-          })}
+          {layout.settings.showCutLines === false
+            ? null
+            : net.glueTabs.map((tab) => (
+                <polyline
+                  key={tab.id}
+                  className="print-preview-pattern__cut"
+                  points={[
+                    ...tab.polygon.vertices.slice(1),
+                    tab.polygon.vertices[0],
+                  ]
+                    .map(({ x, y }) => `${x},${y}`)
+                    .join(' ')}
+                />
+              ))}
+          {layout.settings.showAssemblyNumbers === false
+            ? null
+            : net.faces.map((face, index) => {
+                const center = face.polygon.reduce(
+                  (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }),
+                  { x: 0, y: 0 },
+                )
+                const x = center.x / face.polygon.length
+                const y = center.y / face.polygon.length
+                return (
+                  <text
+                    key={face.id}
+                    className="print-preview-pattern__face-number"
+                    x={x}
+                    y={y}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    {index + 1}
+                  </text>
+                )
+              })}
         </g>
         <g className="print-preview-guides">
           {tile.guides.map(({ id, point }) => {
@@ -108,6 +160,7 @@ function PrintPagePreview({
 export function PrintPagePreviews({
   net,
   layout,
+  faceMaterials,
   maxVisiblePages = 8,
 }: PrintPagePreviewsProps) {
   const visibleTiles = layout.tiles.slice(0, Math.max(0, maxVisiblePages - 1))
@@ -119,6 +172,7 @@ export function PrintPagePreviews({
           net={net}
           layout={layout}
           tile={tile}
+          faceMaterials={faceMaterials}
         />
       ))}
       <figure className="print-preview-tile">

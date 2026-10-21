@@ -8,6 +8,9 @@ export type PrintSettings = {
   orientation: PageOrientation
   marginMm: number
   overlapMm: number
+  showCutLines?: boolean
+  showFoldLines?: boolean
+  showAssemblyNumbers?: boolean
 }
 
 export type RegistrationGuide = {

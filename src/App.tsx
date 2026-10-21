@@ -182,12 +182,17 @@ function App() {
   const [resizeDrag, setResizeDrag] = useState<ResizeDrag | null>(null)
   const [svgExportOpen, setSvgExportOpen] = useState(false)
   const [svgFilename, setSvgFilename] = useState('paper-studio-net')
-  const [exportFormat, setExportFormat] = useState<'svg' | 'pdf'>('svg')
+  const [exportFormat, setExportFormat] = useState<'svg' | 'pdf' | 'guide-pdf'>(
+    'svg',
+  )
   const [printSettings, setPrintSettings] = useState<PrintSettings>({
     paperSize: 'A4',
     orientation: 'portrait',
     marginMm: 10,
     overlapMm: 8,
+    showCutLines: true,
+    showFoldLines: true,
+    showAssemblyNumbers: true,
   })
   const [exportBusy, setExportBusy] = useState(false)
   const [exportError, setExportError] = useState('')
@@ -701,6 +706,12 @@ function App() {
         printableNet,
         printSettings,
         svgFilename,
+        {
+          faceMaterials,
+          showCutLines: printSettings.showCutLines,
+          showFoldLines: printSettings.showFoldLines,
+          showAssemblyNumbers: printSettings.showAssemblyNumbers,
+        },
       )
       const objectUrl = URL.createObjectURL(
         new Blob([bytes.slice().buffer as ArrayBuffer], {
@@ -727,9 +738,43 @@ function App() {
     }
   }
 
+  async function downloadAssemblyGuidePdf() {
+    if (!assemblyGuide) return
+    setExportBusy(true)
+    setExportError('')
+    try {
+      const { createAssemblyGuidePdf } =
+        await import('./export/assembly-guide-pdf')
+      const bytes = await createAssemblyGuidePdf(assemblyGuide, svgFilename)
+      const objectUrl = URL.createObjectURL(
+        new Blob([bytes.slice().buffer as ArrayBuffer], {
+          type: 'application/pdf',
+        }),
+      )
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = normalizeSvgFilename(svgFilename).replace(
+        /\.svg$/i,
+        '.pdf',
+      )
+      link.click()
+      URL.revokeObjectURL(objectUrl)
+      setSvgExportOpen(false)
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : '조립 설명서 PDF를 만들지 못했습니다.',
+      )
+    } finally {
+      setExportBusy(false)
+    }
+  }
+
   function handleExportSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (exportFormat === 'svg') downloadSvg()
+    else if (exportFormat === 'guide-pdf') void downloadAssemblyGuidePdf()
     else void downloadPdf()
   }
 
@@ -1804,12 +1849,15 @@ function App() {
                 aria-label="파일 형식"
                 value={exportFormat}
                 onChange={(event) => {
-                  setExportFormat(event.target.value as 'svg' | 'pdf')
+                  setExportFormat(
+                    event.target.value as 'svg' | 'pdf' | 'guide-pdf',
+                  )
                   setExportError('')
                 }}
               >
                 <option value="svg">SVG · 벡터 도면</option>
                 <option value="pdf">PDF · 인쇄용 페이지</option>
+                <option value="guide-pdf">PDF · 조립 설명서</option>
               </select>
             </label>
             <label className="export-dialog__field">
@@ -1827,6 +1875,12 @@ function App() {
               <p className="export-dialog__note">
                 SVG에는 100 mm 선과 100 × 100 mm 교정 사각형이 포함됩니다. 실제
                 크기/100%로 출력한 뒤 자로 치수를 확인하세요.
+              </p>
+            ) : exportFormat === 'guide-pdf' ? (
+              <p className="export-dialog__note">
+                {assemblyGuide
+                  ? `${assemblyGuide.steps.length}개 단계가 포함된 A4 조립 설명서입니다. 실제 종이와 접착제 조립은 검증되지 않았습니다.`
+                  : '유효한 접힘 트리가 없어 조립 설명서를 만들 수 없습니다.'}
               </p>
             ) : (
               <>
@@ -1898,6 +1952,50 @@ function App() {
                     />
                   </label>
                 </div>
+                <div
+                  className="pdf-production-toggles"
+                  aria-label="인쇄 요소 설정"
+                >
+                  <label>
+                    <input
+                      type="checkbox"
+                      aria-label="재단선 표시"
+                      checked={printSettings.showCutLines ?? true}
+                      onChange={(event) =>
+                        updatePrintSetting('showCutLines', event.target.checked)
+                      }
+                    />
+                    재단선 표시
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      aria-label="접힘선 표시"
+                      checked={printSettings.showFoldLines ?? true}
+                      onChange={(event) =>
+                        updatePrintSetting(
+                          'showFoldLines',
+                          event.target.checked,
+                        )
+                      }
+                    />
+                    접힘선 표시
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      aria-label="조립 번호 표시"
+                      checked={printSettings.showAssemblyNumbers ?? true}
+                      onChange={(event) =>
+                        updatePrintSetting(
+                          'showAssemblyNumbers',
+                          event.target.checked,
+                        )
+                      }
+                    />
+                    조립 번호 표시
+                  </label>
+                </div>
                 {printLayoutResult.layout ? (
                   <>
                     <p className="print-preview-summary" role="status">
@@ -1910,6 +2008,7 @@ function App() {
                     <PrintPagePreviews
                       net={printableNet}
                       layout={printLayoutResult.layout}
+                      faceMaterials={faceMaterials}
                     />
                   </>
                 ) : (
@@ -1943,7 +2042,8 @@ function App() {
                 type="submit"
                 disabled={
                   exportBusy ||
-                  (exportFormat === 'pdf' && !printLayoutResult.layout)
+                  (exportFormat === 'pdf' && !printLayoutResult.layout) ||
+                  (exportFormat === 'guide-pdf' && !assemblyGuide)
                 }
               >
                 <Download size={15} />{' '}

@@ -182,7 +182,13 @@ export function validateProject(
     !isFiniteNumber(settings.marginMm) ||
     settings.marginMm < 0 ||
     !isFiniteNumber(settings.overlapMm) ||
-    settings.overlapMm < 0
+    settings.overlapMm < 0 ||
+    (settings.showCutLines !== undefined &&
+      typeof settings.showCutLines !== 'boolean') ||
+    (settings.showFoldLines !== undefined &&
+      typeof settings.showFoldLines !== 'boolean') ||
+    (settings.showAssemblyNumbers !== undefined &&
+      typeof settings.showAssemblyNumbers !== 'boolean')
   ) {
     throw new RangeError('Project print settings are invalid.')
   }
