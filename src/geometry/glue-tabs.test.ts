@@ -58,6 +58,36 @@ describe('cuboid net glue tabs', () => {
     expect(net.bounds.width).toBeGreaterThan(360)
   })
 
+  it('supports rectangular and beveled tab outlines with explicit direction', () => {
+    const edge = {
+      id: 'cut',
+      hostFaceId: 'front' as const,
+      kind: 'cut' as const,
+      adjacentFaceIds: ['front' as const, 'right' as const],
+      start: { x: 0, y: 0 },
+      end: { x: 100, y: 0 },
+    }
+    const rectangular = generateGlueTabs([edge], {
+      ...enabled,
+      shape: 'rectangular',
+    }).tabs[0]
+    const beveled = generateGlueTabs([edge], {
+      ...enabled,
+      shape: 'beveled',
+    }).tabs[0]
+    const inward = generateGlueTabs([edge], {
+      ...enabled,
+      direction: 'inward',
+    }).tabs[0]
+
+    expect(rectangular.shape).toBe('rectangular')
+    expect(rectangular.polygon.vertices[2].x).toBe(100)
+    expect(beveled.shape).toBe('beveled')
+    expect(beveled.polygon.vertices[2].x).toBe(95)
+    expect(inward.direction).toBe('inward')
+    expect(inward.polygon.vertices[2].y).toBeGreaterThan(0)
+  })
+
   it.each([
     { enabled: true, widthMm: 0, angleDeg: 45 },
     { enabled: true, widthMm: 51, angleDeg: 45 },
