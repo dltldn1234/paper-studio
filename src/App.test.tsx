@@ -46,6 +46,56 @@ vi.mock('./preview/ThreePolyhedronPreview', () => ({
 }))
 
 describe('Paper Studio editor', () => {
+  it('edits a valid fold tree, rejects an incomplete draft, and supports undo and redo', async () => {
+    render(<App />)
+    fireEvent.change(screen.getByRole('combobox', { name: '다면체 종류' }), {
+      target: { value: 'tetrahedron' },
+    })
+    await screen.findByRole('application', {
+      name: '다면체 2D 전개도 캔버스',
+    })
+
+    const initialFoldIds = Array.from(
+      document.querySelectorAll('[data-edge-kind="fold"]'),
+    ).map((edge) => edge.getAttribute('data-edge-id'))
+    expect(initialFoldIds).toHaveLength(3)
+    fireEvent.click(document.querySelector('[data-edge-kind="cut"]')!)
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '접힘선을 3개 선택해야 합니다. 현재 4개입니다.',
+    )
+    expect(screen.getByTestId('polyhedron-preview-probe')).toHaveAttribute(
+      'data-face-count',
+      '4',
+    )
+
+    fireEvent.click(document.querySelector('[data-edge-kind="fold"]')!)
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+    const changedFoldIds = Array.from(
+      document.querySelectorAll('[data-edge-kind="fold"]'),
+    ).map((edge) => edge.getAttribute('data-edge-id'))
+    expect(changedFoldIds).toHaveLength(3)
+    expect(changedFoldIds).not.toEqual(initialFoldIds)
+
+    fireEvent.click(screen.getByRole('button', { name: '전개도 변경 취소' }))
+    await waitFor(() => {
+      expect(
+        Array.from(document.querySelectorAll('[data-edge-kind="fold"]')).map(
+          (edge) => edge.getAttribute('data-edge-id'),
+        ),
+      ).toEqual(initialFoldIds)
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: '전개도 변경 다시 실행' }),
+    )
+    await waitFor(() => {
+      expect(
+        Array.from(document.querySelectorAll('[data-edge-kind="fold"]')).map(
+          (edge) => edge.getAttribute('data-edge-id'),
+        ),
+      ).toEqual(changedFoldIds)
+    })
+  })
+
   it('selects a polyhedron and synchronizes its net, edge length, and selected face', async () => {
     render(<App />)
     fireEvent.change(screen.getByRole('combobox', { name: '다면체 종류' }), {

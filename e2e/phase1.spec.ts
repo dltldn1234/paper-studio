@@ -1,5 +1,68 @@
 import { expect, test } from '@playwright/test'
 
+test('edits a valid polyhedron fold tree and supports undo and redo', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByLabel('다면체 종류').selectOption('tetrahedron')
+  const canvas = page.getByRole('application', {
+    name: '다면체 2D 전개도 캔버스',
+  })
+  await expect(canvas).toBeVisible()
+
+  const originalTree = await page
+    .locator('[data-edge-kind]')
+    .evaluateAll((edges) =>
+      edges
+        .filter((edge) => edge.getAttribute('data-edge-kind') === 'fold')
+        .map((edge) => edge.getAttribute('data-edge-id')),
+    )
+  expect(originalTree).toHaveLength(3)
+  const cutEdge = page.locator('[data-edge-kind="cut"]').first()
+  const addedEdgeId = await cutEdge.getAttribute('data-edge-id')
+  if (!addedEdgeId) throw new Error('Cut edge has no stable identifier')
+  await cutEdge.click()
+  await expect(page.getByRole('alert')).toContainText('현재 4개')
+  await expect(page.locator('[data-edge-kind="fold"]')).toHaveCount(4)
+
+  const removedEdge = page.locator(`[data-edge-id="${originalTree[0]}"]`)
+  await removedEdge.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  const editedTree = await page
+    .locator('[data-edge-kind="fold"]')
+    .evaluateAll((edges) =>
+      edges.map((edge) => edge.getAttribute('data-edge-id')),
+    )
+  expect(editedTree).toHaveLength(3)
+  expect(editedTree).not.toEqual(originalTree)
+  await page.screenshot({
+    path: 'test-results/phase5-custom-net-editor.png',
+    fullPage: true,
+  })
+
+  await page.getByRole('button', { name: '전개도 변경 취소' }).click()
+  await expect
+    .poll(() =>
+      page
+        .locator('[data-edge-kind="fold"]')
+        .evaluateAll((edges) =>
+          edges.map((edge) => edge.getAttribute('data-edge-id')),
+        ),
+    )
+    .toEqual(originalTree)
+  await page.getByRole('button', { name: '전개도 변경 다시 실행' }).click()
+  await expect
+    .poll(() =>
+      page
+        .locator('[data-edge-kind="fold"]')
+        .evaluateAll((edges) =>
+          edges.map((edge) => edge.getAttribute('data-edge-id')),
+        ),
+    )
+    .toEqual(editedTree)
+})
+
 test('selects a regular solid and synchronizes its net, folding, and SVG output', async ({
   page,
 }) => {
