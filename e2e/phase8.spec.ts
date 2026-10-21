@@ -99,7 +99,7 @@ test('creates a local printer profile and records separate measured axes', async
     .toMatchObject({ status: 'verified', physicallyMeasured: true })
 
   const profileDownloadPromise = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'JSON 내보내기' }).click()
+  await page.getByRole('button', { name: 'JSON 내보내기', exact: true }).click()
   const profileDownload = await profileDownloadPromise
   const profilePath = await profileDownload.path()
   if (!profilePath)
