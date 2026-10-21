@@ -23,6 +23,7 @@ export function createAssemblyGuide(graph: FoldGraph): AssemblyGuide {
   } catch (error) {
     throw new RangeError(
       `Assembly guide requires a valid fold graph: ${error instanceof Error ? error.message : 'invalid graph'}`,
+      { cause: error },
     )
   }
   const children = new Map<string, typeof graph.hinges>()

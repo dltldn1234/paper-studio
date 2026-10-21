@@ -151,7 +151,13 @@ export function PolyhedronNetCanvas({
         {layout.faces.map((face) => (
           <g key={face.id}>
             <polygon
-              className={`net-canvas__face ${selectedFaceId === face.id ? 'is-selected' : ''} ${assemblyFaceId === face.id ? 'is-assembly-target' : ''}`}
+              className={[
+                'net-canvas__face',
+                selectedFaceId === face.id && 'is-selected',
+                assemblyFaceId === face.id && 'is-assembly-target',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               data-face-id={face.id}
               style={{
                 fill: faceMaterials[face.id]?.texture
