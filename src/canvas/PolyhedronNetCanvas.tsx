@@ -1,12 +1,20 @@
 import { useId, useState } from 'react'
 import type { PointerEvent, WheelEvent } from 'react'
-import { Minus, Plus, Scan } from 'lucide-react'
+import { Minus, Plus, Redo2, RotateCcw, Scan, Undo2 } from 'lucide-react'
 import type { Point2D, UnfoldedNet } from '../geometry'
 
 type PolyhedronNetCanvasProps = {
   layout: UnfoldedNet
   selectedFaceId: string | null
   onFaceSelect: (faceId: string) => void
+  foldEdgeIds: string[]
+  selectedEdgeId: string | null
+  onEdgeToggle: (edgeId: string) => void
+  onUndo: () => void
+  onRedo: () => void
+  onReset: () => void
+  canUndo: boolean
+  canRedo: boolean
 }
 
 type PanGesture = { pointerX: number; pointerY: number; pan: Point2D }
@@ -19,6 +27,14 @@ export function PolyhedronNetCanvas({
   layout,
   selectedFaceId,
   onFaceSelect,
+  foldEdgeIds,
+  selectedEdgeId,
+  onEdgeToggle,
+  onUndo,
+  onRedo,
+  onReset,
+  canUndo,
+  canRedo,
 }: PolyhedronNetCanvasProps) {
   const patternId = useId().replaceAll(':', '')
   const [zoom, setZoom] = useState(1)
@@ -131,19 +147,68 @@ export function PolyhedronNetCanvas({
             </text>
           </g>
         ))}
-        {layout.edges.map((edge) => (
-          <line
-            key={edge.id}
-            className={`net-canvas__edge is-${edge.kind}`}
-            x1={edge.start.x}
-            y1={edge.start.y}
-            x2={edge.end.x}
-            y2={edge.end.y}
-            aria-hidden="true"
-          />
-        ))}
+        {layout.edges.map((edge) => {
+          const kind = foldEdgeIds.includes(edge.id) ? 'fold' : 'cut'
+          const lengthMm = Math.hypot(
+            edge.end.x - edge.start.x,
+            edge.end.y - edge.start.y,
+          )
+          return (
+            <g key={edge.id}>
+              <line
+                className="net-canvas__edge-hit"
+                data-edge-id={edge.id}
+                data-edge-kind={kind}
+                x1={edge.start.x}
+                y1={edge.start.y}
+                x2={edge.end.x}
+                y2={edge.end.y}
+                role="button"
+                tabIndex={0}
+                aria-label={`${kind === 'fold' ? '접힘선' : '재단선'}, ${lengthMm.toFixed(1)} mm`}
+                aria-pressed={selectedEdgeId === edge.id}
+                onClick={() => onEdgeToggle(edge.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onEdgeToggle(edge.id)
+                  }
+                }}
+              >
+                <title>{`${kind === 'fold' ? '접힘선' : '재단선'} · ${lengthMm.toFixed(1)} mm · 선택하여 전환`}</title>
+              </line>
+              <line
+                className={`net-canvas__edge is-${kind}${selectedEdgeId === edge.id ? 'is-selected' : ''}`}
+                x1={edge.start.x}
+                y1={edge.start.y}
+                x2={edge.end.x}
+                y2={edge.end.y}
+                aria-hidden="true"
+              />
+            </g>
+          )
+        })}
       </svg>
       <div className="net-canvas__controls" aria-label="캔버스 확대 및 축소">
+        <button
+          type="button"
+          aria-label="전개도 변경 취소"
+          disabled={!canUndo}
+          onClick={onUndo}
+        >
+          <Undo2 size={15} />
+        </button>
+        <button
+          type="button"
+          aria-label="전개도 변경 다시 실행"
+          disabled={!canRedo}
+          onClick={onRedo}
+        >
+          <Redo2 size={15} />
+        </button>
+        <button type="button" aria-label="자동 전개 복원" onClick={onReset}>
+          <RotateCcw size={15} />
+        </button>
         <button
           type="button"
           aria-label="축소"

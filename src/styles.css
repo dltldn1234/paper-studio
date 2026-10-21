@@ -399,7 +399,7 @@ button:disabled {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: 42px minmax(0, 1fr);
+  grid-template-rows: 42px minmax(0, 1fr) auto;
   background: #0d1118;
   grid-area: net;
 }
@@ -464,6 +464,12 @@ button:disabled {
   font-size: 9px;
   white-space: nowrap;
 }
+.net-selected-edge {
+  color: #a9c2ff;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .legend-line {
   width: 15px;
   height: 0;
@@ -478,6 +484,18 @@ button:disabled {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+}
+.net-edit-error {
+  margin: 0;
+  border-top: 1px solid #60363c;
+  background: #2b171b;
+  padding: 8px 12px;
+  color: #ffb1b7;
+  font-size: 11px;
+}
+.net-edit-hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .net-canvas {
   position: absolute;
@@ -541,6 +559,25 @@ button:disabled {
   stroke-width: 1.2;
   vector-effect: non-scaling-stroke;
 }
+.net-canvas__edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  vector-effect: non-scaling-stroke;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.net-canvas__edge-hit:focus-visible {
+  stroke: #80a7ff88;
+  outline: none;
+}
+.net-canvas__edge-hit:hover + .net-canvas__edge,
+.net-canvas__edge.is-selected {
+  stroke: #80a7ff;
+}
+.net-canvas__edge.is-selected {
+  stroke-width: 2.2;
+}
 .net-canvas__edge.is-fold {
   stroke: #f2ae65;
   stroke-dasharray: 4 3;
@@ -568,6 +605,10 @@ button:disabled {
 .net-canvas__controls button:hover {
   background: #30394a;
   color: white;
+}
+.net-canvas__controls button:disabled {
+  color: #586171;
+  cursor: not-allowed;
 }
 .net-canvas__controls output {
   min-width: 44px;
