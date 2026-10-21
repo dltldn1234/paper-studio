@@ -8,6 +8,7 @@ type PolyhedronNetCanvasProps = {
   layout: UnfoldedNet
   faceMaterials?: Record<string, FaceMaterial>
   selectedFaceId: string | null
+  assemblyFaceId?: string | null
   onFaceSelect: (faceId: string) => void
   foldEdgeIds: string[]
   selectedEdgeId: string | null
@@ -29,6 +30,7 @@ export function PolyhedronNetCanvas({
   layout,
   faceMaterials = {},
   selectedFaceId,
+  assemblyFaceId = null,
   onFaceSelect,
   foldEdgeIds,
   selectedEdgeId,
@@ -149,7 +151,7 @@ export function PolyhedronNetCanvas({
         {layout.faces.map((face) => (
           <g key={face.id}>
             <polygon
-              className={`net-canvas__face ${selectedFaceId === face.id ? 'is-selected' : ''}`}
+              className={`net-canvas__face ${selectedFaceId === face.id ? 'is-selected' : ''} ${assemblyFaceId === face.id ? 'is-assembly-target' : ''}`}
               data-face-id={face.id}
               style={{
                 fill: faceMaterials[face.id]?.texture

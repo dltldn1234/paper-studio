@@ -14,7 +14,7 @@ import type { PrintSettings } from '../export/print-layout'
 import { validateFaceMaterial } from '../materials/materials'
 import type { FaceMaterial } from '../materials/materials'
 
-export const PROJECT_FILE_VERSION = 2
+export const PROJECT_FILE_VERSION = 3
 
 export type ProjectSolidKind = 'cuboid' | RegularPolyhedronKind
 
@@ -31,14 +31,22 @@ export type PaperStudioProject = {
   foldProgress: number
   printSettings: PrintSettings
   faceMaterials: Record<string, FaceMaterial>
+  assemblyStepIndex: number
+  assemblyGuideActive: boolean
 }
 
 export type ProjectDraft = Omit<
   PaperStudioProject,
-  'version' | 'name' | 'faceMaterials'
+  | 'version'
+  | 'name'
+  | 'faceMaterials'
+  | 'assemblyStepIndex'
+  | 'assemblyGuideActive'
 > & {
   name?: string
   faceMaterials?: Record<string, FaceMaterial>
+  assemblyStepIndex?: number
+  assemblyGuideActive?: boolean
 }
 
 const solidKinds = new Set<ProjectSolidKind>([
@@ -64,6 +72,8 @@ export function createProjectDocument(draft: ProjectDraft): PaperStudioProject {
     name: draft.name?.trim() || 'Paper Studio project',
     ...draft,
     faceMaterials: draft.faceMaterials ?? {},
+    assemblyStepIndex: draft.assemblyStepIndex ?? 0,
+    assemblyGuideActive: draft.assemblyGuideActive ?? false,
   } as PaperStudioProject
   validateProject(project)
   return project
@@ -151,6 +161,16 @@ export function validateProject(
   if (!isRecord(value.faceMaterials)) {
     throw new RangeError('Project face materials are missing or invalid.')
   }
+  if (
+    !Number.isInteger(value.assemblyStepIndex) ||
+    (value.assemblyStepIndex as number) < 0 ||
+    (value.assemblyStepIndex as number) > 10_000
+  ) {
+    throw new RangeError('Project assembly guide position is invalid.')
+  }
+  if (typeof value.assemblyGuideActive !== 'boolean') {
+    throw new RangeError('Project assembly guide state is invalid.')
+  }
   for (const [faceId, material] of Object.entries(value.faceMaterials)) {
     if (!faceId) throw new RangeError('Project face material ID is invalid.')
     validateFaceMaterial(material)
@@ -181,7 +201,15 @@ export function parseProject(source: string): PaperStudioProject {
     throw new SyntaxError('Project file is not valid JSON.')
   }
   if (isRecord(value) && value.version === 1) {
-    value = { ...value, version: PROJECT_FILE_VERSION, faceMaterials: {} }
+    value = { ...value, version: 2, faceMaterials: {} }
+  }
+  if (isRecord(value) && value.version === 2) {
+    value = {
+      ...value,
+      version: PROJECT_FILE_VERSION,
+      assemblyStepIndex: 0,
+      assemblyGuideActive: false,
+    }
   }
   validateProject(value)
   return value

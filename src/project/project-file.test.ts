@@ -40,6 +40,8 @@ const validProject = () =>
         },
       },
     },
+    assemblyStepIndex: 2,
+    assemblyGuideActive: true,
   })
 
 describe('versioned project files', () => {
@@ -62,10 +64,26 @@ describe('versioned project files', () => {
       version: 1,
     }
     delete versionOne.faceMaterials
+    delete versionOne.assemblyStepIndex
+    delete versionOne.assemblyGuideActive
 
     expect(parseProject(JSON.stringify(versionOne))).toMatchObject({
-      version: 2,
+      version: 3,
       faceMaterials: {},
+      assemblyStepIndex: 0,
+    })
+  })
+
+  it('migrates version 2 projects with the initial guide position', () => {
+    const versionTwo: Record<string, unknown> = {
+      ...validProject(),
+      version: 2,
+    }
+    delete versionTwo.assemblyStepIndex
+    delete versionTwo.assemblyGuideActive
+    expect(parseProject(JSON.stringify(versionTwo))).toMatchObject({
+      version: 3,
+      assemblyStepIndex: 0,
     })
   })
 

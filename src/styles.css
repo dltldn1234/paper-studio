@@ -553,6 +553,11 @@ button:disabled {
   stroke: #80a7ff;
   stroke-width: 1.5;
 }
+.net-canvas__face.is-assembly-target {
+  stroke: #ffc46b;
+  stroke-width: 2;
+  stroke-dasharray: 3 1;
+}
 .net-canvas__face-label {
   fill: #c8d0dd;
   font-size: 3.4px;
@@ -878,6 +883,48 @@ button:disabled {
   margin-top: 9px;
   color: #ffc46b;
   font-size: 10px;
+}
+.assembly-guide {
+  margin-top: 16px;
+  border: 1px solid #384250;
+  border-radius: 7px;
+  background: #151c27;
+  padding: 10px;
+}
+.assembly-guide__badge {
+  border-radius: 4px;
+  background: #3e3322;
+  padding: 3px 5px;
+  color: #ffc46b;
+  font-size: 8px;
+}
+.assembly-guide__start,
+.assembly-guide__controls button {
+  border: 1px solid #3a4657;
+  border-radius: 4px;
+  background: #202a39;
+  padding: 6px 8px;
+  color: #d6dfed;
+  font-size: 9px;
+}
+.assembly-guide__start {
+  width: 100%;
+  margin-top: 8px;
+}
+.assembly-guide__controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.assembly-guide__step,
+.assembly-guide__warning {
+  margin: 8px 0;
+  color: #bdc8d8;
+  font-size: 9px;
+  line-height: 1.5;
+}
+.assembly-guide__warning {
+  color: #ffc46b;
 }
 .export-dialog-backdrop {
   position: fixed;

@@ -8,6 +8,7 @@ type CuboidNetCanvasProps = {
   layout: NetLayout
   faceMaterials?: Record<string, FaceMaterial>
   selectedFaceId: FaceId | null
+  assemblyFaceId?: string | null
   onFaceSelect: (faceId: FaceId) => void
 }
 
@@ -32,6 +33,7 @@ export function CuboidNetCanvas({
   layout,
   faceMaterials = {},
   selectedFaceId,
+  assemblyFaceId = null,
   onFaceSelect,
 }: CuboidNetCanvasProps) {
   const id = useId().replaceAll(':', '')
@@ -147,7 +149,7 @@ export function CuboidNetCanvas({
         {layout.faces.map((face) => (
           <g key={face.id}>
             <polygon
-              className={`net-canvas__face ${selectedFaceId === face.id ? 'is-selected' : ''}`}
+              className={`net-canvas__face ${selectedFaceId === face.id ? 'is-selected' : ''} ${assemblyFaceId === face.id ? 'is-assembly-target' : ''}`}
               data-face-id={face.id}
               style={{
                 fill: faceMaterials[face.id]?.texture

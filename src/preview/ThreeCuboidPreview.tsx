@@ -16,6 +16,7 @@ type ThreeCuboidPreviewProps = {
   foldProgress: number
   cameraResetToken: number
   selectedFaceId: FaceId | null
+  hingeProgressById?: Readonly<Record<string, number>>
   onFaceSelect: (faceId: FaceId) => void
 }
 
@@ -38,6 +39,7 @@ export function ThreeCuboidPreview({
   foldProgress,
   cameraResetToken,
   selectedFaceId,
+  hingeProgressById,
   onFaceSelect,
 }: ThreeCuboidPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -259,6 +261,7 @@ export function ThreeCuboidPreview({
     const poses = solveFoldPoses(
       createCuboidFoldGraph(netLayout, cuboid),
       foldProgress,
+      hingeProgressById,
     )
     const faces = new Map(cuboid.faces.map((face) => [face.id, face]))
     const transformedCorners = poses.flatMap((pose) => {
@@ -299,7 +302,7 @@ export function ThreeCuboidPreview({
         pose.transform.rotation.w,
       )
     }
-  }, [cuboid, foldProgress, netLayout])
+  }, [cuboid, foldProgress, hingeProgressById, netLayout])
 
   return (
     <section className="three-preview" aria-label="3D 접힘 시뮬레이션 패널">

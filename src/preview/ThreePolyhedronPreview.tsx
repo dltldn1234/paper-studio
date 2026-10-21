@@ -14,6 +14,7 @@ type ThreePolyhedronPreviewProps = {
   foldProgress: number
   cameraResetToken: number
   selectedFaceId: string | null
+  hingeProgressById?: Readonly<Record<string, number>>
   onFaceSelect: (faceId: string) => void
 }
 
@@ -46,6 +47,7 @@ export function ThreePolyhedronPreview({
   foldProgress,
   cameraResetToken,
   selectedFaceId,
+  hingeProgressById,
   onFaceSelect,
 }: ThreePolyhedronPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -282,7 +284,7 @@ export function ThreePolyhedronPreview({
   useEffect(() => {
     const preview = previewRef.current
     if (!preview) return
-    const poses = solveFoldPoses(foldGraph, foldProgress)
+    const poses = solveFoldPoses(foldGraph, foldProgress, hingeProgressById)
     const faceById = new Map(layout.faces.map((face) => [face.id, face]))
     const transformed = poses.flatMap((pose) => {
       const face = faceById.get(pose.faceId)!
@@ -324,7 +326,7 @@ export function ThreePolyhedronPreview({
         pose.transform.rotation.w,
       )
     }
-  }, [foldGraph, foldProgress, layout])
+  }, [foldGraph, foldProgress, hingeProgressById, layout])
 
   return (
     <section
