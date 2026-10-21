@@ -43,6 +43,42 @@ test('loads a local face texture and captures its editor state', async ({
   })
 })
 
+test('exports a local WebP face texture to PDF in the browser', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const webpDataUrl = await page.evaluate(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 4
+    canvas.height = 4
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Canvas 2D context is unavailable')
+    context.clearRect(0, 0, 4, 4)
+    context.fillStyle = '#ff0000'
+    context.fillRect(0, 0, 2, 4)
+    return canvas.toDataURL('image/webp')
+  })
+  expect(webpDataUrl).toMatch(/^data:image\/webp;base64,/)
+  await page.getByLabel('로컬 이미지 텍스처').setInputFiles({
+    name: 'texture.webp',
+    mimeType: 'image/webp',
+    buffer: Buffer.from(webpDataUrl.split(',')[1], 'base64'),
+  })
+  await page.getByRole('button', { name: '내보내기' }).click()
+  await page.getByLabel('파일 형식').selectOption('pdf')
+  await page.screenshot({
+    path: '/tmp/paper-studio-phase7-webp-pdf.png',
+    fullPage: true,
+  })
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'PDF 다운로드' }).click()
+  const download = await downloadPromise
+  const path = await download.path()
+  if (!path) throw new Error('Textured PDF has no temporary file')
+  const { readFile } = await import('node:fs/promises')
+  expect((await readFile(path)).subarray(0, 4).toString()).toBe('%PDF')
+})
+
 test('steps through an idealized assembly guide', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: '조립 순서 시작' }).click()
