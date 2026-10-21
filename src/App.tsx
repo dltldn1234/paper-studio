@@ -50,6 +50,12 @@ import {
   createRegularPolyhedron,
   unfoldPolyhedron,
 } from './geometry'
+import {
+  DEFAULT_FACE_MATERIAL,
+  MATERIAL_PRESETS,
+  setFaceMaterial,
+} from './materials/materials'
+import type { FaceMaterial, FaceTexture } from './materials/materials'
 import type {
   CuboidDimensions,
   FaceId,
@@ -135,6 +141,10 @@ function App() {
     Partial<Record<keyof CuboidDimensions, string>>
   >({})
   const [selectedFaceId, setSelectedFaceId] = useState<string | null>('front')
+  const [faceMaterials, setFaceMaterials] = useState<
+    Record<string, FaceMaterial>
+  >({})
+  const [textureError, setTextureError] = useState('')
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [customFoldEdgeIds, setCustomFoldEdgeIds] = useState<string[] | null>(
     null,
@@ -287,6 +297,9 @@ function App() {
         : solidKind === 'cube'
           ? '정육면체'
           : '정팔면체'
+  const selectedFaceMaterial = selectedFaceId
+    ? (faceMaterials[selectedFaceId] ?? DEFAULT_FACE_MATERIAL)
+    : null
 
   useEffect(() => {
     if (!foldPlaying) return
@@ -518,6 +531,55 @@ function App() {
     return () => window.removeEventListener('keydown', handleHistoryShortcut)
   }, [redoFoldTree, solidKind, undoFoldTree])
 
+  function updateSelectedMaterial(next: FaceMaterial) {
+    if (!selectedFaceId) return
+    setFaceMaterials((current) =>
+      setFaceMaterial(current, selectedFaceId, next),
+    )
+  }
+
+  function updateSelectedTexture(
+    field: keyof Omit<FaceTexture, 'dataUrl'>,
+    value: string,
+  ) {
+    if (!selectedFaceMaterial?.texture) return
+    const numericValue = Number(value)
+    if (!Number.isFinite(numericValue)) return
+    updateSelectedMaterial({
+      ...selectedFaceMaterial,
+      texture: { ...selectedFaceMaterial.texture, [field]: numericValue },
+    })
+  }
+
+  function loadLocalTexture(file?: File) {
+    if (!file || !selectedFaceMaterial) return
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setTextureError('PNG, JPEG 또는 WebP 이미지를 선택하세요.')
+      return
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setTextureError('이미지 파일은 4 MB 이하여야 합니다.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onerror = () => setTextureError('이미지를 읽지 못했습니다.')
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') return
+      updateSelectedMaterial({
+        ...selectedFaceMaterial,
+        texture: {
+          dataUrl: reader.result,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 1,
+          rotationDeg: 0,
+        },
+      })
+      setTextureError('')
+    }
+    reader.readAsDataURL(file)
+  }
+
   function updateGlueTabOption(field: 'widthMm' | 'angleDeg', value: string) {
     setGlueTabDrafts((current) => ({ ...current, [field]: value }))
     const numericValue = Number(value)
@@ -546,8 +608,9 @@ function App() {
           genericUnfolding.layout,
           svgFilename,
           genericPrintableNet?.glueTabs,
+          faceMaterials,
         )
-      : serializeNetToSvg(netLayout, svgFilename)
+      : serializeNetToSvg(netLayout, svgFilename, faceMaterials)
     const objectUrl = URL.createObjectURL(
       new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }),
     )
@@ -614,6 +677,7 @@ function App() {
         selectedEdgeId,
         foldProgress,
         printSettings,
+        faceMaterials,
       })
       const objectUrl = URL.createObjectURL(
         new Blob([serializeProject(project)], {
@@ -699,6 +763,7 @@ function App() {
       setSelectedFaceId(project.selectedFaceId)
       setSelectedEdgeId(project.selectedEdgeId)
       setPrintSettings(project.printSettings)
+      setFaceMaterials(project.faceMaterials)
       setFoldPlaying(false)
       foldProgressRef.current = project.foldProgress
       setFoldProgress(project.foldProgress)
@@ -980,12 +1045,14 @@ function App() {
             {solidKind === 'cuboid' ? (
               <CuboidNetCanvas
                 layout={netLayout}
+                faceMaterials={faceMaterials}
                 selectedFaceId={selectedFaceId as FaceId | null}
                 onFaceSelect={setSelectedFaceId}
               />
             ) : genericUnfolding?.success ? (
               <PolyhedronNetCanvas
                 layout={genericUnfolding.layout}
+                faceMaterials={faceMaterials}
                 selectedFaceId={selectedFaceId}
                 onFaceSelect={setSelectedFaceId}
                 foldEdgeIds={displayedFoldEdgeIds}
@@ -1114,6 +1181,7 @@ function App() {
                 <ThreeCuboidPreview
                   cuboid={cuboid}
                   netLayout={netLayout}
+                  faceMaterials={faceMaterials}
                   foldProgress={foldProgress}
                   selectedFaceId={selectedFaceId as FaceId | null}
                   onFaceSelect={setSelectedFaceId}
@@ -1125,6 +1193,7 @@ function App() {
                 <ThreePolyhedronPreview
                   mesh={genericMesh}
                   layout={genericUnfolding.layout}
+                  faceMaterials={faceMaterials}
                   foldGraph={genericFoldGraph}
                   foldProgress={foldProgress}
                   selectedFaceId={selectedFaceId}
@@ -1441,7 +1510,10 @@ function App() {
               <span>{selectedFaceId ? '선택됨' : '없음'}</span>
             </div>
             <div className="selected-face-card" aria-live="polite">
-              <span className="selected-face-card__swatch" />
+              <span
+                className="selected-face-card__swatch"
+                style={{ backgroundColor: selectedFaceMaterial?.color }}
+              />
               <span>
                 <strong>
                   {selectedFace?.label ??
@@ -1457,6 +1529,102 @@ function App() {
                 </small>
               </span>
               <ChevronRight size={15} />
+            </div>
+            <div className="material-editor" aria-label="면 재질 편집기">
+              <label className="material-editor__color">
+                면 색상
+                <input
+                  type="color"
+                  aria-label="선택 면 색상"
+                  value={selectedFaceMaterial?.color ?? '#566174'}
+                  disabled={!selectedFaceId}
+                  onChange={(event) =>
+                    selectedFaceMaterial &&
+                    updateSelectedMaterial({
+                      ...selectedFaceMaterial,
+                      color: event.target.value,
+                    })
+                  }
+                />
+              </label>
+              <div
+                className="material-editor__presets"
+                aria-label="재질 프리셋"
+              >
+                {Object.entries(MATERIAL_PRESETS).map(([id, material]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-label={`${id} 재질 프리셋`}
+                    title={`${id} 재질 프리셋`}
+                    style={{ backgroundColor: material.color }}
+                    disabled={!selectedFaceId}
+                    onClick={() =>
+                      selectedFaceMaterial &&
+                      updateSelectedMaterial({
+                        ...selectedFaceMaterial,
+                        color: material.color,
+                      })
+                    }
+                  />
+                ))}
+              </div>
+              <label className="material-editor__upload">
+                면 텍스처 불러오기
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  aria-label="로컬 이미지 텍스처"
+                  disabled={!selectedFaceId}
+                  onChange={(event) =>
+                    loadLocalTexture(event.target.files?.[0])
+                  }
+                />
+              </label>
+              {selectedFaceMaterial?.texture && (
+                <div className="material-editor__texture-options">
+                  {(
+                    [
+                      ['offsetX', '가로 위치', -100, 100, 1],
+                      ['offsetY', '세로 위치', -100, 100, 1],
+                      ['scale', '텍스처 크기', 0.1, 5, 0.1],
+                      ['rotationDeg', '회전', 0, 360, 1],
+                    ] as const
+                  ).map(([field, label, min, max, step]) => (
+                    <label key={field}>
+                      {label}
+                      <input
+                        type="number"
+                        min={min}
+                        max={max}
+                        step={step}
+                        aria-label={label}
+                        value={selectedFaceMaterial.texture?.[field] ?? 0}
+                        onChange={(event) =>
+                          updateSelectedTexture(field, event.target.value)
+                        }
+                      />
+                    </label>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedFaceMaterial &&
+                      updateSelectedMaterial({
+                        ...selectedFaceMaterial,
+                        texture: undefined,
+                      })
+                    }
+                  >
+                    텍스처 제거
+                  </button>
+                </div>
+              )}
+              {textureError && (
+                <p className="glue-tab-warning" role="alert">
+                  {textureError}
+                </p>
+              )}
             </div>
             <div className="inspector-footnote">
               {solidKind === 'cuboid' ? '치수' : '모서리 길이'} 범위{' '}

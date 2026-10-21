@@ -1,5 +1,6 @@
 import type { GlueTab, NetLayout, Point2D, UnfoldedNet } from '../geometry'
 import { createSvgCalibrationGuide } from './calibration'
+import type { FaceMaterial } from '../materials/materials'
 
 function number(value: number): string {
   return Number(value.toFixed(5)).toString()
@@ -62,6 +63,7 @@ export function validateNetBounds(layout: NetLayout): void {
 export function serializeNetToSvg(
   layout: NetLayout,
   title = 'Paper Studio net',
+  faceMaterials: Record<string, FaceMaterial> = {},
 ): string {
   validateNetBounds(layout)
   const calibration = createSvgCalibrationGuide(layout.bounds)
@@ -71,6 +73,22 @@ export function serializeNetToSvg(
     .map((edge) => {
       const kind = tabbedEdgeIds.has(edge.id) ? 'fold' : edge.kind
       return `  <line class="${kind}" data-kind="${kind}" x1="${number(edge.start.x)}" y1="${number(edge.start.y)}" x2="${number(edge.end.x)}" y2="${number(edge.end.y)}" />`
+    })
+    .join('\n')
+  const faceMarkup = layout.faces
+    .map((face) => {
+      const material = faceMaterials[face.id]
+      const textureId = `texture-${escapeXml(face.id)}`
+      return `  <polygon class="face-material" data-face-id="${escapeXml(face.id)}" fill="${material?.texture ? `url(#${textureId})` : (material?.color ?? 'none')}" points="${face.polygon.vertices.map(({ x, y }) => `${number(x)},${number(y)}`).join(' ')}" />`
+    })
+    .join('\n')
+  const textureMarkup = layout.faces
+    .flatMap((face) => {
+      const texture = faceMaterials[face.id]?.texture
+      if (!texture) return []
+      return [
+        `  <pattern id="texture-${escapeXml(face.id)}" patternUnits="userSpaceOnUse" width="${number(face.widthMm * texture.scale)}" height="${number(face.heightMm * texture.scale)}" patternTransform="translate(${number(texture.offsetX)} ${number(texture.offsetY)}) rotate(${number(texture.rotationDeg)})"><image href="${escapeXml(texture.dataUrl)}" width="${number(face.widthMm)}" height="${number(face.heightMm)}" preserveAspectRatio="none" /></pattern>`,
+      ]
     })
     .join('\n')
   const tabMarkup = layout.glueTabs
@@ -104,6 +122,8 @@ export function serializeNetToSvg(
     .calibration { fill: none; stroke: #2875c7; stroke-width: 0.35; }
     .calibration text { fill: #2875c7; stroke: none; font-family: sans-serif; font-size: 3px; }
   </style>
+${textureMarkup}
+${faceMarkup}
 ${edgeMarkup}
 ${tabMarkup}
 ${labelMarkup}
@@ -117,6 +137,7 @@ export function serializeUnfoldedNetToSvg(
   layout: UnfoldedNet,
   title = 'Paper Studio polyhedron net',
   glueTabs: GlueTab[] = [],
+  faceMaterials: Record<string, FaceMaterial> = {},
 ): string {
   const sourcePoints = [
     ...layout.faces.flatMap((face) => face.polygon),
@@ -191,6 +212,31 @@ export function serializeUnfoldedNetToSvg(
       return `  <path class="cut glue-tab" data-tab-id="${escapeXml(tab.id)}" d="${path([...vertices.slice(1), vertices[0]])}" />`
     })
     .join('\n')
+  const textures = layout.faces
+    .flatMap((face) => {
+      const texture = faceMaterials[face.id]?.texture
+      if (!texture) return []
+      const xs = face.polygon.map(({ x }) => x)
+      const ys = face.polygon.map(({ y }) => y)
+      const faceWidth = Math.max(...xs) - Math.min(...xs)
+      const faceHeight = Math.max(...ys) - Math.min(...ys)
+      return [
+        `  <pattern id="texture-${escapeXml(face.id)}" patternUnits="userSpaceOnUse" width="${number(faceWidth * texture.scale)}" height="${number(faceHeight * texture.scale)}" patternTransform="translate(${number(texture.offsetX)} ${number(texture.offsetY)}) rotate(${number(texture.rotationDeg)})"><image href="${escapeXml(texture.dataUrl)}" width="${number(faceWidth)}" height="${number(faceHeight)}" preserveAspectRatio="none" /></pattern>`,
+      ]
+    })
+    .join('\n')
+  const faceMaterialsMarkup = layout.faces
+    .map((face) => {
+      const material = faceMaterials[face.id]
+      const points = face.polygon
+        .map(({ x, y }) => `${number(x)},${number(y)}`)
+        .join(' ')
+      const fill = material?.texture
+        ? `url(#texture-${escapeXml(face.id)})`
+        : (material?.color ?? 'none')
+      return `  <polygon class="face-material" data-face-id="${escapeXml(face.id)}" fill="${fill}" points="${points}" />`
+    })
+    .join('\n')
   const labels = layout.faces
     .map((face) => {
       const center = face.polygon.reduce(
@@ -207,8 +253,11 @@ export function serializeUnfoldedNetToSvg(
   <style>
     .cut { fill: none; stroke: #111; stroke-width: 0.25; }
     .fold { fill: none; stroke: #555; stroke-width: 0.2; stroke-dasharray: 2 1; }
+    .face-material { stroke: none; }
     .face-label { fill: #333; font-family: sans-serif; font-size: 3px; }
   </style>
+${textures}
+${faceMaterialsMarkup}
 ${edges}
 ${tabs}
 ${labels}

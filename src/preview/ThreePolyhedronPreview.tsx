@@ -4,10 +4,12 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { PolyhedronMesh, UnfoldedNet } from '../geometry'
 import { solveFoldPoses, transformPoint } from '../folding'
 import type { FoldGraph } from '../folding'
+import type { FaceMaterial } from '../materials/materials'
 
 type ThreePolyhedronPreviewProps = {
   mesh: PolyhedronMesh
   layout: UnfoldedNet
+  faceMaterials?: Record<string, FaceMaterial>
   foldGraph: FoldGraph
   foldProgress: number
   cameraResetToken: number
@@ -39,6 +41,7 @@ function centerOf(points: Array<{ x: number; y: number }>) {
 export function ThreePolyhedronPreview({
   mesh,
   layout,
+  faceMaterials = {},
   foldGraph,
   foldProgress,
   cameraResetToken,
@@ -232,11 +235,49 @@ export function ThreePolyhedronPreview({
     preview.faceMeshes.forEach((faceMesh, faceId) => {
       const selected = faceId === selectedFaceId
       faceMesh.material.color.set(
-        selected ? SELECTED_FACE_COLOR : BASE_FACE_COLOR,
+        selected
+          ? SELECTED_FACE_COLOR
+          : (faceMaterials[faceId]?.color ?? BASE_FACE_COLOR),
       )
       faceMesh.material.emissive.set(selected ? '#102342' : '#000000')
     })
-  }, [selectedFaceId])
+  }, [faceMaterials, layout, selectedFaceId])
+
+  useEffect(() => {
+    const preview = previewRef.current
+    if (!preview) return
+    let cancelled = false
+    const loader = new THREE.TextureLoader()
+    preview.faceMeshes.forEach((mesh, faceId) => {
+      const settings = faceMaterials[faceId]?.texture
+      mesh.material.map?.dispose()
+      mesh.material.map = null
+      mesh.material.needsUpdate = true
+      if (!settings) return
+      loader.load(settings.dataUrl, (texture) => {
+        if (cancelled) {
+          texture.dispose()
+          return
+        }
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.wrapS = THREE.RepeatWrapping
+        texture.wrapT = THREE.RepeatWrapping
+        texture.repeat.set(1 / settings.scale, 1 / settings.scale)
+        texture.offset.set(settings.offsetX / 100, settings.offsetY / 100)
+        texture.center.set(0.5, 0.5)
+        texture.rotation = (settings.rotationDeg * Math.PI) / 180
+        mesh.material.map = texture
+        mesh.material.needsUpdate = true
+      })
+    })
+    return () => {
+      cancelled = true
+      preview.faceMeshes.forEach((mesh) => {
+        mesh.material.map?.dispose()
+        mesh.material.map = null
+      })
+    }
+  }, [faceMaterials, layout])
 
   useEffect(() => {
     const preview = previewRef.current

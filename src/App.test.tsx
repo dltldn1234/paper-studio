@@ -259,4 +259,30 @@ describe('Paper Studio editor', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: '접착탭 표시' }))
     expect(document.querySelectorAll('[data-tab-id]')).toHaveLength(0)
   })
+
+  it('applies a selected face color to the net editor', () => {
+    render(<App />)
+    const face = document.querySelector('[data-face-id="front"]')
+    fireEvent.change(screen.getByLabelText('선택 면 색상'), {
+      target: { value: '#aabbcc' },
+    })
+    expect(face).toHaveStyle({ fill: '#aabbcc' })
+  })
+
+  it('loads a local texture and exposes its transform controls', async () => {
+    render(<App />)
+    const image = new File(['local texture'], 'texture.png', {
+      type: 'image/png',
+    })
+    fireEvent.change(screen.getByLabelText('로컬 이미지 텍스처'), {
+      target: { files: [image] },
+    })
+
+    expect(await screen.findByLabelText('텍스처 크기')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(
+        document.querySelector('[data-face-id="front"]')?.getAttribute('style'),
+      ).toContain('url(')
+    })
+  })
 })

@@ -2,9 +2,11 @@ import { useId, useState } from 'react'
 import type { PointerEvent, WheelEvent } from 'react'
 import { Minus, Plus, Redo2, RotateCcw, Scan, Undo2 } from 'lucide-react'
 import type { Point2D, UnfoldedNet } from '../geometry'
+import type { FaceMaterial } from '../materials/materials'
 
 type PolyhedronNetCanvasProps = {
   layout: UnfoldedNet
+  faceMaterials?: Record<string, FaceMaterial>
   selectedFaceId: string | null
   onFaceSelect: (faceId: string) => void
   foldEdgeIds: string[]
@@ -25,6 +27,7 @@ function pointsAttribute(points: Point2D[]) {
 
 export function PolyhedronNetCanvas({
   layout,
+  faceMaterials = {},
   selectedFaceId,
   onFaceSelect,
   foldEdgeIds,
@@ -40,6 +43,12 @@ export function PolyhedronNetCanvas({
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState<Point2D>({ x: 0, y: 0 })
   const [gesture, setGesture] = useState<PanGesture | null>(null)
+  const texturePatternIds = new Map(
+    layout.faces.map((face, index) => [
+      face.id,
+      `${patternId}-texture-${index}`,
+    ]),
+  )
   const { x, y, width, height } = layout.bounds
   const viewWidth = width / zoom
   const viewHeight = height / zoom
@@ -102,6 +111,32 @@ export function PolyhedronNetCanvas({
           >
             <circle cx="0" cy="0" r="0.45" fill="#667085" opacity="0.45" />
           </pattern>
+          {layout.faces.map((face) => {
+            const texture = faceMaterials[face.id]?.texture
+            const id = texturePatternIds.get(face.id)
+            if (!texture || !id) return null
+            const xs = face.polygon.map(({ x }) => x)
+            const ys = face.polygon.map(({ y }) => y)
+            const width = Math.max(...xs) - Math.min(...xs)
+            const height = Math.max(...ys) - Math.min(...ys)
+            return (
+              <pattern
+                key={id}
+                id={id}
+                width={width * texture.scale}
+                height={height * texture.scale}
+                patternUnits="userSpaceOnUse"
+                patternTransform={`translate(${texture.offsetX} ${texture.offsetY}) rotate(${texture.rotationDeg})`}
+              >
+                <image
+                  href={texture.dataUrl}
+                  width={width}
+                  height={height}
+                  preserveAspectRatio="none"
+                />
+              </pattern>
+            )
+          })}
         </defs>
         <rect
           data-pan-surface="true"
@@ -116,6 +151,11 @@ export function PolyhedronNetCanvas({
             <polygon
               className={`net-canvas__face ${selectedFaceId === face.id ? 'is-selected' : ''}`}
               data-face-id={face.id}
+              style={{
+                fill: faceMaterials[face.id]?.texture
+                  ? `url(#${texturePatternIds.get(face.id)})`
+                  : faceMaterials[face.id]?.color,
+              }}
               points={pointsAttribute(face.polygon)}
               role="button"
               tabIndex={0}

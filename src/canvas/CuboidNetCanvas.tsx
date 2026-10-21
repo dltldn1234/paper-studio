@@ -2,9 +2,11 @@ import { useId, useRef, useState } from 'react'
 import type { PointerEvent, WheelEvent } from 'react'
 import { Minus, Plus, Scan } from 'lucide-react'
 import type { FaceId, NetLayout, Point2D } from '../geometry'
+import type { FaceMaterial } from '../materials/materials'
 
 type CuboidNetCanvasProps = {
   layout: NetLayout
+  faceMaterials?: Record<string, FaceMaterial>
   selectedFaceId: FaceId | null
   onFaceSelect: (faceId: FaceId) => void
 }
@@ -28,6 +30,7 @@ function pointsToAttribute(points: Point2D[]): string {
 
 export function CuboidNetCanvas({
   layout,
+  faceMaterials = {},
   selectedFaceId,
   onFaceSelect,
 }: CuboidNetCanvasProps) {
@@ -37,6 +40,9 @@ export function CuboidNetCanvas({
   const [pan, setPan] = useState<Point2D>({ x: 0, y: 0 })
   const [gesture, setGesture] = useState<PanGesture | null>(null)
   const { bounds } = layout
+  const texturePatternIds = new Map(
+    layout.faces.map((face, index) => [face.id, `${id}-texture-${index}`]),
+  )
   const viewWidth = bounds.width / zoom
   const viewHeight = bounds.height / zoom
   const viewX = bounds.x + pan.x + (bounds.width - viewWidth) / 2
@@ -98,6 +104,28 @@ export function CuboidNetCanvas({
           >
             <circle cx="0" cy="0" r="0.45" fill="#667085" opacity="0.45" />
           </pattern>
+          {layout.faces.map((face) => {
+            const texture = faceMaterials[face.id]?.texture
+            const patternId = texturePatternIds.get(face.id)
+            if (!texture || !patternId) return null
+            return (
+              <pattern
+                key={patternId}
+                id={patternId}
+                width={face.widthMm * texture.scale}
+                height={face.heightMm * texture.scale}
+                patternUnits="userSpaceOnUse"
+                patternTransform={`translate(${texture.offsetX} ${texture.offsetY}) rotate(${texture.rotationDeg})`}
+              >
+                <image
+                  href={texture.dataUrl}
+                  width={face.widthMm}
+                  height={face.heightMm}
+                  preserveAspectRatio="none"
+                />
+              </pattern>
+            )
+          })}
         </defs>
         <rect
           data-pan-surface="true"
@@ -121,6 +149,11 @@ export function CuboidNetCanvas({
             <polygon
               className={`net-canvas__face ${selectedFaceId === face.id ? 'is-selected' : ''}`}
               data-face-id={face.id}
+              style={{
+                fill: faceMaterials[face.id]?.texture
+                  ? `url(#${texturePatternIds.get(face.id)})`
+                  : faceMaterials[face.id]?.color,
+              }}
               points={pointsToAttribute(face.polygon.vertices)}
               role="button"
               tabIndex={0}

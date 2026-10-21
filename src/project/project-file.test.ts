@@ -28,6 +28,18 @@ const validProject = () =>
       marginMm: 10,
       overlapMm: 8,
     },
+    faceMaterials: {
+      'face-1': {
+        color: '#aabbcc',
+        texture: {
+          dataUrl: 'data:image/png;base64,aGVsbG8=',
+          offsetX: 2,
+          offsetY: -3,
+          scale: 1.5,
+          rotationDeg: 45,
+        },
+      },
+    },
   })
 
 describe('versioned project files', () => {
@@ -41,6 +53,20 @@ describe('versioned project files', () => {
     expect(() => parseProject('{"version":99}')).toThrow(
       'Unsupported project file version',
     )
+  })
+
+  it('migrates existing version 1 projects with empty face materials', () => {
+    const versionTwo = validProject()
+    const versionOne: Record<string, unknown> = {
+      ...versionTwo,
+      version: 1,
+    }
+    delete versionOne.faceMaterials
+
+    expect(parseProject(JSON.stringify(versionOne))).toMatchObject({
+      version: 2,
+      faceMaterials: {},
+    })
   })
 
   it('rejects invalid dimensions, selections, and print options', () => {
