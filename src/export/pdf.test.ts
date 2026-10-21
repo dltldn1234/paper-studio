@@ -1,7 +1,12 @@
 import { PDFDocument, PrintScaling } from 'pdf-lib'
 import { describe, expect, it } from 'vitest'
-import { createCuboidNet } from '../geometry'
-import { createTiledPdf, PDF_POINTS_PER_MM } from './pdf'
+import {
+  createCuboidNet,
+  createRegularTetrahedron,
+  unfoldPolyhedron,
+} from '../geometry'
+import { createPrintableNet } from './printable-net'
+import { createPrintLayout, createTiledPdf, PDF_POINTS_PER_MM } from './pdf'
 import { computePrintLayout } from './print-layout'
 
 const net = createCuboidNet(
@@ -65,4 +70,43 @@ describe('printable PDF export', () => {
       layout.tiles[1].guides[0].point,
     )
   })
+
+  it.each(['A4', 'A3'] as const)(
+    'tiles a tabbed tetrahedron on exact %s PDF pages',
+    async (paperSize) => {
+      const unfolded = unfoldPolyhedron(createRegularTetrahedron(100))
+      expect(unfolded.success).toBe(true)
+      if (!unfolded.success) return
+      const printable = createPrintableNet(unfolded.layout, {
+        enabled: true,
+        widthMm: 10,
+        angleDeg: 45,
+      })
+      const settings = {
+        paperSize,
+        orientation: 'portrait' as const,
+        marginMm: 10,
+        overlapMm: 8,
+      }
+      const layout = createPrintLayout(printable, settings)
+      const bytes = await createTiledPdf(printable, settings, 'Tetrahedron')
+      const document = await PDFDocument.load(bytes)
+      const paperWidthMm = paperSize === 'A4' ? 210 : 297
+      const paperHeightMm = paperSize === 'A4' ? 297 : 420
+
+      expect(printable.glueTabs).toHaveLength(3)
+      expect(document.getPages()).toHaveLength(layout.tiles.length + 1)
+      expect(document.getPages()[0].getWidth()).toBeCloseTo(
+        paperWidthMm * PDF_POINTS_PER_MM,
+        4,
+      )
+      expect(document.getPages()[0].getHeight()).toBeCloseTo(
+        paperHeightMm * PDF_POINTS_PER_MM,
+        4,
+      )
+      expect(
+        document.catalog.getOrCreateViewerPreferences().getPrintScaling(),
+      ).toBe(PrintScaling.None)
+    },
+  )
 })
