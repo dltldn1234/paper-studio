@@ -68,6 +68,35 @@ describe('printable PDF export', () => {
     expect((await PDFDocument.load(bytes)).getPages()).toHaveLength(2)
   })
 
+  it('blocks malformed textures before creating a PDF', async () => {
+    await expect(
+      createTiledPdf(
+        net,
+        {
+          paperSize: 'A4',
+          orientation: 'portrait',
+          marginMm: 10,
+          overlapMm: 8,
+        },
+        'Invalid texture',
+        {
+          faceMaterials: {
+            front: {
+              color: '#ffffff',
+              texture: {
+                dataUrl: 'data:image/webp;base64,%%%invalid',
+                offsetX: 0,
+                offsetY: 0,
+                scale: 1,
+                rotationDeg: 0,
+              },
+            },
+          },
+        },
+      ),
+    ).rejects.toThrow('Print preflight failed')
+  })
+
   it('exports assembly steps with an idealized-process warning', async () => {
     const graph: FoldGraph = {
       rootFaceId: 'base',
