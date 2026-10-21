@@ -81,6 +81,55 @@ function includeBounds(points: Point2D[]): NetBounds {
   }
 }
 
+/** Scales every printable element in one shared global coordinate system. */
+export function scalePrintableNet(
+  net: PrintableNet,
+  xScale: number,
+  yScale: number,
+): PrintableNet {
+  if (
+    !Number.isFinite(xScale) ||
+    !Number.isFinite(yScale) ||
+    xScale < 0.5 ||
+    xScale > 2 ||
+    yScale < 0.5 ||
+    yScale > 2
+  ) {
+    throw new RangeError('Print correction scales must be between 0.5 and 2.')
+  }
+  const centerX = net.bounds.x + net.bounds.width / 2
+  const centerY = net.bounds.y + net.bounds.height / 2
+  const transform = ({ x, y }: Point2D): Point2D => ({
+    x: centerX + (x - centerX) * xScale,
+    y: centerY + (y - centerY) * yScale,
+  })
+  const faces = net.faces.map((face) => ({
+    ...face,
+    polygon: face.polygon.map(transform),
+  }))
+  const edges = net.edges.map((edge) => ({
+    ...edge,
+    start: transform(edge.start),
+    end: transform(edge.end),
+  }))
+  const glueTabs = net.glueTabs.map((tab) => ({
+    ...tab,
+    polygon: { vertices: tab.polygon.vertices.map(transform) },
+  }))
+  const allPoints = [
+    ...faces.flatMap(({ polygon }) => polygon),
+    ...edges.flatMap(({ start, end }) => [start, end]),
+    ...glueTabs.flatMap(({ polygon }) => polygon.vertices),
+  ]
+  return {
+    ...net,
+    bounds: includeBounds(allPoints),
+    faces,
+    edges,
+    glueTabs,
+  }
+}
+
 /** Adapts cuboid or polyhedron geometry to a common printable model. */
 export function createPrintableNet(
   source: NetLayout | UnfoldedNet,

@@ -31,6 +31,9 @@ describe('print calibration geometry', () => {
     const guide = createPdfCalibrationGuide(width, height, 10)
     expect(guide.square.sizeMm).toBe(100)
     expect(guide.lines.map((line) => line.x2 - line.x1)).toEqual([50, 100, 150])
+    expect(guide.verticalLines.map((line) => line.y2 - line.y1)).toEqual([
+      50, 100, 150,
+    ])
     expect(guide.square.x).toBeGreaterThanOrEqual(10)
     expect(guide.square.x + guide.square.sizeMm).toBeLessThanOrEqual(width - 10)
     expect(

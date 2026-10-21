@@ -15,6 +15,8 @@ import {
 import type { NetLayout, Point2D, UnfoldedNet } from '../geometry'
 import { createPdfCalibrationGuide } from './calibration'
 import { createPrintableNet } from './printable-net'
+import { createCorrectedPrintableNet } from './precision-export'
+import type { PdfCalibrationSelection } from './precision-export'
 import type { PrintableNet } from './printable-net'
 import type { PrintLayout, PrintSettings, PrintTile } from './print-layout'
 import { computePrintLayout } from './print-layout'
@@ -33,6 +35,7 @@ type Rect = { x: number; y: number; width: number; height: number }
 
 export type PdfProductionOptions = {
   faceMaterials?: Record<string, FaceMaterial>
+  calibration?: PdfCalibrationSelection
   showCutLines?: boolean
   showFoldLines?: boolean
   showAssemblyNumbers?: boolean
@@ -314,6 +317,7 @@ function drawPageLabels(
   font: Awaited<ReturnType<PDFDocument['embedFont']>>,
   net: PrintableNet,
   showAssemblyNumbers = true,
+  calibration?: PdfCalibrationSelection,
 ) {
   const pageHeight = layout.pageHeightMm * PDF_POINTS_PER_MM
   const margin = mmToPdfPoints(layout.settings.marginMm)
@@ -332,6 +336,18 @@ function drawPageLabels(
     font,
     color: rgb(0.25, 0.25, 0.25),
   })
+  if (calibration) {
+    page.drawText(
+      `Calibration profile ${calibration.profileId} · X ${(calibration.xScale * 100).toFixed(2)}% · Y ${(calibration.yScale * 100).toFixed(2)}%`,
+      {
+        x: margin,
+        y: margin / 2 + 8,
+        size: 5.5,
+        font,
+        color: rgb(0.18, 0.34, 0.58),
+      },
+    )
+  }
 
   if (!showAssemblyNumbers) return
   for (const [index, face] of net.faces.entries()) {
@@ -374,11 +390,15 @@ function drawPageLabels(
 export function createPrintLayout(
   net: NetLayout | UnfoldedNet | PrintableNet,
   settings: PrintSettings,
+  calibration?: PdfCalibrationSelection,
 ): PrintLayout {
-  const printable =
+  const source =
     net.faces.length > 0 && Array.isArray(net.faces[0].polygon)
       ? (net as PrintableNet)
       : createPrintableNet(net as NetLayout | UnfoldedNet)
+  const printable = calibration
+    ? createCorrectedPrintableNet(source, calibration)
+    : source
   return computePrintLayout(printable.bounds, settings)
 }
 
@@ -388,12 +408,36 @@ export async function createTiledPdf(
   title = 'Paper Studio printable net',
   options: PdfProductionOptions = {},
 ): Promise<Uint8Array> {
-  const printable =
+  const sourcePrintable =
     net.faces.length > 0 && Array.isArray(net.faces[0].polygon)
       ? (net as PrintableNet)
       : createPrintableNet(net as NetLayout | UnfoldedNet)
+  const printable = options.calibration
+    ? createCorrectedPrintableNet(sourcePrintable, options.calibration)
+    : sourcePrintable
+  const faceMaterials = options.calibration
+    ? Object.fromEntries(
+        Object.entries(options.faceMaterials ?? {}).map(
+          ([faceId, material]) => [
+            faceId,
+            material.texture
+              ? {
+                  ...material,
+                  texture: {
+                    ...material.texture,
+                    offsetX:
+                      material.texture.offsetX * options.calibration!.xScale,
+                    offsetY:
+                      material.texture.offsetY * options.calibration!.yScale,
+                  },
+                }
+              : material,
+          ],
+        ),
+      )
+    : options.faceMaterials
   const layout = createPrintLayout(printable, settings)
-  const preflight = runPrintPreflight(printable, layout, options.faceMaterials)
+  const preflight = runPrintPreflight(printable, layout, faceMaterials)
   if (preflight.hasErrors) {
     const errors = preflight.issues
       .filter(({ severity }) => severity === 'error')
@@ -403,6 +447,11 @@ export async function createTiledPdf(
   const pdf = await PDFDocument.create()
   pdf.setTitle(title)
   pdf.setCreator('Paper Studio')
+  if (options.calibration) {
+    pdf.setSubject(
+      `Printer profile ${options.calibration.profileId}; X ${options.calibration.xScale}; Y ${options.calibration.yScale}`,
+    )
+  }
   pdf.catalog.getOrCreateViewerPreferences().setPrintScaling(PrintScaling.None)
   pdf.catalog.getOrCreateViewerPreferences().setPickTrayByPDFSize(true)
   const font = await pdf.embedFont(StandardFonts.Helvetica)
@@ -425,7 +474,7 @@ export async function createTiledPdf(
       tile,
       layout,
       printable,
-      options.faceMaterials,
+      faceMaterials,
       imageCache,
     )
     for (const edge of printable.edges) {
@@ -465,6 +514,7 @@ export async function createTiledPdf(
       font,
       printable,
       options.showAssemblyNumbers ?? settings.showAssemblyNumbers,
+      options.calibration,
     )
   }
 
@@ -475,9 +525,27 @@ export async function createTiledPdf(
     layout.pageHeightMm,
     settings.marginMm,
   )
+  if (
+    options.calibration &&
+    (calibration.square.sizeMm * options.calibration.xScale >
+      layout.printableWidthMm - 20 ||
+      calibration.square.sizeMm * options.calibration.yScale >
+        layout.printableHeightMm - 20 ||
+      150 * options.calibration.xScale > layout.printableWidthMm - 20 ||
+      150 * options.calibration.yScale > layout.printableHeightMm - 20)
+  ) {
+    throw new Error(
+      'The selected correction makes the calibration marks exceed the printable page area. Use a smaller correction or a larger paper size.',
+    )
+  }
   const squareX = mmToPdfPoints(calibration.square.x)
   const squareY = mmToPdfPoints(calibration.square.y)
-  const size = mmToPdfPoints(calibration.square.sizeMm)
+  const sizeX = mmToPdfPoints(
+    calibration.square.sizeMm * (options.calibration?.xScale ?? 1),
+  )
+  const sizeY = mmToPdfPoints(
+    calibration.square.sizeMm * (options.calibration?.yScale ?? 1),
+  )
   const blue = rgb(0.12, 0.38, 0.72)
   calibrationPage.drawText('PRINT SCALE CALIBRATION', {
     x: margin,
@@ -489,8 +557,8 @@ export async function createTiledPdf(
   calibrationPage.drawRectangle({
     x: squareX,
     y: squareY,
-    width: size,
-    height: size,
+    width: sizeX,
+    height: sizeY,
     borderColor: blue,
     borderWidth: 0.6,
   })
@@ -501,7 +569,10 @@ export async function createTiledPdf(
         y: mmToPdfPoints(reference.y),
       },
       end: {
-        x: mmToPdfPoints(reference.x2),
+        x: mmToPdfPoints(
+          reference.x1 +
+            reference.lengthMm * (options.calibration?.xScale ?? 1),
+        ),
         y: mmToPdfPoints(reference.y),
       },
       thickness: 0.8,
@@ -515,8 +586,28 @@ export async function createTiledPdf(
       color: blue,
     })
   }
+  for (const reference of calibration.verticalLines) {
+    const x = mmToPdfPoints(reference.x)
+    const y1 = mmToPdfPoints(reference.y1)
+    const y2 = mmToPdfPoints(
+      reference.y1 + reference.lengthMm * (options.calibration?.yScale ?? 1),
+    )
+    calibrationPage.drawLine({
+      start: { x, y: y1 },
+      end: { x, y: y2 },
+      thickness: 0.8,
+      color: blue,
+    })
+    calibrationPage.drawText(`${reference.lengthMm} mm Y`, {
+      x: mmToPdfPoints(reference.labelX),
+      y: mmToPdfPoints(reference.labelY),
+      size: 8,
+      font,
+      color: blue,
+    })
+  }
   calibrationPage.drawText(
-    'Print at Actual Size / 100%. Turn off Fit or Shrink. Measure the line and square before cutting.',
+    `${options.calibration ? `Profile ${options.calibration.profileId}: X ${(options.calibration.xScale * 100).toFixed(2)}%, Y ${(options.calibration.yScale * 100).toFixed(2)}%. ` : ''}Print at Actual Size / 100%. Turn off Fit or Shrink. Measure the line and square before cutting. X/Y scaling changes face and tab proportions and can affect assembly.`,
     {
       x: margin,
       y: margin,
