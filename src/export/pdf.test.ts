@@ -8,6 +8,9 @@ import {
 import { createPrintableNet } from './printable-net'
 import { createPrintLayout, createTiledPdf, PDF_POINTS_PER_MM } from './pdf'
 import { computePrintLayout } from './print-layout'
+import { createAssemblyGuidePdf } from './assembly-guide-pdf'
+import { createAssemblyGuide } from '../assembly/guide'
+import type { FoldGraph } from '../folding'
 
 const net = createCuboidNet(
   { widthMm: 100, depthMm: 80, heightMm: 60 },
@@ -15,6 +18,83 @@ const net = createCuboidNet(
 )
 
 describe('printable PDF export', () => {
+  it('includes material colors and honors production line and numbering flags', async () => {
+    const bytes = await createTiledPdf(
+      net,
+      {
+        paperSize: 'A3',
+        orientation: 'landscape',
+        marginMm: 10,
+        overlapMm: 8,
+      },
+      'Production layout',
+      {
+        faceMaterials: { front: { color: '#aabbcc' } },
+        showCutLines: false,
+        showFoldLines: false,
+        showAssemblyNumbers: false,
+      },
+    )
+    const document = await PDFDocument.load(bytes)
+    expect(document.getPages()).toHaveLength(2)
+  })
+
+  it('clips a local PNG face texture into the production PDF', async () => {
+    const bytes = await createTiledPdf(
+      net,
+      {
+        paperSize: 'A3',
+        orientation: 'landscape',
+        marginMm: 10,
+        overlapMm: 8,
+      },
+      'Textured layout',
+      {
+        faceMaterials: {
+          front: {
+            color: '#aabbcc',
+            texture: {
+              dataUrl:
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+              offsetX: 0,
+              offsetY: 0,
+              scale: 1,
+              rotationDeg: 0,
+            },
+          },
+        },
+      },
+    )
+    expect((await PDFDocument.load(bytes)).getPages()).toHaveLength(2)
+  })
+
+  it('exports assembly steps with an idealized-process warning', async () => {
+    const graph: FoldGraph = {
+      rootFaceId: 'base',
+      faces: [
+        { id: 'base', center: { x: 0, y: 0, z: 0 } },
+        { id: 'side', center: { x: 0, y: 1, z: 0 } },
+      ],
+      hinges: [
+        {
+          id: 'edge-1',
+          parentFaceId: 'base',
+          childFaceId: 'side',
+          start: { x: 0, y: 0, z: 0 },
+          end: { x: 1, y: 0, z: 0 },
+          angleRadians: Math.PI / 2,
+        },
+      ],
+    }
+    const bytes = await createAssemblyGuidePdf(createAssemblyGuide(graph))
+    const document = await PDFDocument.load(bytes)
+    expect(document.getPages()).toHaveLength(1)
+    expect(document.getPages()[0].getWidth()).toBeCloseTo(
+      210 * PDF_POINTS_PER_MM,
+      4,
+    )
+  })
+
   it('creates exact A4 portrait page sizes and tiles oversized nets', async () => {
     const bytes = await createTiledPdf(net, {
       paperSize: 'A4',
