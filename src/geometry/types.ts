@@ -81,7 +81,7 @@ export type NetBounds = {
 export type GlueTab = {
   id: string
   edgeId: string
-  faceId: FaceId
+  faceId: string
   polygon: Polygon
   widthMm: number
   angleDeg: number
@@ -95,7 +95,7 @@ export type GlueTabOptions = {
 
 export type GlueTabInterference =
   | { kind: 'tab-tab'; firstTabId: string; secondTabId: string }
-  | { kind: 'tab-face'; tabId: string; faceId: FaceId }
+  | { kind: 'tab-face'; tabId: string; faceId: string }
 
 export type NetLayout = {
   faces: NetFace[]

@@ -1,7 +1,8 @@
 import { PDFDocument, PrintScaling, StandardFonts, rgb } from 'pdf-lib'
-import type { NetLayout, Point2D } from '../geometry'
-import { validateNetBounds } from './svg'
+import type { NetLayout, Point2D, UnfoldedNet } from '../geometry'
 import { createPdfCalibrationGuide } from './calibration'
+import { createPrintableNet } from './printable-net'
+import type { PrintableNet } from './printable-net'
 import type { PrintLayout, PrintSettings, PrintTile } from './print-layout'
 import { computePrintLayout } from './print-layout'
 
@@ -106,7 +107,7 @@ function drawPageLabels(
   layout: PrintLayout,
   totalPages: number,
   font: Awaited<ReturnType<PDFDocument['embedFont']>>,
-  net: NetLayout,
+  net: PrintableNet,
 ) {
   const pageHeight = layout.pageHeightMm * PDF_POINTS_PER_MM
   const margin = layout.settings.marginMm * PDF_POINTS_PER_MM
@@ -126,10 +127,14 @@ function drawPageLabels(
     color: rgb(0.25, 0.25, 0.25),
   })
 
-  for (const face of net.faces) {
+  for (const [index, face] of net.faces.entries()) {
     const center = {
-      x: face.origin.x + face.widthMm / 2,
-      y: face.origin.y + face.heightMm / 2,
+      x:
+        face.polygon.reduce((sum, point) => sum + point.x, 0) /
+        face.polygon.length,
+      y:
+        face.polygon.reduce((sum, point) => sum + point.y, 0) /
+        face.polygon.length,
     }
     if (
       center.x < tile.visibleBounds.x ||
@@ -139,7 +144,7 @@ function drawPageLabels(
     ) {
       continue
     }
-    const text = `${face.id} ${face.widthMm} x ${face.heightMm} mm`
+    const text = `Face ${index + 1} · ${face.id}`
     const textSize = 5.5
     const x =
       margin +
@@ -161,26 +166,33 @@ function drawPageLabels(
 }
 
 export function createPrintLayout(
-  net: NetLayout,
+  net: NetLayout | UnfoldedNet | PrintableNet,
   settings: PrintSettings,
 ): PrintLayout {
-  validateNetBounds(net)
-  return computePrintLayout(net.bounds, settings)
+  const printable =
+    net.faces.length > 0 && Array.isArray(net.faces[0].polygon)
+      ? (net as PrintableNet)
+      : createPrintableNet(net as NetLayout | UnfoldedNet)
+  return computePrintLayout(printable.bounds, settings)
 }
 
 export async function createTiledPdf(
-  net: NetLayout,
+  net: NetLayout | UnfoldedNet | PrintableNet,
   settings: PrintSettings,
   title = 'Paper Studio printable net',
 ): Promise<Uint8Array> {
-  const layout = createPrintLayout(net, settings)
+  const printable =
+    net.faces.length > 0 && Array.isArray(net.faces[0].polygon)
+      ? (net as PrintableNet)
+      : createPrintableNet(net as NetLayout | UnfoldedNet)
+  const layout = createPrintLayout(printable, settings)
   const pdf = await PDFDocument.create()
   pdf.setTitle(title)
   pdf.setCreator('Paper Studio')
   pdf.catalog.getOrCreateViewerPreferences().setPrintScaling(PrintScaling.None)
   pdf.catalog.getOrCreateViewerPreferences().setPickTrayByPDFSize(true)
   const font = await pdf.embedFont(StandardFonts.Helvetica)
-  const tabbedEdgeIds = new Set(net.glueTabs.map((tab) => tab.edgeId))
+  const tabbedEdgeIds = new Set(printable.glueTabs.map((tab) => tab.edgeId))
   const pageSize = [
     layout.pageWidthMm * PDF_POINTS_PER_MM,
     layout.pageHeightMm * PDF_POINTS_PER_MM,
@@ -189,11 +201,11 @@ export async function createTiledPdf(
   const totalPages = layout.tiles.length + 1
   for (const tile of layout.tiles) {
     const page = pdf.addPage(pageSize)
-    for (const edge of net.edges) {
+    for (const edge of printable.edges) {
       const kind = tabbedEdgeIds.has(edge.id) ? 'fold' : edge.kind
       drawWorldLine(page, tile, layout, edge.start, edge.end, kind)
     }
-    for (const tab of net.glueTabs) {
+    for (const tab of printable.glueTabs) {
       const vertices = tab.polygon.vertices
       const outline = [...vertices.slice(1), vertices[0]]
       for (let index = 0; index < outline.length - 1; index += 1) {
@@ -208,7 +220,7 @@ export async function createTiledPdf(
       }
     }
     drawRegistrationGuides(page, tile, layout)
-    drawPageLabels(page, tile, layout, totalPages, font, net)
+    drawPageLabels(page, tile, layout, totalPages, font, printable)
   }
 
   const calibrationPage = pdf.addPage(pageSize)

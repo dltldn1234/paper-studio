@@ -1,4 +1,4 @@
-import type { NetLayout, Point2D, UnfoldedNet } from '../geometry'
+import type { GlueTab, NetLayout, Point2D, UnfoldedNet } from '../geometry'
 import { createSvgCalibrationGuide } from './calibration'
 
 function number(value: number): string {
@@ -116,8 +116,48 @@ ${calibrationMarkup}
 export function serializeUnfoldedNetToSvg(
   layout: UnfoldedNet,
   title = 'Paper Studio polyhedron net',
+  glueTabs: GlueTab[] = [],
 ): string {
-  const { x, y, width, height } = layout.bounds
+  const sourcePoints = [
+    ...layout.faces.flatMap((face) => face.polygon),
+    ...layout.edges.flatMap((edge) => [edge.start, edge.end]),
+  ]
+  const {
+    x: sourceX,
+    y: sourceY,
+    width: sourceWidth,
+    height: sourceHeight,
+  } = layout.bounds
+  const sourceMaxX = sourceX + sourceWidth
+  const sourceMaxY = sourceY + sourceHeight
+  if (
+    ![sourceX, sourceY, sourceWidth, sourceHeight].every(Number.isFinite) ||
+    sourceWidth <= 0 ||
+    sourceHeight <= 0 ||
+    sourcePoints.some(
+      (point) =>
+        !Number.isFinite(point.x) ||
+        !Number.isFinite(point.y) ||
+        point.x < sourceX - 1e-5 ||
+        point.y < sourceY - 1e-5 ||
+        point.x > sourceMaxX + 1e-5 ||
+        point.y > sourceMaxY + 1e-5,
+    )
+  ) {
+    throw new RangeError('Unfolded net bounds do not contain all geometry.')
+  }
+  const allPoints = [
+    ...sourcePoints,
+    ...glueTabs.flatMap((tab) => tab.polygon.vertices),
+  ]
+  const xs = allPoints.map(({ x }) => x)
+  const ys = allPoints.map(({ y }) => y)
+  const x = Math.min(layout.bounds.x, ...xs)
+  const y = Math.min(layout.bounds.y, ...ys)
+  const maxX = Math.max(layout.bounds.x + layout.bounds.width, ...xs)
+  const maxY = Math.max(layout.bounds.y + layout.bounds.height, ...ys)
+  const width = maxX - x
+  const height = maxY - y
   if (
     ![x, y, width, height].every(Number.isFinite) ||
     width <= 0 ||
@@ -125,12 +165,8 @@ export function serializeUnfoldedNetToSvg(
   ) {
     throw new RangeError('Unfolded net bounds must be finite and positive.')
   }
-  const points = [
-    ...layout.faces.flatMap((face) => face.polygon),
-    ...layout.edges.flatMap((edge) => [edge.start, edge.end]),
-  ]
   if (
-    points.some(
+    allPoints.some(
       (point) =>
         !Number.isFinite(point.x) ||
         !Number.isFinite(point.y) ||
@@ -142,11 +178,18 @@ export function serializeUnfoldedNetToSvg(
   ) {
     throw new RangeError('Unfolded net bounds do not contain all geometry.')
   }
+  const tabbedEdgeIds = new Set(glueTabs.map((tab) => tab.edgeId))
   const edges = layout.edges
-    .map(
-      (edge) =>
-        `  <line class="${edge.kind}" data-kind="${edge.kind}" x1="${number(edge.start.x)}" y1="${number(edge.start.y)}" x2="${number(edge.end.x)}" y2="${number(edge.end.y)}" />`,
-    )
+    .map((edge) => {
+      const kind = tabbedEdgeIds.has(edge.id) ? 'fold' : edge.kind
+      return `  <line class="${kind}" data-kind="${kind}" x1="${number(edge.start.x)}" y1="${number(edge.start.y)}" x2="${number(edge.end.x)}" y2="${number(edge.end.y)}" />`
+    })
+    .join('\n')
+  const tabs = glueTabs
+    .map((tab) => {
+      const vertices = tab.polygon.vertices
+      return `  <path class="cut glue-tab" data-tab-id="${escapeXml(tab.id)}" d="${path([...vertices.slice(1), vertices[0]])}" />`
+    })
     .join('\n')
   const labels = layout.faces
     .map((face) => {
@@ -167,6 +210,7 @@ export function serializeUnfoldedNetToSvg(
     .face-label { fill: #333; font-family: sans-serif; font-size: 3px; }
   </style>
 ${edges}
+${tabs}
 ${labels}
 </svg>
 `

@@ -2,10 +2,18 @@ import type {
   GlueTab,
   GlueTabInterference,
   GlueTabOptions,
-  NetEdge,
-  NetFace,
   Point2D,
 } from './types'
+
+type GlueTabEdgeInput = {
+  id: string
+  hostFaceId: string
+  start: Point2D
+  end: Point2D
+  kind: 'cut' | 'fold'
+  adjacentFaceIds: string[]
+}
+type GlueTabFaceInput = { id: string; polygon: { vertices: Point2D[] } }
 
 export const DEFAULT_GLUE_TAB_OPTIONS: GlueTabOptions = {
   enabled: false,
@@ -39,7 +47,10 @@ function validateOptions({ widthMm, angleDeg }: GlueTabOptions): void {
   }
 }
 
-function createTab(edge: NetEdge, options: GlueTabOptions): GlueTab | null {
+function createTab(
+  edge: GlueTabEdgeInput,
+  options: GlueTabOptions,
+): GlueTab | null {
   if (edge.adjacentFaceIds.length !== 2) return null
 
   const dx = edge.end.x - edge.start.x
@@ -100,7 +111,7 @@ function polygonsOverlap(first: Point2D[], second: Point2D[]): boolean {
 
 export function findGlueTabInterferences(
   tabs: GlueTab[],
-  faces: NetFace[] = [],
+  faces: GlueTabFaceInput[] = [],
 ): GlueTabInterference[] {
   const interferences: GlueTabInterference[] = []
   for (let firstIndex = 0; firstIndex < tabs.length; firstIndex += 1) {
@@ -134,9 +145,9 @@ export function findGlueTabInterferences(
 }
 
 export function generateGlueTabs(
-  edges: NetEdge[],
+  edges: GlueTabEdgeInput[],
   options: GlueTabOptions = DEFAULT_GLUE_TAB_OPTIONS,
-  faces: NetFace[] = [],
+  faces: GlueTabFaceInput[] = [],
 ): { tabs: GlueTab[]; interferences: GlueTabInterference[] } {
   validateOptions(options)
   if (!options.enabled) return { tabs: [], interferences: [] }

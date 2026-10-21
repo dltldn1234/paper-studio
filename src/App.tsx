@@ -71,6 +71,7 @@ import {
   type PrintSettings,
 } from './export/print-layout'
 import { PrintPagePreviews } from './export/PrintPagePreviews'
+import { createPrintableNet } from './export/printable-net'
 
 const ThreeCuboidPreview = lazy(() =>
   import('./preview/ThreeCuboidPreview').then((module) => ({
@@ -195,6 +196,17 @@ function App() {
       return null
     }
   }, [genericMesh, genericUnfolding])
+  const genericPrintableNet = useMemo(
+    () =>
+      genericUnfolding?.success
+        ? createPrintableNet(genericUnfolding.layout, glueTabOptions)
+        : null,
+    [genericUnfolding, glueTabOptions],
+  )
+  const printableNet = useMemo(
+    () => genericPrintableNet ?? createPrintableNet(netLayout),
+    [genericPrintableNet, netLayout],
+  )
   const genericIntersections = useMemo(() => {
     if (
       !genericMesh ||
@@ -217,7 +229,7 @@ function App() {
   const printLayoutResult = useMemo(() => {
     try {
       return {
-        layout: computePrintLayout(netLayout.bounds, printSettings),
+        layout: computePrintLayout(printableNet.bounds, printSettings),
         error: '',
       }
     } catch (error) {
@@ -229,7 +241,7 @@ function App() {
             : 'PDF 미리보기를 만들 수 없습니다.',
       }
     }
-  }, [netLayout, printSettings])
+  }, [printableNet, printSettings])
   const selectedFace = cuboid.faces.find((face) => face.id === selectedFaceId)
   const selectedGenericFace = genericUnfolding?.success
     ? genericUnfolding.layout.faces.find((face) => face.id === selectedFaceId)
@@ -237,6 +249,8 @@ function App() {
   const selectedGenericEdge = genericUnfolding?.success
     ? genericUnfolding.layout.edges.find((edge) => edge.id === selectedEdgeId)
     : undefined
+  const activeTabInterferences =
+    genericPrintableNet?.tabInterferences ?? netLayout.tabInterferences
   const displayedFoldEdgeIds =
     draftFoldEdgeIds ??
     (genericUnfolding?.success ? genericUnfolding.layout.foldEdgeIds : [])
@@ -503,7 +517,11 @@ function App() {
 
   function downloadSvg() {
     const svg = genericUnfolding?.success
-      ? serializeUnfoldedNetToSvg(genericUnfolding.layout, svgFilename)
+      ? serializeUnfoldedNetToSvg(
+          genericUnfolding.layout,
+          svgFilename,
+          genericPrintableNet?.glueTabs,
+        )
       : serializeNetToSvg(netLayout, svgFilename)
     const objectUrl = URL.createObjectURL(
       new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }),
@@ -517,12 +535,16 @@ function App() {
   }
 
   async function downloadPdf() {
-    if (solidKind !== 'cuboid' || !printLayoutResult.layout) return
+    if (!printLayoutResult.layout) return
     setExportBusy(true)
     setExportError('')
     try {
       const { createTiledPdf } = await import('./export/pdf')
-      const bytes = await createTiledPdf(netLayout, printSettings, svgFilename)
+      const bytes = await createTiledPdf(
+        printableNet,
+        printSettings,
+        svgFilename,
+      )
       const objectUrl = URL.createObjectURL(
         new Blob([bytes.slice().buffer as ArrayBuffer], {
           type: 'application/pdf',
@@ -1080,106 +1102,103 @@ function App() {
               </>
             )}
 
-            {solidKind === 'cuboid' && (
-              <>
-                <div className="inspector-section-title inspector-section-title--tabs">
-                  <span>접착탭</span>
-                  <label className="glue-tab-toggle">
+            <>
+              <div className="inspector-section-title inspector-section-title--tabs">
+                <span>접착탭</span>
+                <label className="glue-tab-toggle">
+                  <input
+                    type="checkbox"
+                    aria-label="접착탭 표시"
+                    checked={glueTabOptions.enabled}
+                    onChange={(event) =>
+                      setGlueTabOptions((current) => ({
+                        ...current,
+                        enabled: event.target.checked,
+                      }))
+                    }
+                  />
+                  표시
+                </label>
+              </div>
+              <div className="glue-tab-options">
+                <label className="dimension-field">
+                  <span className="dimension-field__label">탭 너비</span>
+                  <span
+                    className={`dimension-input-wrap${glueTabErrors.widthMm ? 'has-error' : ''}`}
+                  >
                     <input
-                      type="checkbox"
-                      aria-label="접착탭 표시"
-                      checked={glueTabOptions.enabled}
+                      type="number"
+                      min={MIN_GLUE_TAB_WIDTH_MM}
+                      max={MAX_GLUE_TAB_WIDTH_MM}
+                      step="0.5"
+                      aria-label="접착탭 너비 (mm)"
+                      aria-invalid={Boolean(glueTabErrors.widthMm)}
+                      aria-describedby={
+                        glueTabErrors.widthMm
+                          ? 'glue-tab-width-error'
+                          : undefined
+                      }
+                      value={glueTabDrafts.widthMm}
+                      disabled={!glueTabOptions.enabled}
                       onChange={(event) =>
-                        setGlueTabOptions((current) => ({
-                          ...current,
-                          enabled: event.target.checked,
-                        }))
+                        updateGlueTabOption('widthMm', event.target.value)
                       }
                     />
-                    표시
-                  </label>
-                </div>
-                <div className="glue-tab-options">
-                  <label className="dimension-field">
-                    <span className="dimension-field__label">탭 너비</span>
-                    <span
-                      className={`dimension-input-wrap${glueTabErrors.widthMm ? 'has-error' : ''}`}
+                    <span>mm</span>
+                  </span>
+                  {glueTabErrors.widthMm && (
+                    <small
+                      id="glue-tab-width-error"
+                      className="dimension-error"
+                      role="alert"
                     >
-                      <input
-                        type="number"
-                        min={MIN_GLUE_TAB_WIDTH_MM}
-                        max={MAX_GLUE_TAB_WIDTH_MM}
-                        step="0.5"
-                        aria-label="접착탭 너비 (mm)"
-                        aria-invalid={Boolean(glueTabErrors.widthMm)}
-                        aria-describedby={
-                          glueTabErrors.widthMm
-                            ? 'glue-tab-width-error'
-                            : undefined
-                        }
-                        value={glueTabDrafts.widthMm}
-                        disabled={!glueTabOptions.enabled}
-                        onChange={(event) =>
-                          updateGlueTabOption('widthMm', event.target.value)
-                        }
-                      />
-                      <span>mm</span>
-                    </span>
-                    {glueTabErrors.widthMm && (
-                      <small
-                        id="glue-tab-width-error"
-                        className="dimension-error"
-                        role="alert"
-                      >
-                        {glueTabErrors.widthMm}
-                      </small>
-                    )}
-                  </label>
-                  <label className="dimension-field">
-                    <span className="dimension-field__label">경사각</span>
-                    <span
-                      className={`dimension-input-wrap${glueTabErrors.angleDeg ? 'has-error' : ''}`}
-                    >
-                      <input
-                        type="number"
-                        min={MIN_GLUE_TAB_ANGLE_DEG}
-                        max={MAX_GLUE_TAB_ANGLE_DEG}
-                        step="1"
-                        aria-label="접착탭 경사각 (도)"
-                        aria-invalid={Boolean(glueTabErrors.angleDeg)}
-                        aria-describedby={
-                          glueTabErrors.angleDeg
-                            ? 'glue-tab-angle-error'
-                            : undefined
-                        }
-                        value={glueTabDrafts.angleDeg}
-                        disabled={!glueTabOptions.enabled}
-                        onChange={(event) =>
-                          updateGlueTabOption('angleDeg', event.target.value)
-                        }
-                      />
-                      <span>°</span>
-                    </span>
-                    {glueTabErrors.angleDeg && (
-                      <small
-                        id="glue-tab-angle-error"
-                        className="dimension-error"
-                        role="alert"
-                      >
-                        {glueTabErrors.angleDeg}
-                      </small>
-                    )}
-                  </label>
-                </div>
-                {glueTabOptions.enabled &&
-                  netLayout.tabInterferences.length > 0 && (
-                    <p className="glue-tab-warning" role="status">
-                      접착탭이 서로 겹칩니다. 너비를 줄여주세요 (
-                      {netLayout.tabInterferences.length}곳)
-                    </p>
+                      {glueTabErrors.widthMm}
+                    </small>
                   )}
-              </>
-            )}
+                </label>
+                <label className="dimension-field">
+                  <span className="dimension-field__label">경사각</span>
+                  <span
+                    className={`dimension-input-wrap${glueTabErrors.angleDeg ? 'has-error' : ''}`}
+                  >
+                    <input
+                      type="number"
+                      min={MIN_GLUE_TAB_ANGLE_DEG}
+                      max={MAX_GLUE_TAB_ANGLE_DEG}
+                      step="1"
+                      aria-label="접착탭 경사각 (도)"
+                      aria-invalid={Boolean(glueTabErrors.angleDeg)}
+                      aria-describedby={
+                        glueTabErrors.angleDeg
+                          ? 'glue-tab-angle-error'
+                          : undefined
+                      }
+                      value={glueTabDrafts.angleDeg}
+                      disabled={!glueTabOptions.enabled}
+                      onChange={(event) =>
+                        updateGlueTabOption('angleDeg', event.target.value)
+                      }
+                    />
+                    <span>°</span>
+                  </span>
+                  {glueTabErrors.angleDeg && (
+                    <small
+                      id="glue-tab-angle-error"
+                      className="dimension-error"
+                      role="alert"
+                    >
+                      {glueTabErrors.angleDeg}
+                    </small>
+                  )}
+                </label>
+              </div>
+              {glueTabOptions.enabled && activeTabInterferences.length > 0 && (
+                <p className="glue-tab-warning" role="status">
+                  접착탭이 서로 겹칩니다. 너비를 줄여주세요 (
+                  {activeTabInterferences.length}곳)
+                </p>
+              )}
+            </>
 
             <div className="inspector-section-title inspector-section-title--face">
               <span>선택한 면</span>
@@ -1248,9 +1267,7 @@ function App() {
                 }}
               >
                 <option value="svg">SVG · 벡터 도면</option>
-                <option value="pdf" disabled={solidKind !== 'cuboid'}>
-                  PDF · 인쇄용 페이지
-                </option>
+                <option value="pdf">PDF · 인쇄용 페이지</option>
               </select>
             </label>
             <label className="export-dialog__field">
@@ -1349,7 +1366,7 @@ function App() {
                       {printLayoutResult.layout.printableHeightMm} mm
                     </p>
                     <PrintPagePreviews
-                      net={netLayout}
+                      net={printableNet}
                       layout={printLayoutResult.layout}
                     />
                   </>
