@@ -202,18 +202,22 @@ export function PrintPagePreviews({
               width="100"
               height="100"
             />
-            <line
-              x1={layout.settings.marginMm + 20}
-              y1={layout.settings.marginMm + 130}
-              x2={layout.settings.marginMm + 120}
-              y2={layout.settings.marginMm + 130}
-            />
-            <text
-              x={layout.settings.marginMm + 20}
-              y={layout.settings.marginMm + 140}
-            >
-              100 mm
-            </text>
+            {[50, 100, 150].map((length, index) => (
+              <g key={length}>
+                <line
+                  x1={layout.settings.marginMm + 20}
+                  y1={layout.settings.marginMm + 130 + index * 10}
+                  x2={layout.settings.marginMm + 20 + length}
+                  y2={layout.settings.marginMm + 130 + index * 10}
+                />
+                <text
+                  x={layout.settings.marginMm + 20}
+                  y={layout.settings.marginMm + 136 + index * 10}
+                >
+                  {length} mm
+                </text>
+              </g>
+            ))}
           </g>
         </svg>
         <figcaption>교정 · 100%</figcaption>

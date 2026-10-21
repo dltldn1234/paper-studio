@@ -112,6 +112,14 @@ describe('printable PDF export', () => {
       297 * PDF_POINTS_PER_MM,
       4,
     )
+    expect(document.getPages()[2].getWidth()).toBeCloseTo(
+      210 * PDF_POINTS_PER_MM,
+      4,
+    )
+    expect(document.getPages()[2].getHeight()).toBeCloseTo(
+      297 * PDF_POINTS_PER_MM,
+      4,
+    )
     expect(
       document.catalog.getOrCreateViewerPreferences().getPrintScaling(),
     ).toBe(PrintScaling.None)
@@ -131,6 +139,14 @@ describe('printable PDF export', () => {
       4,
     )
     expect(document.getPages()[0].getHeight()).toBeCloseTo(
+      297 * PDF_POINTS_PER_MM,
+      4,
+    )
+    expect(document.getPages()[1].getWidth()).toBeCloseTo(
+      420 * PDF_POINTS_PER_MM,
+      4,
+    )
+    expect(document.getPages()[1].getHeight()).toBeCloseTo(
       297 * PDF_POINTS_PER_MM,
       4,
     )
