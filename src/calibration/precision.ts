@@ -96,7 +96,13 @@ export function analyzeCalibrationAxis(
     .filter(({ scale }) => Math.abs(scale - center) > outlierThreshold)
     .map(({ targetMm }) => targetMm)
 
-  if (accepted.length < MIN_CALIBRATION_SAMPLES) {
+  const acceptedTargetLengths = new Set(
+    accepted.map(({ targetMm }) => targetMm),
+  )
+  if (
+    accepted.length < MIN_CALIBRATION_SAMPLES ||
+    acceptedTargetLengths.size < MIN_CALIBRATION_SAMPLES
+  ) {
     return {
       status: 'inconsistent',
       sampleCount: measurements.length,

@@ -62,6 +62,17 @@ describe('precision calibration engine', () => {
     expect(inconsistent.correctionScale).toBeCloseTo(1.0263158)
   })
 
+  it('does not recommend a scale when outlier removal leaves one reference length', () => {
+    const analysis = analyzeCalibrationAxis([
+      { targetMm: 50, measuredMm: 49.8 },
+      { targetMm: 50, measuredMm: 50 },
+      { targetMm: 100, measuredMm: 80 },
+    ])
+    expect(analysis.status).toBe('inconsistent')
+    expect(analysis.correctionScale).toBeNull()
+    expect(analysis.outlierTargetsMm).toEqual([100])
+  })
+
   it('reports dimensional error and prevents applying a profile twice', () => {
     expect(compareCalibrationMeasurement(100, 99)).toMatchObject({
       errorMm: -1,
