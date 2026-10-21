@@ -81,6 +81,17 @@ import {
 } from './export/print-layout'
 import { PrintPagePreviews } from './export/PrintPagePreviews'
 import { createPrintableNet } from './export/printable-net'
+import {
+  CALIBRATION_REFERENCE_LENGTHS,
+  calculateCalibrationResult,
+} from './export/calibration'
+import type { CalibrationReferenceLength } from './export/calibration'
+import {
+  readCalibrationMeasurements,
+  removeCalibrationMeasurement,
+  saveCalibrationMeasurement,
+} from './persistence/calibration-storage'
+import type { StoredCalibrationMeasurement } from './persistence/calibration-storage'
 import { createAssemblyGuide } from './assembly/guide'
 import {
   createProjectDocument,
@@ -194,6 +205,20 @@ function App() {
     showFoldLines: true,
     showAssemblyNumbers: true,
   })
+  const [calibrationMeasurements, setCalibrationMeasurements] = useState<
+    StoredCalibrationMeasurement[]
+  >(() => readCalibrationMeasurements())
+  const [calibrationDrafts, setCalibrationDrafts] = useState<
+    Record<string, string>
+  >(() =>
+    Object.fromEntries(
+      readCalibrationMeasurements().map((measurement) => [
+        `${measurement.paperSize}-${measurement.targetMm}`,
+        String(measurement.measuredMm),
+      ]),
+    ),
+  )
+  const [calibrationStorageError, setCalibrationStorageError] = useState('')
   const [exportBusy, setExportBusy] = useState(false)
   const [exportError, setExportError] = useState('')
 
@@ -902,6 +927,49 @@ function App() {
     value: PrintSettings[K],
   ) {
     setPrintSettings((current) => ({ ...current, [key]: value }))
+  }
+
+  function updateCalibrationMeasurement(
+    targetMm: CalibrationReferenceLength,
+    value: string,
+  ) {
+    const paperSize = printSettings.paperSize
+    const key = `${paperSize}-${targetMm}`
+    setCalibrationDrafts((current) => ({ ...current, [key]: value }))
+    if (!value.trim()) {
+      const removed = removeCalibrationMeasurement(paperSize, targetMm)
+      setCalibrationStorageError(
+        removed
+          ? ''
+          : '브라우저 저장소에 접근할 수 없어 교정 기록을 지우지 못했습니다.',
+      )
+      setCalibrationMeasurements((current) =>
+        current.filter(
+          (item) => item.paperSize !== paperSize || item.targetMm !== targetMm,
+        ),
+      )
+      return
+    }
+    const measuredMm = Number(value)
+    if (!Number.isFinite(measuredMm) || measuredMm <= 0) return
+    const measurement = {
+      paperSize,
+      targetMm,
+      measuredMm,
+      savedAt: new Date().toISOString(),
+    }
+    const saved = saveCalibrationMeasurement(measurement)
+    setCalibrationStorageError(
+      saved
+        ? ''
+        : '브라우저 저장소에 접근할 수 없어 교정 기록을 저장하지 못했습니다.',
+    )
+    setCalibrationMeasurements((current) => [
+      ...current.filter(
+        (item) => item.paperSize !== paperSize || item.targetMm !== targetMm,
+      ),
+      measurement,
+    ])
   }
 
   const workspaceStyle = {
@@ -2016,11 +2084,72 @@ function App() {
                     {printLayoutResult.error}
                   </p>
                 )}
+                <section
+                  className="print-calibration-editor"
+                  aria-label="인쇄 배율 교정"
+                >
+                  <div>
+                    <strong>{printSettings.paperSize} 실측 기록</strong>
+                    <span>인쇄는 실제 크기 / 100%로 설정하세요.</span>
+                  </div>
+                  {CALIBRATION_REFERENCE_LENGTHS.map((targetMm) => {
+                    const key = `${printSettings.paperSize}-${targetMm}`
+                    const measurement = calibrationMeasurements.find(
+                      (item) =>
+                        item.paperSize === printSettings.paperSize &&
+                        item.targetMm === targetMm,
+                    )
+                    const result = measurement
+                      ? calculateCalibrationResult(
+                          targetMm,
+                          measurement.measuredMm,
+                        )
+                      : null
+                    return (
+                      <label key={targetMm}>
+                        {targetMm} mm 기준 실제 측정 (mm)
+                        <input
+                          type="number"
+                          min="0.1"
+                          max="1000"
+                          step="0.1"
+                          aria-label={`${printSettings.paperSize} ${targetMm} mm 실측값`}
+                          value={calibrationDrafts[key] ?? ''}
+                          placeholder="측정 전"
+                          onChange={(event) =>
+                            updateCalibrationMeasurement(
+                              targetMm,
+                              event.target.value,
+                            )
+                          }
+                        />
+                        {result ? (
+                          <span data-calibration-status={result.status}>
+                            {result.status === 'within-tolerance'
+                              ? '측정값 기준 허용 범위'
+                              : '인쇄 배율 조정 권장'}
+                            {' · '}
+                            배율 {result.outputScalePercent.toFixed(2)}% · 오차{' '}
+                            {result.scaleErrorPercent >= 0 ? '+' : ''}
+                            {result.scaleErrorPercent.toFixed(2)}%
+                          </span>
+                        ) : (
+                          <span>미측정 · 물리 출력 미검증</span>
+                        )}
+                      </label>
+                    )
+                  })}
+                </section>
+                {calibrationStorageError && (
+                  <p className="dimension-error" role="alert">
+                    {calibrationStorageError}
+                  </p>
+                )}
                 <p className="export-dialog__note">
-                  마지막 페이지의 100 mm 선과 100 × 100 mm 사각형을 먼저
-                  측정하세요. 출력 창에서 “실제 크기”/100%를 선택하고 Fit,
-                  Shrink, 페이지 맞춤을 끄세요. 측정이 맞은 뒤 도면을
-                  조립하세요.
+                  마지막 교정 페이지의 50/100/150 mm 선과 100 × 100 mm 사각형을
+                  자로 측정하고 값을 기록하세요. 출력 창에서 Fit, Shrink, 페이지
+                  맞춤을 끄세요. PDF와 브라우저만으로 실제 프린터 정확도는
+                  보장되지 않습니다. 기록은 이 브라우저에만 저장됩니다.
                 </p>
               </>
             )}
