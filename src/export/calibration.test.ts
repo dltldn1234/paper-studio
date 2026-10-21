@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  calculateCalibrationResult,
   createPdfCalibrationGuide,
   createSvgCalibrationGuide,
 } from './calibration'
@@ -29,13 +30,31 @@ describe('print calibration geometry', () => {
   ])('fits A4/A3 page geometry $width × $height mm', ({ width, height }) => {
     const guide = createPdfCalibrationGuide(width, height, 10)
     expect(guide.square.sizeMm).toBe(100)
-    expect(guide.line.x2 - guide.line.x1).toBe(100)
+    expect(guide.lines.map((line) => line.x2 - line.x1)).toEqual([50, 100, 150])
     expect(guide.square.x).toBeGreaterThanOrEqual(10)
     expect(guide.square.x + guide.square.sizeMm).toBeLessThanOrEqual(width - 10)
-    expect(guide.label.y).toBeGreaterThanOrEqual(10)
+    expect(
+      Math.min(...guide.lines.map((line) => line.labelY)),
+    ).toBeGreaterThanOrEqual(10)
   })
 
   it('rejects calibration marks that exceed page margins', () => {
     expect(() => createPdfCalibrationGuide(140, 160, 30)).toThrow('do not fit')
+  })
+
+  it('calculates output scale and distinguishes an uncorrected print scale', () => {
+    expect(calculateCalibrationResult(100, 99.5)).toMatchObject({
+      outputScalePercent: 99.5,
+      scaleErrorPercent: -0.5,
+      status: 'within-tolerance',
+    })
+    expect(calculateCalibrationResult(150, 147)).toMatchObject({
+      outputScalePercent: 98,
+      scaleErrorPercent: -2,
+      status: 'adjust-print-scale',
+    })
+    expect(() => calculateCalibrationResult(50, 0)).toThrow(
+      'finite and positive',
+    )
   })
 })
