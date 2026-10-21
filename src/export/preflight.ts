@@ -22,6 +22,7 @@ export type PrintPreflightReport = {
 }
 
 type RasterDimensions = { width: number; height: number }
+export const MAX_PDF_TEXTURE_REPEAT_TILES = 4096
 
 function readDimensions(
   bytes: Uint8Array,
@@ -268,6 +269,16 @@ export function runPrintPreflight(
     const inspected = inspectTexture(texture.dataUrl)
     if ('error' in inspected) {
       add('invalid-pdf-texture', 'error', inspected.error, faceId)
+      continue
+    }
+    const repeatsPerAxis = Math.max(1, Math.ceil(1 / texture.scale))
+    if (repeatsPerAxis ** 2 > MAX_PDF_TEXTURE_REPEAT_TILES) {
+      add(
+        'texture-repeat-overflow',
+        'error',
+        `Texture scale creates more than ${MAX_PDF_TEXTURE_REPEAT_TILES.toLocaleString()} image tiles on one face. Increase its scale before export.`,
+        faceId,
+      )
       continue
     }
     const polygon = net.faces.find(({ id }) => id === faceId)?.polygon ?? []

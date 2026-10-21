@@ -124,6 +124,28 @@ describe('PDF print preflight', () => {
     )
   })
 
+  it('blocks texture transforms that would create an excessive image repeat count', () => {
+    const report = runPrintPreflight(printable, layoutFor(), {
+      front: {
+        color: '#ffffff',
+        texture: {
+          dataUrl:
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+          offsetX: 0,
+          offsetY: 0,
+          scale: 0.01,
+          rotationDeg: 0,
+        },
+      },
+    })
+    expect(report.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'texture-repeat-overflow',
+        severity: 'error',
+      }),
+    )
+  })
+
   it('reports hidden cut and fold lines and invalid unit conversion', () => {
     const hidden = {
       ...layoutFor(),
