@@ -948,6 +948,12 @@ button:disabled {
   stroke-width: 0.55;
   vector-effect: non-scaling-stroke;
 }
+.print-preview-pattern__face-number {
+  fill: #4b5563;
+  font-size: 4px;
+  pointer-events: none;
+  user-select: none;
+}
 .print-preview-pattern__fold {
   fill: none;
   stroke: #666;

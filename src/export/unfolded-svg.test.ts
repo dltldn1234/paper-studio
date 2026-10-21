@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createRegularTetrahedron, unfoldPolyhedron } from '../geometry'
+import { createPrintableNet } from './printable-net'
 import { serializeUnfoldedNetToSvg } from './svg'
 
 describe('generic unfolded SVG export', () => {
@@ -35,5 +36,37 @@ describe('generic unfolded SVG export', () => {
       },
     }
     expect(() => serializeUnfoldedNetToSvg(shortened)).toThrow(RangeError)
+  })
+
+  it('includes generic glue tabs in printable bounds and SVG cut paths', () => {
+    const unfolded = unfoldPolyhedron(createRegularTetrahedron(60))
+    expect(unfolded.success).toBe(true)
+    if (!unfolded.success) return
+    const printable = createPrintableNet(unfolded.layout, {
+      enabled: true,
+      widthMm: 8,
+      angleDeg: 45,
+    })
+    expect(printable.glueTabs).toHaveLength(3)
+    expect(
+      printable.glueTabs.every((tab) =>
+        tab.polygon.vertices.every(
+          (point) =>
+            point.x >= printable.bounds.x &&
+            point.y >= printable.bounds.y &&
+            point.x <= printable.bounds.x + printable.bounds.width &&
+            point.y <= printable.bounds.y + printable.bounds.height,
+        ),
+      ),
+    ).toBe(true)
+
+    const svg = serializeUnfoldedNetToSvg(
+      unfolded.layout,
+      'Tetrahedron with tabs',
+      printable.glueTabs,
+    )
+    expect(svg.match(/class="cut glue-tab"/g)).toHaveLength(3)
+    expect(svg).toContain('glue-tab')
+    expect(svg).toContain('at actual size')
   })
 })

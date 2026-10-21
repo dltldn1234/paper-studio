@@ -110,11 +110,11 @@ export function createPrintableNet(
       const hostFaceId = edge.adjacentFaceIds[0]
       const hostFace = faceMap.get(hostFaceId)
       if (!hostFace) throw new RangeError(`Missing host face ${hostFaceId}.`)
+      const boundary = orientToFaceBoundary(edge, hostFace)
       return {
         id: edge.id,
         hostFaceId,
-        start: orientToFaceBoundary(edge, hostFace).start,
-        end: orientToFaceBoundary(edge, hostFace).end,
+        ...boundary,
         kind: edge.kind,
         adjacentFaceIds: edge.adjacentFaceIds,
       }

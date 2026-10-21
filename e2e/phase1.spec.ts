@@ -76,6 +76,7 @@ test('selects a regular solid and synchronizes its net, folding, and SVG output'
   await expect(
     page.getByRole('img', { name: '다면체 접힘 시뮬레이션 3D 미리보기' }),
   ).toBeVisible()
+  await expect(page.getByLabel('접착탭 표시')).toBeChecked()
 
   const edgeLength = page.getByLabel('모서리 길이 (mm)')
   await edgeLength.fill('120')
@@ -98,12 +99,28 @@ test('selects a regular solid and synchronizes its net, folding, and SVG output'
   await expect(dialog.getByLabel('파일 형식')).toHaveValue('svg')
   await expect(
     dialog.getByLabel('파일 형식').locator('option[value="pdf"]'),
-  ).toHaveJSProperty('disabled', true)
+  ).toHaveJSProperty('disabled', false)
   const downloadPromise = page.waitForEvent('download')
   await dialog.getByRole('button', { name: 'SVG 다운로드' }).click()
   expect((await downloadPromise).suggestedFilename()).toBe(
     'paper-studio-net.svg',
   )
+
+  await page.getByRole('button', { name: '내보내기' }).click()
+  const pdfDialog = page.getByRole('dialog', { name: '도면 내보내기' })
+  await pdfDialog.getByLabel('파일 형식').selectOption('pdf')
+  await expect(page.getByLabel('PDF 페이지 미리보기')).toBeVisible()
+  await expect(
+    page.locator('.print-preview-pattern__cut').first(),
+  ).toBeVisible()
+  await expect(page.locator('.print-preview-summary')).toContainText('페이지')
+  await page.screenshot({
+    path: 'test-results/phase5-polyhedron-pdf-preview.png',
+    fullPage: true,
+  })
+  const pdfDownload = page.waitForEvent('download')
+  await pdfDialog.getByRole('button', { name: 'PDF 다운로드' }).click()
+  expect((await pdfDownload).suggestedFilename()).toBe('paper-studio-net.pdf')
 })
 
 test('dimensions update the 2D net, 3D preview, and inspector together', async ({
