@@ -11,8 +11,10 @@ import type {
   RegularPolyhedronKind,
 } from '../geometry'
 import type { PrintSettings } from '../export/print-layout'
+import { validateFaceMaterial } from '../materials/materials'
+import type { FaceMaterial } from '../materials/materials'
 
-export const PROJECT_FILE_VERSION = 1
+export const PROJECT_FILE_VERSION = 2
 
 export type ProjectSolidKind = 'cuboid' | RegularPolyhedronKind
 
@@ -28,10 +30,15 @@ export type PaperStudioProject = {
   selectedEdgeId: string | null
   foldProgress: number
   printSettings: PrintSettings
+  faceMaterials: Record<string, FaceMaterial>
 }
 
-export type ProjectDraft = Omit<PaperStudioProject, 'version' | 'name'> & {
+export type ProjectDraft = Omit<
+  PaperStudioProject,
+  'version' | 'name' | 'faceMaterials'
+> & {
   name?: string
+  faceMaterials?: Record<string, FaceMaterial>
 }
 
 const solidKinds = new Set<ProjectSolidKind>([
@@ -56,6 +63,7 @@ export function createProjectDocument(draft: ProjectDraft): PaperStudioProject {
     version: PROJECT_FILE_VERSION,
     name: draft.name?.trim() || 'Paper Studio project',
     ...draft,
+    faceMaterials: draft.faceMaterials ?? {},
   } as PaperStudioProject
   validateProject(project)
   return project
@@ -140,6 +148,13 @@ export function validateProject(
   if (!isRecord(value.printSettings)) {
     throw new RangeError('Project print settings are missing.')
   }
+  if (!isRecord(value.faceMaterials)) {
+    throw new RangeError('Project face materials are missing or invalid.')
+  }
+  for (const [faceId, material] of Object.entries(value.faceMaterials)) {
+    if (!faceId) throw new RangeError('Project face material ID is invalid.')
+    validateFaceMaterial(material)
+  }
   const settings = value.printSettings
   if (
     !paperSizes.has(String(settings.paperSize)) ||
@@ -164,6 +179,9 @@ export function parseProject(source: string): PaperStudioProject {
     value = JSON.parse(source)
   } catch {
     throw new SyntaxError('Project file is not valid JSON.')
+  }
+  if (isRecord(value) && value.version === 1) {
+    value = { ...value, version: PROJECT_FILE_VERSION, faceMaterials: {} }
   }
   validateProject(value)
   return value

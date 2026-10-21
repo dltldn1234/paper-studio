@@ -43,6 +43,20 @@ describe('versioned project files', () => {
     )
   })
 
+  it('migrates existing version 1 projects with empty face materials', () => {
+    const versionTwo = validProject()
+    const versionOne: Record<string, unknown> = {
+      ...versionTwo,
+      version: 1,
+    }
+    delete versionOne.faceMaterials
+
+    expect(parseProject(JSON.stringify(versionOne))).toMatchObject({
+      version: 2,
+      faceMaterials: {},
+    })
+  })
+
   it('rejects invalid dimensions, selections, and print options', () => {
     const project = validProject()
     expect(() =>
