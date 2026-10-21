@@ -68,6 +68,7 @@ import {
   serializeUnfoldedNetToSvg,
 } from './export/svg'
 import {
+  createCuboidFoldGraph,
   createPolyhedronFoldGraph,
   createIdealSurfaceCollisionEngine,
   solveFoldPoses,
@@ -80,6 +81,7 @@ import {
 } from './export/print-layout'
 import { PrintPagePreviews } from './export/PrintPagePreviews'
 import { createPrintableNet } from './export/printable-net'
+import { createAssemblyGuide } from './assembly/guide'
 import {
   createProjectDocument,
   parseProject,
@@ -158,6 +160,8 @@ function App() {
   >([])
   const [foldTreeHistoryIndex, setFoldTreeHistoryIndex] = useState(-1)
   const [foldProgress, setFoldProgress] = useState(1)
+  const [assemblyStepIndex, setAssemblyStepIndex] = useState(0)
+  const [assemblyGuideActive, setAssemblyGuideActive] = useState(false)
   const foldProgressRef = useRef(1)
   const [foldPlaying, setFoldPlaying] = useState(false)
   const [foldSpeed, setFoldSpeed] = useState(1)
@@ -218,6 +222,37 @@ function App() {
       return null
     }
   }, [genericMesh, genericUnfolding])
+  const cuboidFoldGraph = useMemo(
+    () => createCuboidFoldGraph(netLayout, cuboid),
+    [cuboid, netLayout],
+  )
+  const assemblyGuide = useMemo(() => {
+    const graph = solidKind === 'cuboid' ? cuboidFoldGraph : genericFoldGraph
+    if (!graph) return null
+    try {
+      return createAssemblyGuide(graph)
+    } catch {
+      return null
+    }
+  }, [cuboidFoldGraph, genericFoldGraph, solidKind])
+  const assemblyStep =
+    assemblyGuide && assemblyGuideActive
+      ? assemblyGuide.steps[assemblyStepIndex]
+      : undefined
+  const assemblyHingeProgress = useMemo(() => {
+    if (!assemblyGuideActive || !assemblyGuide) return undefined
+    return Object.fromEntries(
+      assemblyGuide.steps.map((step) => [
+        step.edgeId,
+        step.index < assemblyStepIndex
+          ? 1
+          : step.index === assemblyStepIndex
+            ? foldProgress
+            : 0,
+      ]),
+    )
+  }, [assemblyGuide, assemblyGuideActive, assemblyStepIndex, foldProgress])
+  const assemblyHighlightFaceId = assemblyStep?.faceId ?? null
   const genericPrintableNet = useMemo(
     () =>
       genericUnfolding?.success
@@ -300,6 +335,40 @@ function App() {
   const selectedFaceMaterial = selectedFaceId
     ? (faceMaterials[selectedFaceId] ?? DEFAULT_FACE_MATERIAL)
     : null
+
+  function startAssemblyGuide() {
+    if (!assemblyGuide) return
+    setAssemblyGuideActive(true)
+    setAssemblyStepIndex(0)
+    setFoldPlaying(false)
+    foldProgressRef.current = 0
+    setFoldProgress(0)
+  }
+
+  function moveAssemblyGuidePrevious() {
+    if (!assemblyGuide) return
+    setFoldPlaying(false)
+    if (foldProgress > 0) {
+      foldProgressRef.current = 0
+      setFoldProgress(0)
+    } else if (assemblyStepIndex > 0) {
+      setAssemblyStepIndex((index) => index - 1)
+      foldProgressRef.current = 1
+      setFoldProgress(1)
+    }
+  }
+
+  function moveAssemblyGuideNext() {
+    if (!assemblyGuide) return
+    if (assemblyStepIndex >= assemblyGuide.steps.length) return
+    if (foldProgress < 1) {
+      setFoldPlaying(true)
+      return
+    }
+    setAssemblyStepIndex((index) => index + 1)
+    foldProgressRef.current = 0
+    setFoldProgress(0)
+  }
 
   useEffect(() => {
     if (!foldPlaying) return
@@ -678,6 +747,8 @@ function App() {
         foldProgress,
         printSettings,
         faceMaterials,
+        assemblyStepIndex,
+        assemblyGuideActive,
       })
       const objectUrl = URL.createObjectURL(
         new Blob([serializeProject(project)], {
@@ -764,6 +835,10 @@ function App() {
       setSelectedEdgeId(project.selectedEdgeId)
       setPrintSettings(project.printSettings)
       setFaceMaterials(project.faceMaterials)
+      setAssemblyStepIndex(
+        Math.min(project.assemblyStepIndex, Math.max(0, faceIds.length - 1)),
+      )
+      setAssemblyGuideActive(project.assemblyGuideActive)
       setFoldPlaying(false)
       foldProgressRef.current = project.foldProgress
       setFoldProgress(project.foldProgress)
@@ -1047,6 +1122,7 @@ function App() {
                 layout={netLayout}
                 faceMaterials={faceMaterials}
                 selectedFaceId={selectedFaceId as FaceId | null}
+                assemblyFaceId={assemblyHighlightFaceId}
                 onFaceSelect={setSelectedFaceId}
               />
             ) : genericUnfolding?.success ? (
@@ -1054,6 +1130,7 @@ function App() {
                 layout={genericUnfolding.layout}
                 faceMaterials={faceMaterials}
                 selectedFaceId={selectedFaceId}
+                assemblyFaceId={assemblyHighlightFaceId}
                 onFaceSelect={setSelectedFaceId}
                 foldEdgeIds={displayedFoldEdgeIds}
                 selectedEdgeId={selectedEdgeId}
@@ -1182,7 +1259,8 @@ function App() {
                   cuboid={cuboid}
                   netLayout={netLayout}
                   faceMaterials={faceMaterials}
-                  foldProgress={foldProgress}
+                  foldProgress={assemblyGuideActive ? 1 : foldProgress}
+                  hingeProgressById={assemblyHingeProgress}
                   selectedFaceId={selectedFaceId as FaceId | null}
                   onFaceSelect={setSelectedFaceId}
                   cameraResetToken={cameraResetToken}
@@ -1195,7 +1273,8 @@ function App() {
                   layout={genericUnfolding.layout}
                   faceMaterials={faceMaterials}
                   foldGraph={genericFoldGraph}
-                  foldProgress={foldProgress}
+                  foldProgress={assemblyGuideActive ? 1 : foldProgress}
+                  hingeProgressById={assemblyHingeProgress}
                   selectedFaceId={selectedFaceId}
                   onFaceSelect={setSelectedFaceId}
                   cameraResetToken={cameraResetToken}
@@ -1504,6 +1583,59 @@ function App() {
                 </p>
               )}
             </>
+
+            <section className="assembly-guide" aria-label="조립 설명서">
+              <div className="inspector-section-title">
+                <span>조립 설명서</span>
+                {assemblyGuide?.physicallyValidated === false && (
+                  <span className="assembly-guide__badge">이상화 모델</span>
+                )}
+              </div>
+              {!assemblyGuideActive ? (
+                <button
+                  className="assembly-guide__start"
+                  type="button"
+                  disabled={!assemblyGuide}
+                  onClick={startAssemblyGuide}
+                >
+                  조립 순서 시작
+                </button>
+              ) : assemblyGuide ? (
+                <>
+                  <p className="assembly-guide__step">
+                    {assemblyStepIndex >= assemblyGuide.steps.length
+                      ? '모든 안내 단계를 마쳤습니다.'
+                      : `단계 ${assemblyStepIndex + 1} / ${assemblyGuide.steps.length} · ${assemblyStep?.parentFaceId} 면에 ${assemblyStep?.faceId} 면을 접습니다.`}
+                  </p>
+                  <div className="assembly-guide__controls">
+                    <button
+                      type="button"
+                      aria-label="조립 이전 단계"
+                      disabled={assemblyStepIndex === 0 && foldProgress <= 0}
+                      onClick={moveAssemblyGuidePrevious}
+                    >
+                      이전 단계
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="조립 다음 단계"
+                      disabled={assemblyStepIndex >= assemblyGuide.steps.length}
+                      onClick={moveAssemblyGuideNext}
+                    >
+                      {foldProgress < 1 ? '현재 면 접기' : '다음 단계'}
+                    </button>
+                  </div>
+                  <p className="assembly-guide__warning" role="status">
+                    {assemblyGuide.warnings[0]}
+                  </p>
+                </>
+              ) : (
+                <p className="assembly-guide__warning" role="alert">
+                  유효한 접힘 그래프를 만들 수 없어 설명서를 생성하지
+                  못했습니다.
+                </p>
+              )}
+            </section>
 
             <div className="inspector-section-title inspector-section-title--face">
               <span>선택한 면</span>

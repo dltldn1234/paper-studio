@@ -96,7 +96,11 @@ function hingeError(
 }
 
 /** Validates the tree and returns one pose per face. Progress is clamped to [0, 1]. */
-export function solveFoldPoses(graph: FoldGraph, progress: number): FoldPose[] {
+export function solveFoldPoses(
+  graph: FoldGraph,
+  progress: number,
+  hingeProgressById?: Readonly<Record<string, number>>,
+): FoldPose[] {
   const errors = validateGraph(graph)
   if (errors.length)
     throw new RangeError(errors.map((error) => error.kind).join(', '))
@@ -123,7 +127,18 @@ export function solveFoldPoses(graph: FoldGraph, progress: number): FoldPose[] {
     for (const hinge of children.get(parentId) ?? []) {
       const child = faces.get(hinge.childFaceId)!
       const axis = subtract(hinge.end, hinge.start)
-      const rotation = quaternionFromAxisAngle(axis, hinge.angleRadians * t)
+      const hingeProgress = hingeProgressById?.[hinge.id]
+      if (hingeProgress !== undefined && !Number.isFinite(hingeProgress)) {
+        throw new RangeError('Hinge progress must be finite.')
+      }
+      const hingeT =
+        hingeProgress === undefined
+          ? t
+          : Math.min(1, Math.max(0, hingeProgress))
+      const rotation = quaternionFromAxisAngle(
+        axis,
+        hinge.angleRadians * hingeT,
+      )
       const local: RigidTransform = {
         rotation,
         translation: subtract(hinge.start, parent.center),

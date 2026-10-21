@@ -50,6 +50,29 @@ describe('solveFoldPoses', () => {
     expect(side.transform.rotation.x).toBeCloseTo(Math.SQRT1_2)
   })
 
+  it('allows the assembly guide to fold one hinge at a time', () => {
+    const source = graph()
+    const extended: FoldGraph = {
+      ...source,
+      faces: [...source.faces, { id: 'side-2', center: { x: 0, y: 10, z: 0 } }],
+      hinges: [
+        source.hinges[0],
+        {
+          ...source.hinges[0],
+          id: 'hinge-2',
+          childFaceId: 'side-2',
+        },
+      ],
+    }
+    const poses = solveFoldPoses(extended, 1, { hinge: 1, 'hinge-2': 0 })
+    expect(
+      poses.find(({ faceId }) => faceId === 'side')?.transform.rotation,
+    ).not.toEqual({ x: 0, y: 0, z: 0, w: 1 })
+    expect(
+      poses.find(({ faceId }) => faceId === 'side-2')?.transform.rotation,
+    ).toEqual({ x: 0, y: 0, z: 0, w: 1 })
+  })
+
   it('rejects disconnected face graphs', () => {
     const invalid = graph()
     invalid.hinges = []
