@@ -2,6 +2,7 @@ import type {
   GlueTab,
   GlueTabInterference,
   GlueTabOptions,
+  GlueTabShape,
   Point2D,
 } from './types'
 
@@ -26,7 +27,13 @@ export const MAX_GLUE_TAB_WIDTH_MM = 50
 export const MIN_GLUE_TAB_ANGLE_DEG = 15
 export const MAX_GLUE_TAB_ANGLE_DEG = 75
 
-function validateOptions({ widthMm, angleDeg }: GlueTabOptions): void {
+function validateOptions({
+  widthMm,
+  angleDeg,
+  shape,
+  direction,
+  disabledEdgeIds,
+}: GlueTabOptions): void {
   if (
     !Number.isFinite(widthMm) ||
     widthMm < MIN_GLUE_TAB_WIDTH_MM ||
@@ -45,6 +52,23 @@ function validateOptions({ widthMm, angleDeg }: GlueTabOptions): void {
       `Glue tab angle must be between ${MIN_GLUE_TAB_ANGLE_DEG} and ${MAX_GLUE_TAB_ANGLE_DEG} degrees.`,
     )
   }
+  if (
+    shape !== undefined &&
+    !['beveled', 'trapezoid', 'rectangular'].includes(shape)
+  ) {
+    throw new RangeError('Glue tab shape is unsupported.')
+  }
+  if (direction !== undefined && !['outward', 'inward'].includes(direction)) {
+    throw new RangeError('Glue tab direction is unsupported.')
+  }
+  if (
+    disabledEdgeIds !== undefined &&
+    (!Array.isArray(disabledEdgeIds) ||
+      disabledEdgeIds.some((edgeId) => typeof edgeId !== 'string') ||
+      new Set(disabledEdgeIds).size !== disabledEdgeIds.length)
+  ) {
+    throw new RangeError('Glue tab edge overrides are invalid.')
+  }
 }
 
 function createTab(
@@ -61,11 +85,17 @@ function createTab(
   // All net face polygons use the same winding. The right-hand normal points
   // away from the face boundary, so the tab extends into the cut area.
   const direction = { x: dx / length, y: dy / length }
-  const outward = { x: direction.y, y: -direction.x }
-  const bevelRun = Math.min(
-    options.widthMm / Math.tan((options.angleDeg * Math.PI) / 180),
-    length * 0.2,
-  )
+  const side = options.direction === 'inward' ? -1 : 1
+  const outward = { x: direction.y * side, y: -direction.x * side }
+  const shape: GlueTabShape = options.shape ?? 'trapezoid'
+  const bevelRun =
+    shape === 'rectangular'
+      ? 0
+      : Math.min(
+          (options.widthMm / Math.tan((options.angleDeg * Math.PI) / 180)) *
+            (shape === 'beveled' ? 0.5 : 1),
+          length * 0.2,
+        )
   const outerStart: Point2D = {
     x: edge.start.x + direction.x * bevelRun + outward.x * options.widthMm,
     y: edge.start.y + direction.y * bevelRun + outward.y * options.widthMm,
@@ -81,6 +111,8 @@ function createTab(
     faceId: edge.hostFaceId,
     widthMm: options.widthMm,
     angleDeg: options.angleDeg,
+    shape,
+    direction: options.direction ?? 'outward',
     polygon: {
       vertices: [edge.start, edge.end, outerEnd, outerStart],
     },
@@ -153,13 +185,14 @@ export function generateGlueTabs(
   if (!options.enabled) return { tabs: [], interferences: [] }
 
   const joinedFaces = new Set<string>()
+  const disabledEdgeIds = new Set(options.disabledEdgeIds ?? [])
   const tabs = edges
     .filter((edge) => {
       if (edge.kind !== 'cut' || edge.adjacentFaceIds.length !== 2) return false
       const key = [...edge.adjacentFaceIds].sort().join('|')
       if (joinedFaces.has(key)) return false
       joinedFaces.add(key)
-      return true
+      return !disabledEdgeIds.has(edge.id)
     })
     .map((edge) => createTab(edge, options))
     .filter((tab): tab is GlueTab => tab !== null)

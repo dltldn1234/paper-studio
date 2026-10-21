@@ -85,12 +85,20 @@ export type GlueTab = {
   polygon: Polygon
   widthMm: number
   angleDeg: number
+  shape?: GlueTabShape
+  direction?: GlueTabDirection
 }
+
+export type GlueTabShape = 'beveled' | 'trapezoid' | 'rectangular'
+export type GlueTabDirection = 'outward' | 'inward'
 
 export type GlueTabOptions = {
   enabled: boolean
   widthMm: number
   angleDeg: number
+  shape?: GlueTabShape
+  direction?: GlueTabDirection
+  disabledEdgeIds?: string[]
 }
 
 export type GlueTabInterference =
