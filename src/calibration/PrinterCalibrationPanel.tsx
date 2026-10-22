@@ -24,6 +24,7 @@ import {
 } from './precision'
 import { StatisticalAccuracyPanel } from './StatisticalAccuracyPanel'
 import { AdvancedCalibrationCheck } from './AdvancedCalibrationCheck'
+import { VerificationDashboard } from './VerificationDashboard'
 
 const TARGETS = [50, 100, 150] as const
 
@@ -152,6 +153,11 @@ export function PrinterCalibrationPanel({
         targetMm: historyTarget,
         measuredMm,
         measuredAt: new Date().toISOString(),
+        printerName: profile.name,
+        manufacturer: profile.manufacturer,
+        model: profile.model,
+        driverInfo: profile.driverInfo,
+        orientation: profile.orientation,
       })
       if (!saveMeasurementHistoryEntry(entry))
         throw new Error('측정 이력을 저장하지 못했습니다.')
@@ -419,6 +425,13 @@ export function PrinterCalibrationPanel({
     value: string,
   ) {
     if (!profile) return
+    const conditionChanged =
+      ((field === 'manufacturer' ||
+        field === 'model' ||
+        field === 'driverInfo') &&
+        profile[field] !== value.trim()) ||
+      (field === 'paperSize' && profile.paperSize !== value) ||
+      (field === 'orientation' && profile.orientation !== value)
     const updated = {
       ...profile,
       [field]:
@@ -428,6 +441,14 @@ export function PrinterCalibrationPanel({
             ? (value as PageOrientation)
             : value.trim(),
       updatedAt: new Date().toISOString(),
+      verification:
+        conditionChanged && profile.verification
+          ? {
+              ...profile.verification,
+              physicallyMeasured: false,
+              status: 'needs-review' as const,
+            }
+          : profile.verification,
     }
     if (!savePrinterProfile(updated)) {
       setError(
@@ -1050,6 +1071,7 @@ export function PrinterCalibrationPanel({
       )}
 
       <StatisticalAccuracyPanel history={history} profiles={profiles} />
+      <VerificationDashboard history={history} profiles={profiles} />
 
       {error && (
         <p className="dimension-error" role="alert">

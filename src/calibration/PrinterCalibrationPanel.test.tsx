@@ -125,6 +125,24 @@ describe('printer calibration profile panel', () => {
         },
       },
     ])
+
+    const profileDriver = screen.getAllByRole('textbox', {
+      name: '드라이버 또는 출력 경로',
+    })[1]
+    fireEvent.change(profileDriver, { target: { value: 'Changed driver' } })
+    fireEvent.blur(profileDriver)
+    expect(readPrinterProfiles()[0].verification).toMatchObject({
+      physicallyMeasured: false,
+      status: 'needs-review',
+    })
+    fireEvent.change(screen.getByLabelText('검증 프린터 프로필'), {
+      target: { value: readPrinterProfiles()[0].id },
+    })
+    expect(
+      screen
+        .getAllByRole('status')
+        .some((element) => element.textContent?.includes('조건이 바뀌었거나')),
+    ).toBe(true)
   })
 
   it('keeps A3 profiles out of the A4 selection and does not mark empty data verified', () => {
