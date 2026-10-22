@@ -24,6 +24,17 @@ export type CalibrationGuide = {
 
 export type PdfCalibrationGuide = {
   square: { x: number; y: number; sizeMm: number }
+  diagonal: {
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+    targetLengthMm: number
+  }
+  printableArea: { x: number; y: number; width: number; height: number }
+  cutBoundary: { x: number; y: number; width: number; height: number }
+  registrationMarks: Array<{ x: number; y: number; label: string }>
+  alignmentMarks: Array<{ x: number; y: number; label: string }>
   lines: Array<{
     x1: number
     x2: number
@@ -75,6 +86,8 @@ export function createPdfCalibrationGuide(
 ): PdfCalibrationGuide {
   if (
     ![pageWidthMm, pageHeightMm, marginMm].every(Number.isFinite) ||
+    pageWidthMm <= 0 ||
+    pageHeightMm <= 0 ||
     marginMm < 0
   ) {
     throw new RangeError(
@@ -82,6 +95,11 @@ export function createPdfCalibrationGuide(
     )
   }
   const sizeMm = CALIBRATION_SIZE_MM
+  if (pageWidthMm <= marginMm * 2 + 20 || pageHeightMm <= marginMm * 2 + 20) {
+    throw new RangeError(
+      'Calibration marks do not fit inside the printable page area.',
+    )
+  }
   const x = marginMm + 20
   const y = pageHeightMm - marginMm - sizeMm - 20
   const lowestLineY = y - 30
@@ -97,6 +115,41 @@ export function createPdfCalibrationGuide(
   }
   return {
     square: { x, y, sizeMm },
+    diagonal: {
+      x1: x,
+      y1: y,
+      x2: x + sizeMm,
+      y2: y + sizeMm,
+      targetLengthMm: Math.hypot(sizeMm, sizeMm),
+    },
+    printableArea: {
+      x: marginMm,
+      y: marginMm,
+      width: pageWidthMm - marginMm * 2,
+      height: pageHeightMm - marginMm * 2,
+    },
+    cutBoundary: {
+      x: marginMm + 5,
+      y: marginMm + 5,
+      width: pageWidthMm - marginMm * 2 - 10,
+      height: pageHeightMm - marginMm * 2 - 10,
+    },
+    registrationMarks: [
+      { x: marginMm + 5, y: marginMm + 5, label: 'BL' },
+      { x: pageWidthMm - marginMm - 5, y: marginMm + 5, label: 'BR' },
+      { x: marginMm + 5, y: pageHeightMm - marginMm - 5, label: 'TL' },
+      {
+        x: pageWidthMm - marginMm - 5,
+        y: pageHeightMm - marginMm - 5,
+        label: 'TR',
+      },
+    ],
+    alignmentMarks: [
+      { x: marginMm + 8, y: pageHeightMm / 2, label: 'LEFT' },
+      { x: pageWidthMm - marginMm - 8, y: pageHeightMm / 2, label: 'RIGHT' },
+      { x: pageWidthMm / 2, y: marginMm + 8, label: 'BOTTOM' },
+      { x: pageWidthMm / 2, y: pageHeightMm - marginMm - 8, label: 'TOP' },
+    ],
     lines: CALIBRATION_REFERENCE_LENGTHS.map((lengthMm, index) => {
       const lineY = y - 10 - index * 10
       return {
