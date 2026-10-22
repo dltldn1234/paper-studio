@@ -34,6 +34,11 @@ function sample(
     targetMm: 100,
     measuredMm,
     measuredAt,
+    printerName: profile.name,
+    manufacturer: profile.manufacturer,
+    model: profile.model,
+    driverInfo: profile.driverInfo,
+    orientation: profile.orientation,
   })
 }
 
@@ -102,6 +107,9 @@ describe('measurement accuracy statistics', () => {
     )
     expect(
       filterAccuracySamples(samples, { driverInfo: 'Driver A' }),
+    ).toHaveLength(3)
+    expect(
+      filterAccuracySamples(samples, { orientation: 'portrait' }),
     ).toHaveLength(3)
     expect(filterAccuracySamples(samples, { paperSize: 'A3' })).toHaveLength(0)
     expect(compareCalibrationPhases(samples)?.improvementMm).toBeCloseTo(1.3)

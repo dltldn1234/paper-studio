@@ -26,6 +26,9 @@ export function StatisticalAccuracyPanel({ history, profiles }: Props) {
     'all',
   )
   const [axis, setAxis] = useState<'all' | 'x' | 'y'>('all')
+  const [orientation, setOrientation] = useState<
+    'all' | 'portrait' | 'landscape' | 'unknown'
+  >('all')
   const samples = useMemo(
     () => buildAccuracySamples(history, profiles),
     [history, profiles],
@@ -38,8 +41,9 @@ export function StatisticalAccuracyPanel({ history, profiles }: Props) {
         driverInfo,
         phase,
         axis,
+        orientation,
       }),
-    [axis, driverInfo, paperSize, phase, profileId, samples],
+    [axis, driverInfo, orientation, paperSize, phase, profileId, samples],
   )
   const summary = analyzeAccuracy(filtered)
   const xStats = analyzeAccuracy(
@@ -59,6 +63,7 @@ export function StatisticalAccuracyPanel({ history, profiles }: Props) {
       paperSize,
       driverInfo,
       axis: axis === 'all' ? undefined : axis,
+      orientation,
     }),
   )
   const ordered = [...filtered].sort(
@@ -75,8 +80,8 @@ export function StatisticalAccuracyPanel({ history, profiles }: Props) {
         <div>
           <h3>측정 정확도 분석</h3>
           <p>
-            저장된 측정 이력을 조건별로 요약합니다. 기록은 자동 삭제되지
-            않습니다.
+            저장된 측정 이력을 조건별로 요약합니다. 예전 기록에 없는 드라이버와
+            방향은 미기록으로 남기며, 원본 이력은 자동 삭제되지 않습니다.
           </p>
         </div>
         <div className="accuracy-analysis__filters" aria-label="통계 환경 필터">
@@ -149,6 +154,21 @@ export function StatisticalAccuracyPanel({ history, profiles }: Props) {
               <option value="all">X/Y 전체</option>
               <option value="x">X축</option>
               <option value="y">Y축</option>
+            </select>
+          </label>
+          <label>
+            방향
+            <select
+              aria-label="통계 출력 방향"
+              value={orientation}
+              onChange={(event) =>
+                setOrientation(event.target.value as typeof orientation)
+              }
+            >
+              <option value="all">전체</option>
+              <option value="portrait">세로</option>
+              <option value="landscape">가로</option>
+              <option value="unknown">기록 당시 미기록</option>
             </select>
           </label>
         </div>

@@ -39,6 +39,8 @@ test('shows history statistics, environment filters and retained outlier warning
   ).toBeVisible()
   await analysis.getByLabel('통계 드라이버').selectOption('Driver A')
   await expect(analysis.getByText('3', { exact: true })).toBeVisible()
+  await analysis.getByLabel('통계 출력 방향').selectOption('portrait')
+  await expect(analysis.getByText('3', { exact: true })).toBeVisible()
   await analysis.getByLabel('통계 측정 축').selectOption('x')
   await expect(analysis.getByText('2', { exact: true })).toBeVisible()
   await analysis.getByLabel('통계 측정 축').selectOption('all')
