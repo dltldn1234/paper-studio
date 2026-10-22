@@ -1701,3 +1701,146 @@ button:disabled {
     gap: 4px;
   }
 }
+.accuracy-analysis {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #d4dce3;
+  border-radius: 0.75rem;
+  background: #f8fafb;
+  color: #1d2933;
+}
+
+.accuracy-analysis__heading,
+.accuracy-analysis__filters,
+.accuracy-analysis__cards,
+.accuracy-analysis__comparisons,
+.accuracy-analysis__plot-caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.accuracy-analysis__heading,
+.accuracy-analysis__comparisons {
+  justify-content: space-between;
+}
+
+.accuracy-analysis__heading h3,
+.accuracy-analysis__heading p,
+.accuracy-analysis__comparisons h4,
+.accuracy-analysis__comparisons p,
+.accuracy-analysis__chart h4 {
+  margin: 0 0 0.35rem;
+}
+
+.accuracy-analysis__heading p,
+.accuracy-analysis__empty {
+  color: #52616d;
+}
+
+.accuracy-analysis__filters label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 8rem;
+  font-size: 0.8rem;
+}
+
+.accuracy-analysis__filters select {
+  min-height: 2.25rem;
+  padding: 0.35rem;
+  border: 1px solid #b7c3cc;
+  border-radius: 0.35rem;
+  background: white;
+}
+
+.accuracy-analysis__cards article,
+.accuracy-analysis__comparisons > div {
+  flex: 1 1 9rem;
+  padding: 0.75rem;
+  border: 1px solid #dce3e8;
+  border-radius: 0.5rem;
+  background: white;
+}
+
+.accuracy-analysis__cards article span,
+.accuracy-analysis__cards article strong {
+  display: block;
+}
+
+.accuracy-analysis__cards article span {
+  margin-bottom: 0.35rem;
+  color: #52616d;
+  font-size: 0.8rem;
+}
+
+.accuracy-analysis__cards article strong {
+  font-size: 1.05rem;
+}
+
+.accuracy-analysis__axis-row {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.accuracy-analysis__axis-row progress {
+  width: 100%;
+  accent-color: #2875c7;
+}
+
+.accuracy-analysis__warning {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border-left: 3px solid #c17812;
+  background: #fff7e8;
+}
+
+.accuracy-analysis__plot {
+  position: relative;
+  height: 8rem;
+  margin-top: 0.6rem;
+  border: 1px solid #dce3e8;
+  border-radius: 0.5rem;
+  background: repeating-linear-gradient(
+    to bottom,
+    white 0,
+    white calc(50% - 1px),
+    #dce3e8 50%,
+    white calc(50% + 1px),
+    white 100%
+  );
+}
+
+.accuracy-analysis__zero {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  border-top: 1px dashed #6b7d89;
+}
+
+.accuracy-analysis__point {
+  position: absolute;
+  z-index: 1;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #2875c7;
+  box-shadow: 0 0 0 1px #15559a;
+  transform: translate(-50%, -50%);
+}
+
+.accuracy-analysis__point.is-outlier {
+  background: #bd4b39;
+  box-shadow: 0 0 0 1px #8d2d20;
+}
+
+.accuracy-analysis__plot-caption {
+  justify-content: space-between;
+  color: #52616d;
+  font-size: 0.75rem;
+}
