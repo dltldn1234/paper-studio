@@ -15,6 +15,12 @@ export type MeasurementHistoryEntry = {
   targetMm: CalibrationReferenceLength
   measuredMm: number
   measuredAt: string
+  /** Optional v1 environment snapshots keep older history files compatible. */
+  printerName?: string
+  manufacturer?: string
+  model?: string
+  driverInfo?: string
+  orientation?: 'portrait' | 'landscape'
 }
 
 export type MeasurementHistoryFile = {
@@ -50,7 +56,16 @@ export function isMeasurementHistoryEntry(
     value.measuredMm > 0 &&
     value.measuredMm <= Number(value.targetMm) * 2 &&
     typeof value.measuredAt === 'string' &&
-    Number.isFinite(Date.parse(value.measuredAt))
+    Number.isFinite(Date.parse(value.measuredAt)) &&
+    (value.printerName === undefined ||
+      typeof value.printerName === 'string') &&
+    (value.manufacturer === undefined ||
+      typeof value.manufacturer === 'string') &&
+    (value.model === undefined || typeof value.model === 'string') &&
+    (value.driverInfo === undefined || typeof value.driverInfo === 'string') &&
+    (value.orientation === undefined ||
+      value.orientation === 'portrait' ||
+      value.orientation === 'landscape')
   )
 }
 

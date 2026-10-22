@@ -4,11 +4,12 @@ import type { PrinterProfile } from './printer-profiles'
 
 export const MIN_STATISTICAL_SAMPLES = 3
 
-export type AccuracySample = MeasurementHistoryEntry & {
+export type AccuracySample = Omit<MeasurementHistoryEntry, 'orientation'> & {
   errorMm: number
   errorRatePercent: number
   printerLabel: string
   driverInfo: string
+  orientation: NonNullable<MeasurementHistoryEntry['orientation']> | 'unknown'
 }
 
 export type AccuracyStatistics = {
@@ -29,6 +30,7 @@ export type StatisticsFilters = {
   driverInfo?: string | 'all'
   phase?: MeasurementHistoryEntry['phase'] | 'all'
   axis?: MeasurementHistoryEntry['axis'] | 'all'
+  orientation?: 'portrait' | 'landscape' | 'unknown' | 'all'
 }
 
 function median(values: number[]) {
@@ -53,11 +55,15 @@ export function buildAccuracySamples(
       ...entry,
       errorMm,
       errorRatePercent: (errorMm / entry.targetMm) * 100,
-      printerLabel: profile
-        ? [profile.manufacturer, profile.model].filter(Boolean).join(' ') ||
-          profile.name
-        : '연결된 프로필 없음',
-      driverInfo: profile?.driverInfo ?? '드라이버 정보 없음',
+      printerLabel:
+        [entry.manufacturer, entry.model].filter(Boolean).join(' ') ||
+        entry.printerName ||
+        (profile
+          ? [profile.manufacturer, profile.model].filter(Boolean).join(' ') ||
+            profile.name
+          : '연결된 프로필 없음'),
+      driverInfo: entry.driverInfo ?? '기록 당시 드라이버 미기록',
+      orientation: entry.orientation ?? 'unknown',
     }
   })
 }
@@ -78,7 +84,12 @@ export function filterAccuracySamples(
       (!filters.phase ||
         filters.phase === 'all' ||
         sample.phase === filters.phase) &&
-      (!filters.axis || filters.axis === 'all' || sample.axis === filters.axis),
+      (!filters.axis ||
+        filters.axis === 'all' ||
+        sample.axis === filters.axis) &&
+      (!filters.orientation ||
+        filters.orientation === 'all' ||
+        sample.orientation === filters.orientation),
   )
 }
 

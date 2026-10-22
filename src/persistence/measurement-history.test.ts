@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { createMeasurementHistoryEntry } from '../calibration/measurement-history'
 import {
+  buildAccuracySamples,
+  filterAccuracySamples,
+} from '../calibration/statistics'
+import {
   deleteMeasurementHistoryEntry,
   exportMeasurementHistory,
   importMeasurementHistory,
@@ -59,6 +63,12 @@ describe('measurement history storage', () => {
         local,
       ),
     ).toBe(false)
+    expect(
+      saveMeasurementHistoryEntry(
+        { ...entry('bad-orientation'), orientation: 'diagonal' as never },
+        local,
+      ),
+    ).toBe(false)
     expect(importMeasurementHistory('{bad json', local)).toBe(false)
     expect(
       importMeasurementHistory(
@@ -67,6 +77,40 @@ describe('measurement history storage', () => {
       ),
     ).toBe(false)
     expect(local.getItem(MEASUREMENT_HISTORY_STORAGE_KEY)).toBeNull()
+  })
+
+  it('reads older v1 rows without environment snapshots and preserves new optional snapshots', () => {
+    const local = storage()
+    const oldEntry = entry('legacy-environment')
+    const snapshottedEntry = createMeasurementHistoryEntry({
+      ...entry('snapshotted-environment'),
+      printerName: 'Office printer',
+      manufacturer: 'Maker',
+      model: 'M2',
+      driverInfo: 'Driver B',
+      orientation: 'landscape',
+    })
+    expect(saveMeasurementHistoryEntry(oldEntry, local)).toBe(true)
+    expect(saveMeasurementHistoryEntry(snapshottedEntry, local)).toBe(true)
+    const restored = storage()
+    expect(
+      importMeasurementHistory(exportMeasurementHistory(local), restored),
+    ).toBe(true)
+    expect(readMeasurementHistory(restored)).toEqual([
+      oldEntry,
+      snapshottedEntry,
+    ])
+    const samples = buildAccuracySamples(readMeasurementHistory(restored), [])
+    expect(samples[0]).toMatchObject({
+      driverInfo: '기록 당시 드라이버 미기록',
+      orientation: 'unknown',
+    })
+    expect(
+      filterAccuracySamples(samples, {
+        driverInfo: 'Driver B',
+        orientation: 'landscape',
+      }).map(({ id }) => id),
+    ).toEqual(['snapshotted-environment'])
   })
 
   it('migrates Phase 8 profile and legacy calibration records once and preserves source keys', () => {
