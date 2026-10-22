@@ -32,6 +32,9 @@ test('shows history statistics, environment filters and retained outlier warning
   await expect(analysis.getByText('3', { exact: true })).toBeVisible()
   await expect(analysis.getByText(/이상치 1건/)).toBeVisible()
   await expect(
+    analysis.locator('.accuracy-analysis__point.is-outlier'),
+  ).toHaveCount(1)
+  await expect(
     analysis.getByText(/원본 이력은 보존되며 자동 삭제되지 않습니다/),
   ).toBeVisible()
   await analysis.getByLabel('통계 드라이버').selectOption('Driver A')

@@ -255,7 +255,12 @@ export function StatisticalAccuracyPanel({ history, profiles }: Props) {
               {ordered.map((sample, index) => (
                 <span
                   key={sample.id}
-                  className={`accuracy-analysis__point${summary.outlierIds.includes(sample.id) ? 'is-outlier' : ''}`}
+                  className={[
+                    'accuracy-analysis__point',
+                    summary.outlierIds.includes(sample.id) && 'is-outlier',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                   style={{
                     left: `${ordered.length === 1 ? 50 : (index / (ordered.length - 1)) * 100}%`,
                     top: `${50 - (sample.errorMm / maxMagnitude) * 42}%`,
