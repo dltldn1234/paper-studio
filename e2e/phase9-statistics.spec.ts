@@ -39,7 +39,7 @@ test('shows history statistics, environment filters and retained outlier warning
   await analysis.getByLabel('통계 측정 축').selectOption('x')
   await expect(analysis.getByText('2', { exact: true })).toBeVisible()
   await analysis.getByLabel('통계 측정 축').selectOption('all')
-  await panel.getByLabel('측정 이력 목록').scrollIntoViewIfNeeded()
+  await analysis.scrollIntoViewIfNeeded()
   await page.screenshot({
     path: '/tmp/paper-studio-phase9-statistical-analysis.png',
     fullPage: true,

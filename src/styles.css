@@ -1709,6 +1709,7 @@ button:disabled {
   border: 1px solid #d4dce3;
   border-radius: 0.75rem;
   background: #f8fafb;
+  color: #1d2933;
 }
 
 .accuracy-analysis__heading,
