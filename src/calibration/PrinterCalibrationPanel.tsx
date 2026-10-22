@@ -22,6 +22,7 @@ import {
   analyzeCalibrationAxis,
   compareCalibrationMeasurement,
 } from './precision'
+import { StatisticalAccuracyPanel } from './StatisticalAccuracyPanel'
 
 const TARGETS = [50, 100, 150] as const
 
@@ -1045,6 +1046,8 @@ export function PrinterCalibrationPanel({
           프로필을 선택하거나 새로 만드세요.
         </p>
       )}
+
+      <StatisticalAccuracyPanel history={history} profiles={profiles} />
 
       {error && (
         <p className="dimension-error" role="alert">
