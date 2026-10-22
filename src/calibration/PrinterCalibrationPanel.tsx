@@ -23,6 +23,7 @@ import {
   compareCalibrationMeasurement,
 } from './precision'
 import { StatisticalAccuracyPanel } from './StatisticalAccuracyPanel'
+import { AdvancedCalibrationCheck } from './AdvancedCalibrationCheck'
 
 const TARGETS = [50, 100, 150] as const
 
@@ -1039,6 +1040,7 @@ export function PrinterCalibrationPanel({
               )}
             </>
           )}
+          <AdvancedCalibrationCheck key={profile.id} profile={profile} />
         </div>
       ) : (
         <p className="export-dialog__note">
