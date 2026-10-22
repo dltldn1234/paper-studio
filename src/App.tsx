@@ -2067,6 +2067,11 @@ function App() {
                     />
                   </label>
                 </div>
+                <p className="export-dialog__note" role="note">
+                  PDF 인쇄 배율은 실제 크기/100%로 설정하고 페이지 맞춤, 축소
+                  인쇄를 끄세요. 배율을 바꾸면 모든 기준 치수와 위치 검사 결과가
+                  달라집니다.
+                </p>
                 <div
                   className="pdf-production-toggles"
                   aria-label="인쇄 요소 설정"

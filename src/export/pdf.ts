@@ -104,6 +104,40 @@ function parseColor(hex: string) {
   )
 }
 
+function drawCalibrationCross(
+  page: ReturnType<PDFDocument['addPage']>,
+  xMm: number,
+  yMm: number,
+  color: ReturnType<typeof rgb>,
+  label: string,
+  font: Awaited<ReturnType<PDFDocument['embedFont']>>,
+  alignLeft = false,
+) {
+  const x = mmToPdfPoints(xMm)
+  const y = mmToPdfPoints(yMm)
+  const arm = mmToPdfPoints(2.5)
+  page.drawLine({
+    start: { x: x - arm, y },
+    end: { x: x + arm, y },
+    thickness: 0.55,
+    color,
+  })
+  page.drawLine({
+    start: { x, y: y - arm },
+    end: { x, y: y + arm },
+    thickness: 0.55,
+    color,
+  })
+  const textWidth = font.widthOfTextAtSize(label, 5)
+  page.drawText(label, {
+    x: alignLeft ? x - arm - textWidth - 1.5 : x + arm + 1.5,
+    y: y - 2,
+    size: 5,
+    font,
+    color,
+  })
+}
+
 async function drawFaceMaterials(
   pdf: PDFDocument,
   page: ReturnType<PDFDocument['addPage']>,
@@ -532,13 +566,81 @@ export async function createTiledPdf(
     calibration.square.sizeMm * (options.calibration?.yScale ?? 1),
   )
   const blue = rgb(0.12, 0.38, 0.72)
+  const gray = rgb(0.45, 0.49, 0.54)
+  const trim = rgb(0.75, 0.33, 0.2)
   calibrationPage.drawText('PRINT SCALE CALIBRATION', {
-    x: margin,
+    x: margin + mmToPdfPoints(25),
     y: mmToPdfPoints(layout.pageHeightMm) - margin - 8,
     size: 10,
     font,
     color: blue,
   })
+  calibrationPage.drawRectangle({
+    x: mmToPdfPoints(calibration.printableArea.x),
+    y: mmToPdfPoints(calibration.printableArea.y),
+    width: mmToPdfPoints(calibration.printableArea.width),
+    height: mmToPdfPoints(calibration.printableArea.height),
+    borderColor: gray,
+    borderWidth: 0.35,
+    borderDashArray: [3, 2],
+  })
+  calibrationPage.drawText('PRINTABLE AREA · CONFIGURED MARGIN', {
+    x: mmToPdfPoints(calibration.printableArea.x + 25),
+    y: mmToPdfPoints(
+      calibration.printableArea.y + calibration.printableArea.height - 7,
+    ),
+    size: 5,
+    font,
+    color: gray,
+  })
+  calibrationPage.drawRectangle({
+    x: mmToPdfPoints(calibration.cutBoundary.x),
+    y: mmToPdfPoints(calibration.cutBoundary.y),
+    width: mmToPdfPoints(calibration.cutBoundary.width),
+    height: mmToPdfPoints(calibration.cutBoundary.height),
+    borderColor: trim,
+    borderWidth: 0.35,
+    borderDashArray: [1.5, 2],
+  })
+  calibrationPage.drawText('CUT REFERENCE · 5 MM INSET', {
+    x: mmToPdfPoints(calibration.cutBoundary.x + 2),
+    y: mmToPdfPoints(
+      calibration.cutBoundary.y + calibration.cutBoundary.height - 14,
+    ),
+    size: 5,
+    font,
+    color: trim,
+  })
+  for (const marker of calibration.registrationMarks) {
+    drawCalibrationCross(
+      calibrationPage,
+      marker.x,
+      marker.y,
+      trim,
+      marker.label,
+      font,
+      marker.label.endsWith('R'),
+    )
+  }
+  for (const marker of calibration.alignmentMarks) {
+    const label =
+      marker.label === 'LEFT'
+        ? 'L'
+        : marker.label === 'RIGHT'
+          ? 'R'
+          : marker.label === 'TOP'
+            ? 'T'
+            : 'B'
+    drawCalibrationCross(
+      calibrationPage,
+      marker.x,
+      marker.y,
+      gray,
+      label,
+      font,
+      marker.label === 'RIGHT',
+    )
+  }
   calibrationPage.drawRectangle({
     x: squareX,
     y: squareY,
@@ -547,6 +649,38 @@ export async function createTiledPdf(
     borderColor: blue,
     borderWidth: 0.6,
   })
+  const diagonalStart = {
+    x: mmToPdfPoints(calibration.diagonal.x1),
+    y: mmToPdfPoints(calibration.diagonal.y1),
+  }
+  const diagonalEnd = {
+    x: mmToPdfPoints(
+      calibration.diagonal.x1 +
+        (calibration.diagonal.targetLengthMm / Math.SQRT2) *
+          (options.calibration?.xScale ?? 1),
+    ),
+    y: mmToPdfPoints(
+      calibration.diagonal.y1 +
+        (calibration.diagonal.targetLengthMm / Math.SQRT2) *
+          (options.calibration?.yScale ?? 1),
+    ),
+  }
+  calibrationPage.drawLine({
+    start: diagonalStart,
+    end: diagonalEnd,
+    thickness: 0.55,
+    color: trim,
+  })
+  calibrationPage.drawText(
+    `${calibration.diagonal.targetLengthMm.toFixed(2)} mm diagonal`,
+    {
+      x: mmToPdfPoints(calibration.square.x + calibration.square.sizeMm + 2),
+      y: mmToPdfPoints(calibration.square.y + calibration.square.sizeMm / 2),
+      size: 6,
+      font,
+      color: trim,
+    },
+  )
   for (const reference of calibration.lines) {
     calibrationPage.drawLine({
       start: {
@@ -595,7 +729,7 @@ export async function createTiledPdf(
     `${options.calibration ? `Profile ${options.calibration.profileName ?? options.calibration.profileId}: X ${(options.calibration.xScale * 100).toFixed(2)}%, Y ${(options.calibration.yScale * 100).toFixed(2)}%. ` : ''}Print at Actual Size / 100%. Turn off Fit or Shrink. Measure the line and square before cutting. X/Y scaling changes face and tab proportions and can affect assembly.`,
     {
       x: margin,
-      y: margin,
+      y: margin + mmToPdfPoints(2),
       size: 7,
       font,
       color: rgb(0.25, 0.25, 0.25),
