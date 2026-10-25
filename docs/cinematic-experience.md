@@ -78,7 +78,7 @@ Issues #85–#107 follow issue-numbered feature branches, Conventional Commits a
 
 ## Revision 2 — colossal roar (#131)
 
-The skull and jaw have a deeper silhouette, an interior mouth, orbital brows and two tooth rows. Extended shins and clawed toes anchor the feet within 0–40 mm of the ground in project units. Anticipation crouch, neck recoil, torso weight transfer and tail counterbalance precede a wider jaw opening.
+The skull and jaw have a deeper silhouette, an interior mouth, orbital brows and two tooth rows. Extended shins and clawed toes anchor the feet within 0–0.04 scene units of the ground. Anticipation crouch, neck recoil, torso weight transfer and tail counterbalance precede a wider jaw opening.
 
 At 5.94 seconds the mouth-directed air wakes, expanding ground-pressure haze, soft dust clouds, rim-light response and bounded camera vibration share the same deterministic release. A low-angle approach and modest canvas push make the performance dominate the intro. Effects dissipate before idle; low quality reduces dust/rings, and reduced motion suppresses the entire impact.
 
