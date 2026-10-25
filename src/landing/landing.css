@@ -725,3 +725,11 @@
     animation: none;
   }
 }
+
+.cinematic-keyboard-hint {
+  display: block;
+  color: #9daabe;
+  text-align: center;
+  font-size: 10px;
+  padding: 4px 0;
+}

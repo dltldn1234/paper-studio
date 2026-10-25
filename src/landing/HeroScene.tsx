@@ -1,3 +1,8 @@
+import { RoarAudio } from '../scene/RoarAudio'
+import {
+  readMotionPreferences,
+  saveMotionPreferences,
+} from '../persistence/motion-preferences'
 import { WebGLFallback } from './WebGLFallback'
 import { DeviceQuality } from '../scene/DeviceQuality'
 import { createPaperAtmosphere } from '../scene/ParticleSystem'
@@ -25,6 +30,7 @@ interface SceneCommands {
   reset(): void
   unfold(): void
   reduce(value: boolean): void
+  sound(): Promise<boolean>
 }
 
 export default function HeroScene({
@@ -36,6 +42,7 @@ export default function HeroScene({
   const commands = useRef<SceneCommands | null>(null)
   const [fallback, setFallback] = useState(false)
   const [paused, setPaused] = useState(false)
+  const [sound, setSound] = useState(false)
   const [reduced, setReduced] = useState(false)
   const [phase, setPhase] = useState('종이의 가능성을 준비하고 있습니다')
 
@@ -43,7 +50,10 @@ export default function HeroScene({
     const host = container.current
     if (!host) return
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
-    let reduce = media.matches
+    const preferences = readMotionPreferences()
+    let reduce = preferences.reduce ?? media.matches
+    const audio = new RoarAudio()
+    let roared = false
     const connection = (
       navigator as Navigator & { connection?: { saveData?: boolean } }
     ).connection
@@ -161,12 +171,7 @@ export default function HeroScene({
       return { mesh, hinge, lines, previous: -1 }
     })
     const timeline = new IntroTimeline(reduce)
-    try {
-      if (sessionStorage.getItem('paper-studio.intro-seen') === '1')
-        timeline.skip()
-    } catch {
-      /* Storage may be disabled. */
-    }
+    if (preferences.seen) timeline.skip()
     let lastPhase = ''
     let unfolded = false
     let currentUnfold = 0
@@ -196,6 +201,8 @@ export default function HeroScene({
     const reduceMotion = (value: boolean) => {
       reduce = value
       setReduced(value)
+      saveMotionPreferences({ reduce: value })
+      if (value) audio.stop()
       if (value) {
         timeline.skip()
         unfolded = false
@@ -205,14 +212,21 @@ export default function HeroScene({
     }
     const preferenceChanged = () => reduceMotion(media.matches)
     media.addEventListener('change', preferenceChanged)
+    const stopHiddenAudio = () => {
+      if (document.hidden) audio.stop()
+    }
+    document.addEventListener('visibilitychange', stopHiddenAudio)
     const initialPreferences = window.setTimeout(() => setReduced(reduce), 0)
     commands.current = {
       skip: () => {
+        audio.stop()
         timeline.skip()
         unfolded = false
       },
       replay: () => {
         timeline.replay(reduce)
+        audio.stop()
+        roared = false
         unfolded = false
         idleTime = 0
         reset()
@@ -221,6 +235,7 @@ export default function HeroScene({
       },
       pause: () => {
         motionPaused = !motionPaused
+        if (motionPaused) audio.stop()
         if (motionPaused) timeline.pause()
         else timeline.resume()
         setPaused(motionPaused)
@@ -231,6 +246,7 @@ export default function HeroScene({
         unfolded = !unfolded
       },
       reduce: reduceMotion,
+      sound: () => audio.toggle(),
     }
     const applyQuality = () => {
       const low = quality.quality === 'low'
@@ -243,6 +259,35 @@ export default function HeroScene({
     }
     applyQuality()
     let renderAccumulator = 1 / 30
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Home') {
+        event.preventDefault()
+        reset()
+        return
+      }
+      if (
+        !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)
+      )
+        return
+      event.preventDefault()
+      directed = false
+      const offset = camera.position.clone().sub(controls.target)
+      const spherical = new THREE.Spherical().setFromVector3(offset)
+      if (event.key === 'ArrowLeft') spherical.theta -= 0.08
+      if (event.key === 'ArrowRight') spherical.theta += 0.08
+      if (event.key === 'ArrowUp') spherical.phi -= 0.06
+      if (event.key === 'ArrowDown') spherical.phi += 0.06
+      spherical.phi = THREE.MathUtils.clamp(
+        spherical.phi,
+        0.35,
+        Math.PI / 2 - 0.025,
+      )
+      camera.position
+        .copy(controls.target)
+        .add(offset.setFromSpherical(spherical))
+      controls.update()
+    }
+    renderer.domElement.addEventListener('keydown', keyboard)
     let stopped = false
     const stop = startRenderLoop(({ delta: frameDelta }) => {
       if (stopped) return
@@ -257,13 +302,7 @@ export default function HeroScene({
         lastPhase = frame.phase
         setPhase(labels[frame.phase])
         onPhase?.(frame.phase)
-        if (frame.phase === 'idle') {
-          try {
-            sessionStorage.setItem('paper-studio.intro-seen', '1')
-          } catch {
-            /* Optional preference. */
-          }
-        }
+        if (frame.phase === 'idle') saveMotionPreferences({ seen: true })
       }
       currentUnfold = reduce
         ? 0
@@ -322,6 +361,11 @@ export default function HeroScene({
         reduce,
       )
       rig.apply(awakening.pose)
+      if (!reduce && !roared && frame.seconds >= 6 && frame.seconds < 6.3) {
+        audio.play()
+        roared = true
+      }
+      if (document.hidden) audio.stop()
       lighting.update(idleTime, awakening.lightPulse, reduce)
       if (directed) {
         const shot = cinematicCamera(
@@ -349,11 +393,14 @@ export default function HeroScene({
       stop()
       window.clearTimeout(initialPreferences)
       commands.current = null
+      document.removeEventListener('visibilitychange', stopHiddenAudio)
+      audio.dispose()
       observer.disconnect()
       media.removeEventListener('change', preferenceChanged)
       controls.removeEventListener('start', userControl)
       controls.dispose()
       renderer.domElement.removeEventListener('webglcontextlost', contextLost)
+      renderer.domElement.removeEventListener('keydown', keyboard)
       disposeScene(scene)
       renderer.dispose()
       renderer.domElement.remove()
@@ -364,6 +411,9 @@ export default function HeroScene({
     <div className="cinematic-showcase">
       <div ref={container} className="cinematic-canvas" hidden={fallback} />
       {fallback && <WebGLFallback />}
+      <span className="cinematic-keyboard-hint">
+        드래그 또는 방향키로 회전 · Home으로 시점 초기화
+      </span>
       <p className="cinematic-caption" aria-live="polite">
         {phase}
       </p>
@@ -381,6 +431,14 @@ export default function HeroScene({
             펼치기 / 접기
           </button>
           <button onClick={() => commands.current?.reset()}>시점 초기화</button>
+          <button
+            aria-pressed={sound}
+            onClick={() => {
+              void commands.current?.sound().then(setSound)
+            }}
+          >
+            소리 {sound ? '켜짐' : '꺼짐'}
+          </button>
           <button
             aria-pressed={reduced}
             onClick={() => commands.current?.reduce(!reduced)}
