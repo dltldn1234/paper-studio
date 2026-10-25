@@ -1252,3 +1252,9 @@ body:has(.landing-page) {
     transform: scale(1.12);
   }
 }
+
+.landing-page[data-page-motion='paused'] *,
+.landing-page[data-page-motion='paused'] *::before,
+.landing-page[data-page-motion='paused'] *::after {
+  transition-duration: 0s !important;
+}

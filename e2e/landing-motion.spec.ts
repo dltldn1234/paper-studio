@@ -12,6 +12,10 @@ test('coordinates scroll reveals, pointer depth and full-page playback preferenc
   await page.getByRole('button', { name: '일시정지' }).click()
   await expect(root).toHaveAttribute('data-page-motion', 'paused')
   await expect(page.locator('#landing-title')).toHaveCSS('opacity', '1')
+  await expect(page.locator('.landing-workflow__steps li').first()).toHaveCSS(
+    'transition-duration',
+    '0s',
+  )
   await page.getByRole('button', { name: '재생', exact: true }).click()
   await page.getByRole('button', { name: '건너뛰기' }).click()
   const steps = page.locator('.landing-workflow__steps')
