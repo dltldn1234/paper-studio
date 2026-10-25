@@ -777,3 +777,19 @@
     display: none;
   }
 }
+
+body:has(.landing-page) {
+  min-width: 320px;
+}
+@media (max-width: 359px) {
+  .landing-hero h1 {
+    font-size: 32px;
+  }
+  .landing-hero__proof {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .landing-workflow__steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

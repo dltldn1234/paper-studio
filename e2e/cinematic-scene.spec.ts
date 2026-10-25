@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+test.use({ video: 'on' })
+
 test('plays the real WebGL sequence and preserves immediate editor access', async ({
   page,
 }) => {
@@ -44,6 +46,9 @@ test('plays the real WebGL sequence and preserves immediate editor access', asyn
     .first()
     .click()
   await expect(page.locator('.studio-topbar')).toBeVisible()
+  await page.screenshot({
+    path: 'test-results/cinematic-07-editor-transition.png',
+  })
   expect(errors).toEqual([])
 })
 
