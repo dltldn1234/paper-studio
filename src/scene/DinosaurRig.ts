@@ -7,6 +7,10 @@ export interface DinosaurPose {
   bodyLean: number
   tailSwing: number
   breath: number
+  crouch: number
+  neckRecoil: number
+  tailLift: number
+  headYaw: number
 }
 
 const REST: DinosaurPose = {
@@ -15,6 +19,10 @@ const REST: DinosaurPose = {
   bodyLean: 0,
   tailSwing: 0,
   breath: 0,
+  crouch: 0,
+  neckRecoil: 0,
+  tailLift: 0,
+  headYaw: 0,
 }
 
 /** Absolute poses restore bind transforms first, so replay never accumulates drift. */
@@ -44,11 +52,15 @@ export class DinosaurRig {
   apply(input: Partial<DinosaurPose> = {}): void {
     const pose = { ...REST, ...input }
     this.reset()
-    this.model.neck.rotation.z += pose.headLift * 0.16
-    this.model.head.rotation.z += pose.headLift * 0.12
-    this.model.jaw.rotation.z -= Math.max(0, Math.min(1, pose.jawOpen)) * 0.42
-    this.model.body.rotation.z += pose.bodyLean * 0.025
+    this.model.neck.rotation.z += pose.headLift * 0.26
+    this.model.head.rotation.z += pose.headLift * 0.16
+    this.model.jaw.rotation.z -= Math.max(0, Math.min(1, pose.jawOpen)) * 0.68
+    this.model.body.rotation.z += pose.bodyLean * 0.055
     this.model.body.position.y += pose.breath * 0.012
+    this.model.body.position.y -= pose.crouch * 0.12
+    this.model.neck.position.x -= pose.neckRecoil * 0.13
+    this.model.head.rotation.y += pose.headYaw * 0.08
+    this.model.tail.rotation.z += pose.tailLift * 0.065
     this.model.tail.rotation.y += pose.tailSwing * 0.025
     this.model.arms.forEach((arm, index) => {
       arm.rotation.x += pose.breath * (index === 0 ? -0.015 : 0.015)
