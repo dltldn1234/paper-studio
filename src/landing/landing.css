@@ -689,7 +689,7 @@
     [data-intro-phase='awakening']
   )
   .landing-hero__description {
-  opacity: 0.08;
+  opacity: 0;
   transform: translateY(14px);
   filter: blur(5px);
 }
@@ -792,4 +792,27 @@ body:has(.landing-page) {
   .landing-workflow__steps {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.landing-product {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 5.5vw, 80px) 100px;
+}
+.landing-product figure {
+  margin: 36px 0 24px;
+}
+.landing-product img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #24354b;
+  border-radius: 12px;
+  box-shadow: 0 28px 90px #0005;
+}
+.landing-product figcaption {
+  margin-top: 12px;
+  color: #9daabe;
+  font-size: 11px;
+  text-align: center;
 }
