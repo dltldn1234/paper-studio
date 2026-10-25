@@ -85,3 +85,13 @@ At 5.94 seconds the mouth-directed air wakes, expanding ground-pressure haze, so
 Opt-in audio now combines a sub-bass fundamental, voiced throat/formant layer, amplitude modulation and filtered breath noise through an envelope and compressor. All sources stop/disconnect on pause, skip, hidden tabs, reduced motion and disposal. This remains original synthesized creature audio, not a recorded animal asset.
 
 The stored cinematic revision lets existing visitors see the new story once while retaining their reduced-motion preference. Verification: 239 Vitest tests and 37 Chromium tests passed, including actual audio opt-in/source creation and shader/page error checks. Frame and video artifacts retain the enhanced roar, final hero and mobile state.
+
+## Full-page motion (#133)
+
+The existing navy/blue system now carries three coordinated motion families: drafting light (ambient halos, headline/CTA sheen and navigation response), hinged progression (scroll reveals, sequenced workflow icons and connector) and dimensional inspection (pointer depth, preview highlights and scan light). Text and CTA content remain real and readable; no simulated product actions are added.
+
+`mountLandingMotion` owns observers, passive input listeners and one coalesced input-driven RAF. It does not run a continuous JavaScript animation loop. CSS ambient motion pauses with document visibility; the product scan only runs while its preview is in view. Touch input avoids tilt/magnetic motion, and legacy media-query listeners and missing IntersectionObserver fail open.
+
+The existing pause/reduced-motion controls now govern page motion too. A paused intro exposes its headline for reading. Static/WebGL-failure views retain independent page-motion controls, including after lazy scene failure. Focus reveals its target immediately; every observer/listener/pending frame is cleaned up on route exit.
+
+Verification: 240 Vitest tests and 39 Chromium tests passed, including real scroll/pointer interaction, preference synchronization, WebGL fallback controls, mobile reduced motion and CAD/PDF/persistence regressions. Scroll/preview frames and WebM captures are retained in browser-verification artifacts. Hosted verification now visits and reveals the whole landing before its full-page capture.

@@ -1,6 +1,14 @@
 import { StudioLink } from './StudioLink'
 import { SceneBoundary } from './WebGLFallback'
-import { lazy, Suspense, useState } from 'react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
+import { mountLandingMotion } from './landingMotion'
 import {
   ArrowDown,
   ArrowUpRight,
@@ -158,8 +166,29 @@ function StructureSchematic() {
 
 export default function CinematicLanding() {
   const [phase, setPhase] = useState('idle')
+  const [pagePaused, setPagePaused] = useState(false)
+  const root = useRef<HTMLElement>(null)
+  const motion = useRef<ReturnType<typeof mountLandingMotion> | null>(null)
+  useEffect(() => {
+    if (!root.current) return
+    const controller = mountLandingMotion(root.current)
+    motion.current = controller
+    return () => {
+      controller.dispose()
+      motion.current = null
+    }
+  }, [])
+  useEffect(() => {
+    motion.current?.setPaused(pagePaused)
+  }, [pagePaused])
   return (
-    <main className="landing-page" data-intro-phase={phase}>
+    <main ref={root} className="landing-page" data-intro-phase={phase}>
+      <div className="landing-read-progress" aria-hidden="true" />
+      <div className="landing-atmosphere" aria-hidden="true">
+        <i />
+        <i />
+        <span className="landing-drafting-sheet" />
+      </div>
       <header className="landing-header">
         <a className="landing-brand" href="/" aria-label="Paper Studio 홈">
           <span className="landing-brand__mark" aria-hidden="true">
@@ -173,7 +202,11 @@ export default function CinematicLanding() {
           <a href="#workflow">제품 소개</a>
           <a href="#capabilities">기능</a>
         </nav>
-        <StudioLink className="landing-header__cta" href="/studio">
+        <StudioLink
+          className="landing-header__cta"
+          data-motion-magnet
+          href="/studio"
+        >
           스튜디오 시작하기 <ArrowUpRight size={15} aria-hidden="true" />
         </StudioLink>
       </header>
@@ -194,7 +227,11 @@ export default function CinematicLanding() {
             Paper Studio에서 설계하고, 접고, 완성하세요.
           </p>
           <div className="landing-hero__actions">
-            <StudioLink className="landing-primary-action" href="/studio">
+            <StudioLink
+              className="landing-primary-action"
+              data-motion-magnet
+              href="/studio"
+            >
               스튜디오 시작하기 <ArrowUpRight size={16} aria-hidden="true" />
             </StudioLink>
             <StudioLink
@@ -219,7 +256,7 @@ export default function CinematicLanding() {
         <div className="landing-hero__visual">
           <SceneBoundary onUnavailable={setPhase}>
             <Suspense fallback={<StructureSchematic />}>
-              <HeroScene onPhase={setPhase} />
+              <HeroScene onPhase={setPhase} onPausedChange={setPagePaused} />
             </Suspense>
           </SceneBoundary>
           <span className="landing-visual-index" aria-hidden="true">
@@ -236,16 +273,25 @@ export default function CinematicLanding() {
         id="workflow"
         aria-labelledby="workflow-title"
       >
-        <div className="landing-section-heading">
+        <div
+          className="landing-section-heading motion-reveal"
+          data-motion-reveal
+        >
           <p className="landing-eyebrow">FROM IDEA TO OBJECT</p>
           <h2 id="workflow-title">설계부터 종이 위의 완성까지.</h2>
           <p>
             모양을 만들고, 접어 보고, 직접 출력할 수 있는 도면으로 이어집니다.
           </p>
         </div>
-        <ol className="landing-workflow__steps">
-          {workflow.map(({ number, title, description, icon: Icon }) => (
-            <li key={number}>
+        <ol className="landing-workflow__steps" data-motion-track>
+          {workflow.map(({ number, title, description, icon: Icon }, index) => (
+            <li
+              key={number}
+              className="motion-reveal motion-depth"
+              data-motion-reveal
+              data-motion-depth
+              style={{ '--reveal-order': index } as CSSProperties}
+            >
               <span className="landing-workflow__number">{number}</span>
               <span className="landing-workflow__icon" aria-hidden="true">
                 <Icon size={18} strokeWidth={1.6} />
@@ -261,7 +307,10 @@ export default function CinematicLanding() {
         className="landing-product"
         aria-labelledby="product-preview-title"
       >
-        <div className="landing-section-heading">
+        <div
+          className="landing-section-heading motion-reveal"
+          data-motion-reveal
+        >
           <p className="landing-eyebrow">A REAL WORKSPACE FOR REAL IDEAS</p>
           <h2 id="product-preview-title">설계의 모든 면을, 한 화면에서.</h2>
           <p>
@@ -269,18 +318,27 @@ export default function CinematicLanding() {
             편집기입니다.
           </p>
         </div>
-        <figure>
-          <img
-            src="/studio-preview.jpg"
-            alt="실제 Paper Studio에서 정사면체의 전개도와 3D 접힘 상태를 함께 확인하는 편집 화면"
-            width="1440"
-            height="900"
-            loading="lazy"
-          />
+        <figure
+          className="motion-reveal motion-depth"
+          data-motion-reveal
+          data-motion-depth
+        >
+          <div className="landing-product__surface">
+            <img
+              src="/studio-preview.jpg"
+              alt="실제 Paper Studio에서 정사면체의 전개도와 3D 접힘 상태를 함께 확인하는 편집 화면"
+              width="1440"
+              height="900"
+              loading="lazy"
+            />
+            <span className="landing-product__scan" aria-hidden="true" />
+          </div>
           <figcaption>정사면체 샘플 · 실제 편집기 화면</figcaption>
         </figure>
         <StudioLink
-          className="landing-primary-action"
+          className="landing-primary-action motion-reveal"
+          data-motion-reveal
+          data-motion-magnet
           href="/studio?sample=tetrahedron"
         >
           이 샘플 직접 열기 <ArrowUpRight size={16} aria-hidden="true" />

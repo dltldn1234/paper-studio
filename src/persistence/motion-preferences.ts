@@ -1,5 +1,6 @@
 const KEY = 'paper-studio.motion-preferences.v1'
 export const CINEMATIC_REVISION = 2
+export const MOTION_PREFERENCES_EVENT = 'paper-studio:motion-preferences'
 
 export function readMotionPreferences(): {
   reduce: boolean | null
@@ -32,4 +33,7 @@ export function saveMotionPreferences(change: {
   } catch {
     /* Preferences never block entry. */
   }
+  window.dispatchEvent(
+    new CustomEvent(MOTION_PREFERENCES_EVENT, { detail: change }),
+  )
 }
