@@ -1,3 +1,4 @@
+import { disposeScene } from '../scene/disposeScene'
 import { startRenderLoop } from '../scene/renderLoop'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -175,19 +176,9 @@ export function ThreeCuboidPreview({
       renderer.domElement.removeEventListener('pointerup', onUp)
       stopRendering()
       controls.dispose()
-      faceMeshes.forEach((mesh) => {
-        mesh.geometry.dispose()
-        mesh.material.dispose()
-        const lines = mesh.children[0] as THREE.LineSegments<
-          THREE.EdgesGeometry,
-          THREE.LineBasicMaterial
-        >
-        lines.geometry.dispose()
-        lines.material.dispose()
-      })
+      disposeScene(scene)
       renderer.dispose()
       renderer.domElement.remove()
-      scene.clear()
       previewRef.current = null
     }
   }, [cuboid])

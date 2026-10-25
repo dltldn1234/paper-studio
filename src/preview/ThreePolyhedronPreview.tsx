@@ -1,3 +1,4 @@
+import { disposeScene } from '../scene/disposeScene'
 import { startRenderLoop } from '../scene/renderLoop'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -187,19 +188,9 @@ export function ThreePolyhedronPreview({
       renderer.domElement.removeEventListener('pointerup', onUp)
       stopRendering()
       controls.dispose()
-      faceMeshes.forEach((faceMesh) => {
-        faceMesh.geometry.dispose()
-        faceMesh.material.dispose()
-        const lines = faceMesh.children[0] as THREE.LineSegments<
-          THREE.EdgesGeometry,
-          THREE.LineBasicMaterial
-        >
-        lines.geometry.dispose()
-        lines.material.dispose()
-      })
+      disposeScene(scene)
       renderer.dispose()
       renderer.domElement.remove()
-      scene.clear()
       previewRef.current = null
     }
   }, [layout])
