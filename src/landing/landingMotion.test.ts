@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { mountLandingMotion } from './landingMotion'
+import { LANDING_PAUSE_EVENT, mountLandingMotion } from './landingMotion'
 import { saveMotionPreferences } from '../persistence/motion-preferences'
 
 beforeEach(() => localStorage.clear())
@@ -67,5 +67,9 @@ it('keeps fallback content visible, syncs motion preferences and releases pendin
   expect(pending.size).toBe(0)
   window.dispatchEvent(new Event('scroll'))
   expect(pending.size).toBe(0)
+  expect(root.dataset.pageMotion).toBeUndefined()
+  window.dispatchEvent(
+    new CustomEvent(LANDING_PAUSE_EVENT, { detail: { paused: true } }),
+  )
   expect(root.dataset.pageMotion).toBeUndefined()
 })

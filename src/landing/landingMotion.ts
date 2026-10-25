@@ -3,6 +3,8 @@ import {
   readMotionPreferences,
 } from '../persistence/motion-preferences'
 
+export const LANDING_PAUSE_EVENT = 'paper-studio:landing-pause'
+
 /** Owns input-driven DOM motion; no continuous RAF or React frame updates. */
 export function mountLandingMotion(root: HTMLElement) {
   const media = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -142,6 +144,13 @@ export function mountLandingMotion(root: HTMLElement) {
         : (readMotionPreferences().reduce ?? media.matches)
     updateState()
   }
+  const onPauseRequest = (event: Event) => {
+    const value = (event as CustomEvent<{ paused?: boolean }>).detail?.paused
+    if (typeof value === 'boolean') {
+      paused = value
+      updateState()
+    }
+  }
   const onMedia = () => {
     reduced = media.matches
     updateState()
@@ -178,6 +187,7 @@ export function mountLandingMotion(root: HTMLElement) {
   window.addEventListener('scroll', schedule, { passive: true })
   window.addEventListener('resize', schedule)
   window.addEventListener(MOTION_PREFERENCES_EVENT, onPreference)
+  window.addEventListener(LANDING_PAUSE_EVENT, onPauseRequest)
   document.addEventListener('visibilitychange', onVisibility)
   const watchMedia = (query: MediaQueryList, listener: () => void) => {
     if (typeof query.addEventListener === 'function') {
@@ -207,6 +217,7 @@ export function mountLandingMotion(root: HTMLElement) {
       window.removeEventListener('scroll', schedule)
       window.removeEventListener('resize', schedule)
       window.removeEventListener(MOTION_PREFERENCES_EVENT, onPreference)
+      window.removeEventListener(LANDING_PAUSE_EVENT, onPauseRequest)
       document.removeEventListener('visibilitychange', onVisibility)
       stopMotionMedia()
       stopPointerMedia()
