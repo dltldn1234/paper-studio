@@ -1,3 +1,5 @@
+import { disposeScene } from '../scene/disposeScene'
+import { startRenderLoop } from '../scene/renderLoop'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
@@ -29,7 +31,6 @@ type PreviewScene = {
   faceMeshes: Map<FaceId, FaceMesh>
   renderer: THREE.WebGLRenderer
   resizeObserver: ResizeObserver | null
-  animationFrameId: number
 }
 
 export function ThreeCuboidPreview({
@@ -120,7 +121,6 @@ export function ThreeCuboidPreview({
       faceMeshes,
       renderer,
       resizeObserver: null,
-      animationFrameId: 0,
     }
     previewRef.current = preview
     const resize = () => {
@@ -164,33 +164,21 @@ export function ThreeCuboidPreview({
     }
     renderer.domElement.addEventListener('pointerdown', onDown)
     renderer.domElement.addEventListener('pointerup', onUp)
-    const animate = () => {
-      preview.animationFrameId = window.requestAnimationFrame(animate)
+    const stopRendering = startRenderLoop(() => {
       controls.update()
       renderer.render(scene, camera)
-    }
-    animate()
+    })
 
     return () => {
       preview.resizeObserver?.disconnect()
       window.removeEventListener('resize', resize)
       renderer.domElement.removeEventListener('pointerdown', onDown)
       renderer.domElement.removeEventListener('pointerup', onUp)
-      window.cancelAnimationFrame(preview.animationFrameId)
+      stopRendering()
       controls.dispose()
-      faceMeshes.forEach((mesh) => {
-        mesh.geometry.dispose()
-        mesh.material.dispose()
-        const lines = mesh.children[0] as THREE.LineSegments<
-          THREE.EdgesGeometry,
-          THREE.LineBasicMaterial
-        >
-        lines.geometry.dispose()
-        lines.material.dispose()
-      })
+      disposeScene(scene)
       renderer.dispose()
       renderer.domElement.remove()
-      scene.clear()
       previewRef.current = null
     }
   }, [cuboid])
