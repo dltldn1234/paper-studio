@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import {
   ArrowDown,
   ArrowUpRight,
@@ -155,8 +155,9 @@ function StructureSchematic() {
 }
 
 export default function CinematicLanding() {
+  const [phase, setPhase] = useState('idle')
   return (
-    <main className="landing-page">
+    <main className="landing-page" data-intro-phase={phase}>
       <header className="landing-header">
         <a className="landing-brand" href="/" aria-label="Paper Studio 홈">
           <span className="landing-brand__mark" aria-hidden="true">
@@ -212,10 +213,10 @@ export default function CinematicLanding() {
         </div>
         <div className="landing-hero__visual">
           <Suspense fallback={<StructureSchematic />}>
-            <HeroScene />
+            <HeroScene onPhase={setPhase} />
           </Suspense>
           <span className="landing-visual-index" aria-hidden="true">
-            FIG. 01 — FORM STUDY
+            FIG. 01 — THE PAPER AWAKENS
           </span>
         </div>
         <a className="landing-scroll-cue" href="#workflow">

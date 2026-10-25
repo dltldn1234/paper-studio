@@ -668,3 +668,37 @@
     min-height: 44px;
   }
 }
+
+.landing-hero__copy h1,
+.landing-hero__description {
+  transition:
+    opacity 1s ease,
+    transform 1s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 1s ease;
+}
+.landing-page:is(
+    [data-intro-phase='blueprint'],
+    [data-intro-phase='construction'],
+    [data-intro-phase='awakening']
+  )
+  .landing-hero__copy
+  h1,
+.landing-page:is(
+    [data-intro-phase='blueprint'],
+    [data-intro-phase='construction'],
+    [data-intro-phase='awakening']
+  )
+  .landing-hero__description {
+  opacity: 0.08;
+  transform: translateY(14px);
+  filter: blur(5px);
+}
+.landing-hero__description {
+  transition-delay: 0.12s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero__copy h1,
+  .landing-hero__description {
+    transition: none;
+  }
+}
