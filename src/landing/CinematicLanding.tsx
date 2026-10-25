@@ -257,6 +257,36 @@ export default function CinematicLanding() {
         </ol>
       </section>
 
+      <section
+        className="landing-product"
+        aria-labelledby="product-preview-title"
+      >
+        <div className="landing-section-heading">
+          <p className="landing-eyebrow">A REAL WORKSPACE FOR REAL IDEAS</p>
+          <h2 id="product-preview-title">설계의 모든 면을, 한 화면에서.</h2>
+          <p>
+            치수와 전개도, 접힘 미리보기까지 연결된 실제 Paper Studio
+            편집기입니다.
+          </p>
+        </div>
+        <figure>
+          <img
+            src="/studio-preview.jpg"
+            alt="실제 Paper Studio에서 정사면체의 전개도와 3D 접힘 상태를 함께 확인하는 편집 화면"
+            width="1440"
+            height="900"
+            loading="lazy"
+          />
+          <figcaption>정사면체 샘플 · 실제 편집기 화면</figcaption>
+        </figure>
+        <StudioLink
+          className="landing-primary-action"
+          href="/studio?sample=tetrahedron"
+        >
+          이 샘플 직접 열기 <ArrowUpRight size={16} aria-hidden="true" />
+        </StudioLink>
+      </section>
+
       <footer className="landing-footer">
         <a className="landing-brand" href="/" aria-label="Paper Studio 홈">
           <span className="landing-brand__mark" aria-hidden="true">
