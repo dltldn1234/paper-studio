@@ -46,6 +46,16 @@ export function writeEditorDraft(
   project: PaperStudioProject,
 ): boolean {
   try {
+    const current = localStorage.getItem(key(scope))
+    if (current) {
+      try {
+        parseProject(current)
+      } catch {
+        const recoveryKey = `${key(scope)}.recovery`
+        if (!localStorage.getItem(recoveryKey))
+          localStorage.setItem(recoveryKey, current)
+      }
+    }
     localStorage.setItem(key(scope), serializeProject(project))
     return true
   } catch {
