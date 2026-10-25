@@ -1,3 +1,4 @@
+import { cinematicCamera } from '../scene/CameraDirector'
 import { createBlueprintNet } from '../scene/BlueprintNet'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -293,13 +294,14 @@ export default function HeroScene() {
       rig.apply(awakening.pose)
       rim.intensity = 4 + awakening.lightPulse * 3
       if (directed) {
-        const distance = camera.aspect < 0.9 ? 18 : 13.3
-        const approach = reduce ? 0 : (1 - frame.reveal) * 1.1
-        camera.position.set(
-          4 + (reduce ? 0 : Math.sin(idleTime * 0.12) * 0.12),
-          4.5 + approach + awakening.cameraImpulse,
-          distance + approach,
+        const shot = cinematicCamera(
+          frame.seconds,
+          camera.aspect,
+          idleTime,
+          reduce,
         )
+        camera.position.set(shot.x, shot.y + awakening.cameraImpulse, shot.z)
+        controls.target.set(-0.5, shot.targetY, 0)
       }
       controls.update()
       renderer.render(scene, camera)
