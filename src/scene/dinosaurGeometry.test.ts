@@ -35,6 +35,11 @@ it.each(['low', 'high'] as const)(
       }
       expect([...edges.values()].every((count) => count === 2)).toBe(true)
     }
+    for (const leg of dinosaur.legs) {
+      const footHeight = new Box3().setFromObject(leg).min.y
+      expect(footHeight).toBeGreaterThanOrEqual(0)
+      expect(footHeight).toBeLessThan(0.04)
+    }
     const bounds = new Box3().setFromObject(dinosaur.root)
     expect(bounds.max.x - bounds.min.x).toBeGreaterThan(7)
     expect(bounds.max.y).toBeGreaterThan(4)

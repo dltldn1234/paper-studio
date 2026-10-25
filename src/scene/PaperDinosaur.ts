@@ -7,6 +7,7 @@ export interface PaperDinosaur {
   neck: THREE.Group
   head: THREE.Group
   jaw: THREE.Group
+  mouth: THREE.Group
   tail: THREE.Group
   arms: THREE.Group[]
   legs: THREE.Group[]
@@ -32,7 +33,7 @@ export function createPaperDinosaur(
     transparent: true,
     opacity: 0.2,
   })
-  const sides = detail === 'high' ? 8 : 6
+  const sides = detail === 'high' ? 10 : 6
   const joint = (
     parent: THREE.Group,
     name: string,
@@ -69,9 +70,9 @@ export function createPaperDinosaur(
   const body = joint(root, 'body-pivot', 0, 2.45)
   shell(body, 'ribcage', [
     { x: -1.45, y: 0.15, height: 0.6, width: 0.5 },
-    { x: -0.8, y: 0.1, height: 1.3, width: 1.15 },
-    { x: 0, height: 1.65, width: 1.38 },
-    { x: 0.8, y: 0.12, height: 1.25, width: 0.92 },
+    { x: -0.8, y: 0.1, height: 1.45, width: 1.3 },
+    { x: 0, height: 1.8, width: 1.52 },
+    { x: 0.8, y: 0.12, height: 1.4, width: 1.05 },
     { x: 1.2, y: 0.33, height: 0.7, width: 0.56 },
   ])
   const tail = joint(body, 'tail-pivot', -1.2, 0.2)
@@ -89,26 +90,26 @@ export function createPaperDinosaur(
   )
   const neck = joint(body, 'neck-pivot', 0.85, 0.4)
   shell(neck, 'neck', [
-    { x: 0, height: 0.82, width: 0.64 },
-    { x: 0.4, y: 0.48, height: 0.78, width: 0.64 },
+    { x: 0, height: 0.96, width: 0.76 },
+    { x: 0.4, y: 0.48, height: 0.9, width: 0.76 },
     { x: 0.85, y: 0.8, height: 0.67, width: 0.7 },
   ])
   const head = joint(neck, 'skull-pivot', 0.72, 0.8)
   shell(head, 'skull', [
-    { x: -0.2, y: 0.1, height: 0.8, width: 0.78 },
-    { x: 0.3, y: 0.14, height: 0.95, width: 0.96 },
-    { x: 0.9, y: 0.1, height: 0.66, width: 0.78 },
-    { x: 1.53, y: 0.04, height: 0.52, width: 0.66 },
-    { x: 1.66, y: -0.03, height: 0.36, width: 0.54 },
+    { x: -0.2, y: 0.1, height: 0.94, width: 0.92 },
+    { x: 0.3, y: 0.14, height: 1.12, width: 1.12 },
+    { x: 0.9, y: 0.1, height: 0.76, width: 0.88 },
+    { x: 1.53, y: 0.04, height: 0.62, width: 0.76 },
+    { x: 1.66, y: -0.03, height: 0.44, width: 0.62 },
   ])
-  const jaw = joint(head, 'jaw-hinge', 0.03, -0.24)
+  const jaw = joint(head, 'jaw-hinge', -0.02, -0.32)
   shell(
     jaw,
     'lower-jaw',
     [
-      { x: 0, y: -0.03, height: 0.23, width: 0.67 },
-      { x: 0.8, y: -0.08, height: 0.2, width: 0.61 },
-      { x: 1.51, y: -0.01, height: 0.16, width: 0.49 },
+      { x: 0, y: -0.03, height: 0.38, width: 0.78 },
+      { x: 0.8, y: -0.08, height: 0.3, width: 0.7 },
+      { x: 1.51, y: -0.01, height: 0.24, width: 0.58 },
     ],
     6,
   )
@@ -117,25 +118,70 @@ export function createPaperDinosaur(
     roughness: 0.6,
     flatShading: true,
   })
+  const mouth = joint(head, 'roar-origin', 1.5, -0.3)
+  const cavity = new THREE.Mesh(
+    paperLoft(
+      [
+        { x: 0.16, y: 0.04, height: 0.11, width: 0.57 },
+        { x: 0.8, y: 0.02, height: 0.1, width: 0.55 },
+        { x: 1.48, height: 0.07, width: 0.43 },
+      ],
+      6,
+    ),
+    dark,
+  )
+  jaw.add(cavity)
+  const palate = cavity.clone()
+  palate.position.y = -0.36
+  head.add(palate)
   for (const sign of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.OctahedronGeometry(0.105), dark)
-    eye.position.set(0.32, 0.3, sign * 0.44)
+    const brow = shell(
+      head,
+      'orbital-brow',
+      [
+        { x: 0.05, y: 0.48, z: sign * 0.46, height: 0.18, width: 0.15 },
+        { x: 0.48, y: 0.42, z: sign * 0.51, height: 0.15, width: 0.17 },
+        { x: 0.66, y: 0.32, z: sign * 0.46, height: 0.08, width: 0.08 },
+      ],
+      4,
+    )
+    brow.castShadow = true
+    const eye = new THREE.Mesh(new THREE.OctahedronGeometry(0.09), dark)
+    eye.position.set(0.31, 0.32, sign * 0.535)
     eye.scale.set(1.1, 0.6, 0.35)
     head.add(eye)
     const nostril = new THREE.Mesh(new THREE.OctahedronGeometry(0.045), dark)
-    nostril.position.set(1.46, 0.09, sign * 0.3)
+    nostril.position.set(1.46, 0.09, sign * 0.35)
     head.add(nostril)
-    for (let tooth = 0; tooth < 7; tooth++) {
-      const mesh = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.15, 3), paper)
+    for (let tooth = 0; tooth < 9; tooth++) {
+      const mesh = new THREE.Mesh(
+        new THREE.ConeGeometry(0.038, 0.14 + (tooth % 3) * 0.025, 4),
+        paper,
+      )
       mesh.position.set(
-        0.45 + tooth * 0.155,
-        -0.235,
-        sign * (0.31 - tooth * 0.013),
+        0.3 + tooth * 0.145,
+        -0.29,
+        sign * (0.36 - tooth * 0.012),
       )
       mesh.rotation.z = Math.PI
       head.add(mesh)
+      const lowerTooth = mesh.clone()
+      lowerTooth.geometry = mesh.geometry
+      lowerTooth.position.set(
+        0.32 + tooth * 0.139,
+        0.08,
+        sign * (0.31 - tooth * 0.01),
+      )
+      lowerTooth.scale.setScalar(0.72)
+      lowerTooth.rotation.z = 0
+      jaw.add(lowerTooth)
     }
   }
+  const clawMaterial = new THREE.MeshStandardMaterial({
+    color: '#c7bd9e',
+    roughness: 0.82,
+    flatShading: true,
+  })
   const legs: THREE.Group[] = []
   const arms: THREE.Group[] = []
   for (const sign of [-1, 1]) {
@@ -144,8 +190,8 @@ export function createPaperDinosaur(
       leg,
       'haunch',
       [
-        { x: 0, height: 0.8, width: 0.75 },
-        { x: 0.65, height: 0.74, width: 0.61 },
+        { x: 0, height: 1.02, width: 0.88 },
+        { x: 0.65, height: 0.86, width: 0.7 },
         { x: 1.18, height: 0.38, width: 0.34 },
       ],
       6,
@@ -158,12 +204,12 @@ export function createPaperDinosaur(
       [
         { x: 0, height: 0.35, width: 0.3 },
         { x: 0.7, height: 0.21, width: 0.22 },
-        { x: 1.1, height: 0.16, width: 0.2 },
+        { x: 1.22, height: 0.16, width: 0.2 },
       ],
       6,
     )
     lower.rotation.z = -1.87
-    const foot = joint(shin, 'ankle', -0.32, -1.03)
+    const foot = joint(shin, 'ankle', -0.36, -1.15)
     for (const toe of [-1, 0, 1]) {
       const toeMesh = shell(
         foot,
@@ -181,6 +227,19 @@ export function createPaperDinosaur(
       )
       toeMesh.position.z = toe * 0.16
       toeMesh.rotation.y = toe * -0.15
+      const claw = new THREE.Mesh(
+        new THREE.ConeGeometry(0.055, 0.18, 4),
+        clawMaterial,
+      )
+      const length = 0.46 + (toe === 0 ? 0.12 : 0)
+      claw.position.set(
+        length * Math.cos(toe * -0.15),
+        -0.09,
+        toe * 0.16 - length * Math.sin(toe * -0.15),
+      )
+      claw.rotation.set(0, toe * -0.15, -Math.PI / 2)
+      claw.castShadow = true
+      foot.add(claw)
     }
     legs.push(leg)
     const arm = joint(body, `shoulder-${sign}`, 0.89, -0.1, sign * 0.42)
@@ -208,5 +267,5 @@ export function createPaperDinosaur(
     arms.push(arm)
   }
   root.updateMatrixWorld(true)
-  return { root, body, neck, head, jaw, tail, legs, arms, panels }
+  return { root, body, neck, head, jaw, mouth, tail, legs, arms, panels }
 }

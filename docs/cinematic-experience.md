@@ -75,3 +75,13 @@ The implementation contains 25 coherent code commits before this release-verific
 | `refactor/106-cinematic-production-polish`    | dc0532e refactor(cinematic): separate scene ownership from React controls<br>4e66f38 design(product): showcase the real editor with a working sample entry |
 
 Issues #85–#107 follow issue-numbered feature branches, Conventional Commits and normal merge commits. Each PR is merged through `merge:checked` only after its CI verifies the immutable head SHA. Production deployment must follow the last CI-verified merge; record its final SHA and URL in the release handoff.
+
+## Revision 2 — colossal roar (#131)
+
+The skull and jaw have a deeper silhouette, an interior mouth, orbital brows and two tooth rows. Extended shins and clawed toes anchor the feet within 0–0.04 scene units of the ground. Anticipation crouch, neck recoil, torso weight transfer and tail counterbalance precede a wider jaw opening.
+
+At 5.94 seconds the mouth-directed air wakes, expanding ground-pressure haze, soft dust clouds, rim-light response and bounded camera vibration share the same deterministic release. A low-angle approach and modest canvas push make the performance dominate the intro. Effects dissipate before idle; low quality reduces dust/rings, and reduced motion suppresses the entire impact.
+
+Opt-in audio now combines a sub-bass fundamental, voiced throat/formant layer, amplitude modulation and filtered breath noise through an envelope and compressor. All sources stop/disconnect on pause, skip, hidden tabs, reduced motion and disposal. This remains original synthesized creature audio, not a recorded animal asset.
+
+The stored cinematic revision lets existing visitors see the new story once while retaining their reduced-motion preference. Verification: 239 Vitest tests and 37 Chromium tests passed, including actual audio opt-in/source creation and shader/page error checks. Frame and video artifacts retain the enhanced roar, final hero and mobile state.

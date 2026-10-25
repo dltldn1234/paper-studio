@@ -13,7 +13,7 @@ it('poses linked joints without drift and returns to the bind pose', () => {
   for (let i = 0; i < 100; i++) rig.apply(pose)
   expect(model.jaw.matrixWorld.equals(jaw)).toBe(true)
   expect(model.head.quaternion.equals(rest)).toBe(false)
-  expect(model.jaw.rotation.z).toBeCloseTo(-0.42)
+  expect(model.jaw.rotation.z).toBeCloseTo(-0.68)
   rig.apply()
   expect(model.head.quaternion.equals(rest)).toBe(true)
   expect(model.jaw.rotation.z).toBeCloseTo(0)

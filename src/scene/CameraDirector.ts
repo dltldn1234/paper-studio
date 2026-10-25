@@ -8,14 +8,16 @@ export function cinematicCamera(
 ) {
   const mobile = aspect < 0.9
   const distance = mobile ? 18 : 13.3
-  if (reducedMotion) return { x: 4, y: 4.5, z: distance, targetY: 2.1 }
+  if (reducedMotion)
+    return { x: 4, y: 4.5, z: distance, targetX: -0.5, targetY: 2.1 }
   const rise = smoothProgress(seconds, 1.4, 5)
   const approach =
     smoothProgress(seconds, 4.4, 5.6) * (1 - smoothProgress(seconds, 6.8, 9))
   return {
-    x: 4 + Math.sin(idleSeconds * 0.12) * 0.12,
-    y: 7.2 - rise * 2.7 - approach * 0.15,
-    z: distance + (1 - rise) * 1.1 - approach * 1.3,
-    targetY: 0.8 + rise * 1.3,
+    x: 4 + approach * 2.8 + Math.sin(idleSeconds * 0.12) * 0.12,
+    y: 7.2 - rise * 2.7 - approach * 2.6,
+    z: distance + (1 - rise) * 1.1 - approach * (mobile ? 1.8 : 3.3),
+    targetX: -0.5 + approach * 0.95,
+    targetY: 0.8 + rise * 1.3 + approach * 0.4,
   }
 }
