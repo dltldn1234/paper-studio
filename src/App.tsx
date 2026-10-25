@@ -1023,11 +1023,7 @@ function App() {
   return (
     <div className="studio-shell" style={workspaceStyle}>
       <header className="studio-topbar">
-        <a
-          className="studio-brand"
-          href="#workspace"
-          aria-label="Paper Studio 홈"
-        >
+        <a className="studio-brand" href="/" aria-label="Paper Studio 홈">
           <span className="studio-brand__mark">
             <Box size={17} strokeWidth={1.8} />
           </span>

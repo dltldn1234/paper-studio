@@ -4,7 +4,7 @@ test('manages versioned profile-linked measurement history and JSON backup', asy
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1200 })
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: '내보내기' }).click()
   await page.getByLabel('파일 형식').selectOption('pdf')
   const panel = page.getByRole('region', { name: '프린터 교정 프로필' })

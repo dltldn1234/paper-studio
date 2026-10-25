@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test('edits a valid polyhedron fold tree and supports undo and redo', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByLabel('다면체 종류').selectOption('tetrahedron')
   const canvas = page.getByRole('application', {
     name: '다면체 2D 전개도 캔버스',
@@ -66,7 +66,7 @@ test('edits a valid polyhedron fold tree and supports undo and redo', async ({
 test('selects a regular solid and synchronizes its net, folding, and SVG output', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByLabel('다면체 종류').selectOption('octahedron')
   const canvas2d = page.getByRole('application', {
     name: '다면체 2D 전개도 캔버스',
@@ -126,7 +126,7 @@ test('selects a regular solid and synchronizes its net, folding, and SVG output'
 test('saves and restores a versioned local polyhedron project', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByLabel('다면체 종류').selectOption('tetrahedron')
   const edgeLength = page.getByLabel('모서리 길이 (mm)')
   await edgeLength.fill('135')
@@ -165,7 +165,7 @@ test('dimensions update the 2D net, 3D preview, and inspector together', async (
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.goto('/')
+  await page.goto('/studio')
 
   await expect(
     page.getByRole('img', { name: '접힘 시뮬레이션 3D 미리보기' }),
@@ -190,7 +190,7 @@ test('dimensions update the 2D net, 3D preview, and inspector together', async (
 test('rejects invalid dimensions while keeping the last valid model', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   const width = page.getByLabel('너비 (mm)', { exact: true })
   await width.fill('0')
 
@@ -205,7 +205,7 @@ test('rejects invalid dimensions while keeping the last valid model', async ({
 test('supports SVG zoom, pan, and keyboard face selection', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   const svg = page.getByRole('application', { name: '2D 전개도 캔버스' })
   const face = page.locator('[data-face-id="right"]')
 
@@ -234,7 +234,7 @@ test('selects a face from the 3D canvas and adapts to a narrow viewport', async 
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
-  await page.goto('/')
+  await page.goto('/studio')
   const canvas = page.locator('.three-preview__canvas')
   await expect(canvas).toBeVisible()
   const box = await canvas.boundingBox()
@@ -258,7 +258,7 @@ test('selects a face from the 3D canvas and adapts to a narrow viewport', async 
 test('controls fold progress with the keyboard and playback buttons', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   const progress = page.getByRole('slider', { name: '접힘 진행률' })
   await progress.focus()
   await page.keyboard.press('Home')
@@ -278,7 +278,7 @@ test('controls fold progress with the keyboard and playback buttons', async ({
 })
 
 test('downloads an SVG using the requested filename', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: '내보내기' }).click()
   const dialog = page.getByRole('dialog', { name: '도면 내보내기' })
   await dialog.getByLabel('SVG 파일 이름').fill('assembly-pattern')
@@ -294,7 +294,7 @@ test('downloads an SVG using the requested filename', async ({ page }) => {
 test('previews and downloads a paginated PDF at the selected paper size', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: '내보내기' }).click()
   const dialog = page.getByRole('dialog', { name: '도면 내보내기' })
   await dialog.getByLabel('파일 형식').selectOption('pdf')

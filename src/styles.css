@@ -30,6 +30,61 @@
 * {
   box-sizing: border-box;
 }
+
+.route-loading {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  background: #060a13;
+  color: #cbd8eb;
+  font-size: 12px;
+}
+
+.route-loading__mark {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #527db9;
+  border-radius: 8px;
+  box-shadow: 0 0 24px rgb(53 120 255 / 22%);
+}
+
+.route-not-found {
+  display: grid;
+  min-height: 100dvh;
+  align-content: center;
+  justify-items: start;
+  gap: 16px;
+  background: #060a13;
+  padding: 36px;
+  color: #f5f7fb;
+}
+
+.route-not-found h1,
+.route-not-found p {
+  margin: 0;
+}
+
+.route-not-found__eyebrow {
+  color: #88a9d4;
+  font-size: 10px;
+  letter-spacing: 0.17em;
+}
+
+.route-not-found p {
+  color: #9daabe;
+}
+
+.route-not-found__actions {
+  display: flex;
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.route-not-found__actions a {
+  color: #9fc3ff;
+}
 body {
   margin: 0;
   min-width: 360px;

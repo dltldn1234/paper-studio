@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 test('edits glue tab shape and edge state', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   const shape = page.getByRole('combobox', { name: '접착탭 형태' })
   const direction = page.getByRole('combobox', { name: '접착탭 방향' })
   await shape.selectOption('beveled')
@@ -22,7 +22,7 @@ test('edits glue tab shape and edge state', async ({ page }) => {
 test('loads a local face texture and captures its editor state', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: 'kraft 재질 프리셋' }).click()
   await page.getByLabel('로컬 이미지 텍스처').setInputFiles({
     name: 'texture.png',
@@ -47,7 +47,7 @@ test('records measured print calibration locally without implying physical verif
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1200 })
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: '내보내기' }).click()
   await page.getByLabel('파일 형식').selectOption('pdf')
   await expect(page.getByText('미측정 · 물리 출력 미검증')).toHaveCount(3)
@@ -75,7 +75,7 @@ test('records measured print calibration locally without implying physical verif
 test('exports a local WebP face texture to PDF in the browser', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   const webpDataUrl = await page.evaluate(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 4
@@ -109,7 +109,7 @@ test('exports a local WebP face texture to PDF in the browser', async ({
 })
 
 test('steps through an idealized assembly guide', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: '조립 순서 시작' }).click()
   await expect(page.locator('.assembly-guide__step')).toContainText('단계 1 /')
   await expect(
@@ -130,7 +130,7 @@ test('steps through an idealized assembly guide', async ({ page }) => {
 })
 
 test('restores the saved assembly guide position', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: '조립 순서 시작' }).click()
   const downloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: '프로젝트 저장' }).click()
@@ -145,7 +145,7 @@ test('restores the saved assembly guide position', async ({ page }) => {
 test('configures production print layers and downloads the assembly PDF', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: '내보내기' }).click()
   await page.getByLabel('파일 형식').selectOption('pdf')
   await expect(page.locator('.print-preview-pattern__fold')).not.toHaveCount(0)
