@@ -1,3 +1,4 @@
+import { SceneBoundary } from './WebGLFallback'
 import { lazy, Suspense, useState } from 'react'
 import {
   ArrowDown,
@@ -212,9 +213,11 @@ export default function CinematicLanding() {
           </div>
         </div>
         <div className="landing-hero__visual">
-          <Suspense fallback={<StructureSchematic />}>
-            <HeroScene onPhase={setPhase} />
-          </Suspense>
+          <SceneBoundary onUnavailable={setPhase}>
+            <Suspense fallback={<StructureSchematic />}>
+              <HeroScene onPhase={setPhase} />
+            </Suspense>
+          </SceneBoundary>
           <span className="landing-visual-index" aria-hidden="true">
             FIG. 01 — THE PAPER AWAKENS
           </span>
