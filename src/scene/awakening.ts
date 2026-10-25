@@ -25,6 +25,7 @@ export function awakeningFrame(seconds: number, reducedMotion = false) {
       breath: 0,
     },
     lightPulse: pulse,
-    cameraImpulse: Math.sin((seconds - 6) * 110) * pulse * 0.012,
+    cameraImpulse:
+      pulse === 0 ? 0 : Math.sin((seconds - 6) * 110) * pulse * 0.012,
   }
 }
