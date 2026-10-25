@@ -189,7 +189,7 @@ export default function CinematicLanding() {
             <span>현실의 구조가 되다.</span>
           </h1>
           <p className="landing-hero__description">
-            아이디어부터 정교한 전개도까지.
+            아이디어부터 정교한 전개도까지.{' '}
             <br className="landing-desktop-break" />
             Paper Studio에서 설계하고, 접고, 완성하세요.
           </p>

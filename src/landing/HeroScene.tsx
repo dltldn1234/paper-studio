@@ -96,6 +96,7 @@ export default function HeroScene({
     scene.fog = new THREE.Fog('#060a13', 18, 38)
     const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 60)
     const controls = new OrbitControls(camera, renderer.domElement)
+    renderer.domElement.style.touchAction = 'pan-y'
     controls.enableDamping = true
     controls.enablePan = false
     controls.minDistance = 8
