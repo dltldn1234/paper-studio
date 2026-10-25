@@ -1,3 +1,4 @@
+import { startRenderLoop } from '../scene/renderLoop'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
@@ -25,7 +26,6 @@ type PreviewScene = {
   faceMeshes: Map<string, FaceMesh>
   renderer: THREE.WebGLRenderer
   resizeObserver: ResizeObserver | null
-  animationFrameId: number
 }
 
 const BASE_FACE_COLOR = '#566174'
@@ -132,7 +132,6 @@ export function ThreePolyhedronPreview({
       faceMeshes,
       renderer,
       resizeObserver: null,
-      animationFrameId: 0,
     }
     previewRef.current = preview
     const resize = () => {
@@ -176,19 +175,17 @@ export function ThreePolyhedronPreview({
     }
     renderer.domElement.addEventListener('pointerdown', onDown)
     renderer.domElement.addEventListener('pointerup', onUp)
-    const animate = () => {
-      preview.animationFrameId = window.requestAnimationFrame(animate)
+    const stopRendering = startRenderLoop(() => {
       controls.update()
       renderer.render(scene, camera)
-    }
-    animate()
+    })
 
     return () => {
       preview.resizeObserver?.disconnect()
       window.removeEventListener('resize', resize)
       renderer.domElement.removeEventListener('pointerdown', onDown)
       renderer.domElement.removeEventListener('pointerup', onUp)
-      window.cancelAnimationFrame(preview.animationFrameId)
+      stopRendering()
       controls.dispose()
       faceMeshes.forEach((faceMesh) => {
         faceMesh.geometry.dispose()
