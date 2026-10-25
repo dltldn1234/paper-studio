@@ -33,6 +33,7 @@ const errors = []
 try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 960 },
+    reducedMotion: 'no-preference',
     recordVideo: {
       dir: `test-results/${label}-video`,
       size: { width: 1280, height: 720 },
@@ -59,6 +60,15 @@ try {
       exact: true,
     })
     .waitFor({ timeout: 20000 })
+  for (const target of await page.locator('[data-motion-reveal]').all()) {
+    await target.scrollIntoViewIfNeeded()
+    await page.waitForTimeout(80)
+    assert.equal(await target.getAttribute('data-revealed'), 'true')
+  }
+  await page.waitForTimeout(900)
+  await page.screenshot({ path: `test-results/${label}-page-motion.png` })
+  await page.evaluate(() => globalThis.scrollTo(0, 0))
+  await page.waitForTimeout(100)
   await page.screenshot({
     path: `test-results/${label}-hero.png`,
     fullPage: true,
