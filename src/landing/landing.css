@@ -702,3 +702,15 @@
     transition: none;
   }
 }
+
+.cinematic-fallback img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  object-fit: contain;
+}
+.cinematic-fallback {
+  height: auto;
+  min-height: 450px;
+}

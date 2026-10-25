@@ -1,3 +1,4 @@
+import { WebGLFallback } from './WebGLFallback'
 import { DeviceQuality } from '../scene/DeviceQuality'
 import { createPaperAtmosphere } from '../scene/ParticleSystem'
 import {
@@ -362,13 +363,7 @@ export default function HeroScene({
   return (
     <div className="cinematic-showcase">
       <div ref={container} className="cinematic-canvas" hidden={fallback} />
-      {fallback && (
-        <div className="cinematic-fallback">
-          <span>FROM PAPER TO POSSIBILITY</span>
-          <p>종이 한 장에서 시작되는 입체의 가능성.</p>
-          <a href="/studio">스튜디오 시작하기 →</a>
-        </div>
-      )}
+      {fallback && <WebGLFallback />}
       <p className="cinematic-caption" aria-live="polite">
         {phase}
       </p>
