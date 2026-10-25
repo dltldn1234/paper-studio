@@ -1,3 +1,4 @@
+import { createPaperAtmosphere } from '../scene/ParticleSystem'
 import {
   createCinematicLighting,
   createPaperGrain,
@@ -86,6 +87,8 @@ export default function HeroScene({
     }
     controls.addEventListener('start', userControl)
     const lighting = createCinematicLighting(scene)
+    const atmosphere = createPaperAtmosphere(window.innerWidth < 700 ? 24 : 48)
+    scene.add(atmosphere.points)
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(80, 80),
       new THREE.ShadowMaterial({ opacity: 0.3 }),
@@ -273,6 +276,7 @@ export default function HeroScene({
         edges.needsUpdate = true
         fold.lines.geometry.computeBoundingSphere()
       })
+      atmosphere.update(frame.seconds + idleTime, reduce)
       blueprint.update(frame.blueprint, frame.reveal)
       const material = model.panels[0].material
       material.transparent = frame.seconds < 3
