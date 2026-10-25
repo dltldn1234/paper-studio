@@ -1,3 +1,4 @@
+import { StudioLink } from './StudioLink'
 import { SceneBoundary } from './WebGLFallback'
 import { lazy, Suspense, useState } from 'react'
 import {
@@ -172,9 +173,9 @@ export default function CinematicLanding() {
           <a href="#workflow">제품 소개</a>
           <a href="#capabilities">기능</a>
         </nav>
-        <a className="landing-header__cta" href="/studio">
+        <StudioLink className="landing-header__cta" href="/studio">
           스튜디오 시작하기 <ArrowUpRight size={15} aria-hidden="true" />
-        </a>
+        </StudioLink>
       </header>
 
       <section className="landing-hero" aria-labelledby="landing-title">
@@ -193,12 +194,15 @@ export default function CinematicLanding() {
             Paper Studio에서 설계하고, 접고, 완성하세요.
           </p>
           <div className="landing-hero__actions">
-            <a className="landing-primary-action" href="/studio">
+            <StudioLink className="landing-primary-action" href="/studio">
               스튜디오 시작하기 <ArrowUpRight size={16} aria-hidden="true" />
-            </a>
-            <a className="landing-secondary-action" href="#workflow">
-              설계 흐름 살펴보기 <ArrowDown size={15} aria-hidden="true" />
-            </a>
+            </StudioLink>
+            <StudioLink
+              className="landing-secondary-action"
+              href="/studio?sample=tetrahedron"
+            >
+              샘플 프로젝트 열기 <ArrowUpRight size={15} aria-hidden="true" />
+            </StudioLink>
           </div>
           <div className="landing-hero__proof" id="capabilities">
             <span>
