@@ -18,6 +18,9 @@ test('offers a static original poster and editor entry without WebGL', async ({
   })
   await page.goto('/')
   await expect(page.locator('.cinematic-fallback img')).toBeVisible()
+  await expect(
+    page.getByText('정적 제품 미리보기', { exact: true }),
+  ).toBeVisible()
   await expect(page.locator('.landing-page')).toHaveAttribute(
     'data-intro-phase',
     'idle',
@@ -37,6 +40,9 @@ test('recovers a lost WebGL context to the poster without blocking navigation', 
       canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true })),
     )
   await expect(page.locator('.cinematic-fallback img')).toBeVisible()
+  await expect(
+    page.getByText('정적 제품 미리보기', { exact: true }),
+  ).toBeVisible()
   await page.locator('.cinematic-fallback a').click()
   await expect(page.locator('.studio-topbar')).toBeVisible()
 })
