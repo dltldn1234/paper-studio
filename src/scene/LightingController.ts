@@ -1,20 +1,22 @@
 import * as THREE from 'three'
 
 export function createCinematicLighting(scene: THREE.Scene) {
-  const ambient = new THREE.HemisphereLight('#e6efff', '#2a2330', 1.7)
-  const key = new THREE.DirectionalLight('#fff2df', 3.2)
+  const ambient = new THREE.HemisphereLight('#e6efff', '#211c28', 0.95)
+  const key = new THREE.DirectionalLight('#fff0d8', 3.6)
   key.position.set(1, 8, 5)
   key.castShadow = true
   key.shadow.mapSize.set(1024, 1024)
   Object.assign(key.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8 })
   key.shadow.normalBias = 0.04
-  const rim = new THREE.DirectionalLight('#72abff', 3)
+  const rim = new THREE.DirectionalLight('#83a6d1', 4)
   rim.position.set(-3, 5, -4)
   scene.add(ambient, key, rim)
   return {
     key,
     update(seconds: number, pulse: number, reduced: boolean) {
-      rim.intensity = 3 + pulse * 2.5
+      rim.intensity = 4 + pulse * 5
+      key.intensity = 3.6 + pulse * 0.7
+      ambient.intensity = 0.95 - pulse * 0.2
       rim.position.x = -3 + (reduced ? 0 : Math.sin(seconds * 0.15) * 0.3)
     },
   }

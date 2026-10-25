@@ -1,3 +1,4 @@
+import { createRoarImpact } from './RoarImpact'
 import { RoarAudio } from './RoarAudio'
 import {
   readMotionPreferences,
@@ -111,6 +112,10 @@ export function mountHeroScene(
     directed = false
   }
   controls.addEventListener('start', userControl)
+  const impact = createRoarImpact()
+  scene.add(impact.group)
+  const mouthPosition = new THREE.Vector3()
+  const mouthRotation = new THREE.Quaternion()
   const lighting = createCinematicLighting(scene)
   const atmosphere = createPaperAtmosphere(window.innerWidth < 700 ? 24 : 48)
   scene.add(atmosphere.points)
@@ -269,6 +274,7 @@ export function mountHeroScene(
     )
     renderer.shadowMap.enabled = !low
     atmosphere.setCount(low ? 12 : 48)
+    impact.setQuality(low)
     resize()
   }
   applyQuality()
@@ -326,7 +332,11 @@ export function mountHeroScene(
     folds.forEach((fold, index) => {
       const assembly =
         1 -
-        smoothProgress(frame.seconds, 2 + index * 0.035, 4.3 + index * 0.035)
+        smoothProgress(
+          frame.seconds,
+          2 + (index / folds.length) * 0.55,
+          4.3 + (index / folds.length) * 0.55,
+        )
       const unfold = frame.phase === 'idle' ? currentUnfold : assembly
       if (Math.abs(unfold - fold.previous) < 0.0001) return
       fold.previous = unfold
@@ -380,12 +390,21 @@ export function mountHeroScene(
       reduce,
     )
     rig.apply(awakening.pose)
-    if (!reduce && !roared && frame.seconds >= 6 && frame.seconds < 6.3) {
+    model.mouth.getWorldPosition(mouthPosition)
+    model.mouth.getWorldQuaternion(mouthRotation)
+    impact.update(
+      frame.seconds,
+      reduce || currentUnfold > 0.01,
+      mouthPosition,
+      mouthRotation,
+    )
+    if (!reduce && !roared && frame.seconds >= 5.94 && frame.seconds < 6.3) {
       audio.play()
       roared = true
     }
     if (document.hidden) audio.stop()
     lighting.update(idleTime, awakening.lightPulse, reduce)
+    renderer.toneMappingExposure = 1.05 + awakening.lightPulse * 0.12
     if (directed) {
       const shot = cinematicCamera(
         frame.seconds,
@@ -400,7 +419,7 @@ export function mountHeroScene(
         THREE.MathUtils.lerp(shot.z, 17, currentUnfold),
       )
       controls.target.set(
-        -0.5,
+        shot.targetX,
         THREE.MathUtils.lerp(shot.targetY, 0.4, currentUnfold),
         0,
       )
