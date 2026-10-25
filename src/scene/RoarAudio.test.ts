@@ -43,6 +43,7 @@ it('cancels every layered voice and disconnects the whole audio graph', async ()
     createOscillator: node,
     createBiquadFilter: node,
     createDynamicsCompressor: node,
+    createConvolver: node,
     createBufferSource: node,
     createBuffer: (_channels: number, frames: number) => ({
       getChannelData: () => new Float32Array(frames),

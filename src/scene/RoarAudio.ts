@@ -3,6 +3,7 @@ export class RoarAudio {
   private context: AudioContext | null = null
   private active: AudioScheduledSourceNode[] = []
   private release: (() => void) | null = null
+  private tailTimer: number | null = null
   enabled = false
 
   async toggle(): Promise<boolean> {
@@ -40,6 +41,30 @@ export class RoarAudio {
     compressor.release.value = 0.16
     master.connect(compressor)
     compressor.connect(context.destination)
+    const reverb = context.createConvolver()
+    const impulse = context.createBuffer(
+      2,
+      Math.ceil(context.sampleRate * 1.1),
+      context.sampleRate,
+    )
+    let roomSeed = 7193
+    for (let channel = 0; channel < 2; channel++) {
+      const response = impulse.getChannelData(channel)
+      for (let i = 0; i < response.length; i++) {
+        roomSeed = (roomSeed * 1664525 + 1013904223) >>> 0
+        const t = i / response.length
+        response[i] =
+          i < context.sampleRate * 0.028
+            ? 0
+            : (roomSeed / 2147483648 - 1) * Math.pow(1 - t, 3.5)
+      }
+    }
+    reverb.buffer = impulse
+    const roomGain = context.createGain()
+    roomGain.gain.value = 0.18
+    compressor.connect(reverb)
+    reverb.connect(roomGain)
+    roomGain.connect(context.destination)
     const throat = context.createBiquadFilter()
     throat.type = 'lowpass'
     throat.frequency.setValueAtTime(1400, time)
@@ -101,6 +126,8 @@ export class RoarAudio {
     const owned: AudioNode[] = [
       master,
       compressor,
+      reverb,
+      roomGain,
       throat,
       voice,
       voiceGain,
@@ -116,6 +143,8 @@ export class RoarAudio {
     const release = () => {
       if (released) return
       released = true
+      if (this.tailTimer !== null) window.clearTimeout(this.tailTimer)
+      this.tailTimer = null
       owned.forEach((node) => node.disconnect())
       if (this.release === release) this.release = null
     }
@@ -125,7 +154,8 @@ export class RoarAudio {
       source.onended = () => {
         remaining.delete(source)
         this.active = this.active.filter((node) => node !== source)
-        if (remaining.size === 0) release()
+        if (remaining.size === 0 && !released)
+          this.tailTimer = window.setTimeout(release, 700)
       }
       source.start(time)
       source.stop(time + duration + 0.02)
@@ -134,6 +164,8 @@ export class RoarAudio {
   }
 
   stop(): void {
+    if (this.tailTimer !== null) window.clearTimeout(this.tailTimer)
+    this.tailTimer = null
     for (const source of this.active) {
       try {
         source.stop()
