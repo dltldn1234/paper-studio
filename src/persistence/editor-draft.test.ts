@@ -28,3 +28,19 @@ it('recovers invalid storage and tolerates quota failures without deleting data'
     'broken',
   )
 })
+
+it('keeps a recovery copy before replacing a corrupt draft and preserves project fields', () => {
+  localStorage.setItem(
+    'paper-studio.editor-workspace.v1',
+    'original damaged data',
+  )
+  const project = sampleProject()
+  project.faceMaterials = { face0: { color: '#3578ff' } }
+  project.printSettings.paperSize = 'A3'
+  project.assemblyStepIndex = 2
+  writeEditorDraft('workspace', project)
+  expect(
+    localStorage.getItem('paper-studio.editor-workspace.v1.recovery'),
+  ).toBe('original damaged data')
+  expect(readEditorDraft('workspace')).toEqual(project)
+})
