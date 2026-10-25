@@ -1,3 +1,4 @@
+import { DeviceQuality } from '../scene/DeviceQuality'
 import { createPaperAtmosphere } from '../scene/ParticleSystem'
 import {
   createCinematicLighting,
@@ -42,6 +43,15 @@ export default function HeroScene({
     if (!host) return
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
     let reduce = media.matches
+    const connection = (
+      navigator as Navigator & { connection?: { saveData?: boolean } }
+    ).connection
+    const quality = new DeviceQuality(
+      navigator.hardwareConcurrency || 4,
+      window.innerWidth < 700,
+      connection?.saveData,
+    )
+
     let renderer: THREE.WebGLRenderer
     try {
       renderer = new THREE.WebGLRenderer({
@@ -102,7 +112,7 @@ export default function HeroScene({
     gridMaterial.transparent = true
     gridMaterial.opacity = 0.3
     scene.add(grid)
-    const model = createPaperDinosaur(window.innerWidth < 700 ? 'low' : 'high')
+    const model = createPaperDinosaur(quality.quality)
     model.panels[0].material.roughnessMap = createPaperGrain()
     scene.add(model.root)
     const blueprint = createBlueprintNet(
@@ -221,10 +231,25 @@ export default function HeroScene({
       },
       reduce: reduceMotion,
     }
+    const applyQuality = () => {
+      const low = quality.quality === 'low'
+      renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio || 1, low ? 1.25 : 1.75),
+      )
+      renderer.shadowMap.enabled = !low
+      atmosphere.setCount(low ? 12 : 48)
+      resize()
+    }
+    applyQuality()
+    let renderAccumulator = 1 / 30
     let stopped = false
     const stop = startRenderLoop(({ delta: frameDelta }) => {
       if (stopped) return
-      const delta = motionPaused ? 0 : frameDelta
+      if (quality.observe(frameDelta)) applyQuality()
+      renderAccumulator += frameDelta
+      if (quality.quality === 'low' && renderAccumulator < 1 / 30) return
+      const delta = motionPaused ? 0 : renderAccumulator
+      renderAccumulator = 0
       const frame = timeline.advance(delta)
       if (timeline.state === 'complete' && !motionPaused) idleTime += delta
       if (frame.phase !== lastPhase) {
