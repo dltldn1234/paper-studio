@@ -1,4 +1,4 @@
-import { BufferGeometry, Material, Object3D, Texture } from 'three'
+import { BufferGeometry, Light, Material, Object3D, Texture } from 'three'
 
 /** Release resources owned exclusively by this scene, including shared edges/maps. */
 export function disposeScene(root: Object3D): void {
@@ -6,6 +6,10 @@ export function disposeScene(root: Object3D): void {
   const materials = new Set<Material>()
   const textures = new Set<Texture>()
   root.traverse((object) => {
+    if (object instanceof Light) {
+      const shadow = (object as Light & { shadow?: { dispose(): void } }).shadow
+      shadow?.dispose()
+    }
     const drawable = object as Object3D & {
       geometry?: BufferGeometry
       material?: Material | Material[]

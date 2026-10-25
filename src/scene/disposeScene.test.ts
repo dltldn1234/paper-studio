@@ -1,5 +1,12 @@
 import { expect, it, vi } from 'vitest'
-import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Texture } from 'three'
+import {
+  BoxGeometry,
+  DirectionalLight,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  Texture,
+} from 'three'
 import { disposeScene } from './disposeScene'
 
 it('releases nested shared geometry, materials and textures exactly once', () => {
@@ -7,6 +14,9 @@ it('releases nested shared geometry, materials and textures exactly once', () =>
   const texture = new Texture()
   const material = new MeshStandardMaterial({ map: texture })
   const scene = new Group()
+  const light = new DirectionalLight()
+  const disposeShadow = vi.spyOn(light.shadow, 'dispose')
+  scene.add(light)
   const nested = new Group()
   nested.add(new Mesh(geometry, [material, material]))
   scene.add(new Mesh(geometry, material), nested)
@@ -18,5 +28,6 @@ it('releases nested shared geometry, materials and textures exactly once', () =>
   expect(disposeGeometry).toHaveBeenCalledTimes(1)
   expect(disposeMaterial).toHaveBeenCalledTimes(1)
   expect(disposeTexture).toHaveBeenCalledTimes(1)
+  expect(disposeShadow).toHaveBeenCalledTimes(1)
   expect(scene.children).toHaveLength(0)
 })
