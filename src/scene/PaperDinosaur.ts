@@ -177,6 +177,11 @@ export function createPaperDinosaur(
       jaw.add(lowerTooth)
     }
   }
+  const clawMaterial = new THREE.MeshStandardMaterial({
+    color: '#c7bd9e',
+    roughness: 0.82,
+    flatShading: true,
+  })
   const legs: THREE.Group[] = []
   const arms: THREE.Group[] = []
   for (const sign of [-1, 1]) {
@@ -199,12 +204,12 @@ export function createPaperDinosaur(
       [
         { x: 0, height: 0.35, width: 0.3 },
         { x: 0.7, height: 0.21, width: 0.22 },
-        { x: 1.1, height: 0.16, width: 0.2 },
+        { x: 1.22, height: 0.16, width: 0.2 },
       ],
       6,
     )
     lower.rotation.z = -1.87
-    const foot = joint(shin, 'ankle', -0.32, -1.03)
+    const foot = joint(shin, 'ankle', -0.36, -1.15)
     for (const toe of [-1, 0, 1]) {
       const toeMesh = shell(
         foot,
@@ -222,6 +227,19 @@ export function createPaperDinosaur(
       )
       toeMesh.position.z = toe * 0.16
       toeMesh.rotation.y = toe * -0.15
+      const claw = new THREE.Mesh(
+        new THREE.ConeGeometry(0.055, 0.18, 4),
+        clawMaterial,
+      )
+      const length = 0.46 + (toe === 0 ? 0.12 : 0)
+      claw.position.set(
+        length * Math.cos(toe * -0.15),
+        -0.09,
+        toe * 0.16 - length * Math.sin(toe * -0.15),
+      )
+      claw.rotation.set(0, toe * -0.15, -Math.PI / 2)
+      claw.castShadow = true
+      foot.add(claw)
     }
     legs.push(leg)
     const arm = joint(body, `shoulder-${sign}`, 0.89, -0.1, sign * 0.42)
