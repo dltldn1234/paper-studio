@@ -1,7 +1,10 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { RoarAudio } from './RoarAudio'
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.useRealTimers()
+})
 
 it('cancels every layered voice and disconnects the whole audio graph', async () => {
   const param = () => ({
@@ -23,7 +26,7 @@ it('cancels every layered voice and disconnects the whole audio graph', async ()
       ratio: param(),
       attack: param(),
       release: param(),
-      onended: null,
+      onended: null as (() => void) | null,
     }
     return value
   }
@@ -62,6 +65,18 @@ it('cancels every layered voice and disconnects the whole audio graph', async ()
   expect(sources).toHaveLength(4)
   audio.stop()
   for (const source of sources) expect(source.stop).toHaveBeenCalledTimes(2)
+  for (const value of nodes) expect(value.disconnect).toHaveBeenCalledTimes(1)
+  vi.useFakeTimers()
+  const previousCount = nodes.length
+  audio.play()
+  const nextSources = nodes
+    .slice(previousCount)
+    .filter((value) => value.start.mock.calls.length > 0)
+  for (const source of nextSources) source.onended?.()
+  expect(vi.getTimerCount()).toBe(1)
+  audio.stop()
+  expect(vi.getTimerCount()).toBe(0)
+  vi.runAllTimers()
   for (const value of nodes) expect(value.disconnect).toHaveBeenCalledTimes(1)
   audio.dispose()
 })
