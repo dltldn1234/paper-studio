@@ -1216,3 +1216,39 @@ body:has(.landing-page) {
   transform: none;
   transition: none;
 }
+
+.landing-header {
+  animation: header-arrival 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-play-state: paused;
+}
+.landing-page[data-page-motion='active'] .landing-header {
+  animation-play-state: running;
+}
+.landing-page[data-page-motion='active'] .landing-eyebrow > span {
+  animation: drafting-beacon 6s ease-in-out infinite;
+}
+.landing-footer .landing-brand__mark {
+  transition: transform 250ms ease;
+}
+.landing-footer .landing-brand:is(:hover, :focus-visible) .landing-brand__mark {
+  transform: rotate(-8deg);
+}
+@keyframes header-arrival {
+  from {
+    transform: translateY(-8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes drafting-beacon {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}

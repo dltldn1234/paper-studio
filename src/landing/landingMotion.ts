@@ -179,8 +179,16 @@ export function mountLandingMotion(root: HTMLElement) {
   window.addEventListener('resize', schedule)
   window.addEventListener(MOTION_PREFERENCES_EVENT, onPreference)
   document.addEventListener('visibilitychange', onVisibility)
-  media.addEventListener('change', onMedia)
-  finePointer.addEventListener('change', onLeave)
+  const watchMedia = (query: MediaQueryList, listener: () => void) => {
+    if (typeof query.addEventListener === 'function') {
+      query.addEventListener('change', listener)
+      return () => query.removeEventListener('change', listener)
+    }
+    query.addListener?.(listener)
+    return () => query.removeListener?.(listener)
+  }
+  const stopMotionMedia = watchMedia(media, onMedia)
+  const stopPointerMedia = watchMedia(finePointer, onLeave)
   updateState()
   schedule()
   return {
@@ -200,8 +208,8 @@ export function mountLandingMotion(root: HTMLElement) {
       window.removeEventListener('resize', schedule)
       window.removeEventListener(MOTION_PREFERENCES_EVENT, onPreference)
       document.removeEventListener('visibilitychange', onVisibility)
-      media.removeEventListener('change', onMedia)
-      finePointer.removeEventListener('change', onLeave)
+      stopMotionMedia()
+      stopPointerMedia()
       delete root.dataset.pageMotion
       delete root.dataset.reveals
     },

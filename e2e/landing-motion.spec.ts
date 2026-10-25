@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+test.use({ video: 'on' })
+
 test('coordinates scroll reveals, pointer depth and full-page playback preferences', async ({
   page,
 }) => {
@@ -35,7 +37,7 @@ test('coordinates scroll reveals, pointer depth and full-page playback preferenc
     'animation-play-state',
     'running',
   )
-  await page.waitForTimeout(1000)
+  await page.waitForTimeout(4500)
   await page.screenshot({ path: 'test-results/page-motion-product.png' })
   const progress = await root.evaluate((element) =>
     Number(element.style.getPropertyValue('--page-progress')),
