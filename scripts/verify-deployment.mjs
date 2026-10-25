@@ -1,3 +1,6 @@
+import process from 'node:process'
+import console from 'node:console'
+import { URL } from 'node:url'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { chromium } from '@playwright/test'
@@ -85,7 +88,9 @@ try {
     .waitFor()
   assert.equal(
     await mobilePage.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
+      () =>
+        globalThis.document.documentElement.scrollWidth <=
+        globalThis.innerWidth,
     ),
     true,
   )
