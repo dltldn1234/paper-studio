@@ -4,8 +4,10 @@ import { WebGLFallback } from './WebGLFallback'
 
 export default function HeroScene({
   onPhase,
+  onPausedChange,
 }: {
   onPhase?: (phase: string) => void
+  onPausedChange?: (paused: boolean) => void
 }) {
   const container = useRef<HTMLDivElement>(null)
   const commands = useRef<SceneCommands | null>(null)
@@ -15,6 +17,10 @@ export default function HeroScene({
   const [isUnfolded, setIsUnfolded] = useState(false)
   const [reduced, setReduced] = useState(false)
   const [phase, setPhase] = useState('종이의 가능성을 준비하고 있습니다')
+
+  useEffect(() => {
+    onPausedChange?.(paused)
+  }, [paused, onPausedChange])
 
   useEffect(() => {
     const host = container.current
@@ -43,10 +49,14 @@ export default function HeroScene({
         {phase}
       </p>
       {!fallback && (
-        <div className="cinematic-controls" aria-label="3D 장면 제어">
+        <div
+          className="cinematic-controls"
+          aria-label="3D와 페이지 애니메이션 제어"
+        >
           <button onClick={() => commands.current?.skip()}>건너뛰기</button>
           <button onClick={() => commands.current?.replay()}>다시 보기</button>
           <button
+            title="3D와 페이지 애니메이션 일시정지"
             aria-pressed={paused}
             onClick={() => commands.current?.pause()}
           >
