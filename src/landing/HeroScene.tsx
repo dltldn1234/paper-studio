@@ -20,7 +20,11 @@ interface SceneCommands {
   reduce(value: boolean): void
 }
 
-export default function HeroScene() {
+export default function HeroScene({
+  onPhase,
+}: {
+  onPhase?: (phase: string) => void
+}) {
   const container = useRef<HTMLDivElement>(null)
   const commands = useRef<SceneCommands | null>(null)
   const [fallback, setFallback] = useState(false)
@@ -41,7 +45,10 @@ export default function HeroScene() {
         powerPreference: 'high-performance',
       })
     } catch {
-      const timer = window.setTimeout(() => setFallback(true), 0)
+      const timer = window.setTimeout(() => {
+        setFallback(true)
+        onPhase?.('idle')
+      }, 0)
       return () => window.clearTimeout(timer)
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75))
@@ -228,6 +235,7 @@ export default function HeroScene() {
       if (frame.phase !== lastPhase) {
         lastPhase = frame.phase
         setPhase(labels[frame.phase])
+        onPhase?.(frame.phase)
         if (frame.phase === 'idle') {
           try {
             sessionStorage.setItem('paper-studio.intro-seen', '1')
@@ -311,6 +319,7 @@ export default function HeroScene() {
       stopped = true
       stop()
       setFallback(true)
+      onPhase?.('idle')
     }
     renderer.domElement.addEventListener('webglcontextlost', contextLost)
     return () => {
@@ -327,7 +336,7 @@ export default function HeroScene() {
       renderer.dispose()
       renderer.domElement.remove()
     }
-  }, [])
+  }, [onPhase])
 
   return (
     <div className="cinematic-showcase">
