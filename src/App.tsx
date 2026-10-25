@@ -1,4 +1,9 @@
 import {
+  readEditorDraft,
+  writeEditorDraft,
+  type EditorScope,
+} from './persistence/editor-draft'
+import {
   Suspense,
   lazy,
   useCallback,
@@ -142,32 +147,50 @@ type ResizeDrag = {
 }
 
 function App() {
-  const [solidKind, setSolidKind] = useState<'cuboid' | RegularPolyhedronKind>(
-    'cuboid',
+  const [editorScope] = useState<EditorScope>(() =>
+    new URLSearchParams(window.location.search).get('sample') === 'tetrahedron'
+      ? 'sample'
+      : 'workspace',
   )
-  const [projectName, setProjectName] = useState('새 프로젝트')
+  const [initialProject] = useState(() => readEditorDraft(editorScope))
+  const [solidKind, setSolidKind] = useState<'cuboid' | RegularPolyhedronKind>(
+    initialProject?.solidKind ?? 'cuboid',
+  )
+  const [projectName, setProjectName] = useState(
+    initialProject?.name ?? '새 프로젝트',
+  )
   const [projectError, setProjectError] = useState('')
   const projectFileInput = useRef<HTMLInputElement>(null)
-  const [edgeLengthMm, setEdgeLengthMm] = useState(100)
-  const [edgeLengthDraft, setEdgeLengthDraft] = useState('100')
+  const [edgeLengthMm, setEdgeLengthMm] = useState(
+    initialProject?.edgeLengthMm ?? 100,
+  )
+  const [edgeLengthDraft, setEdgeLengthDraft] = useState(
+    String(initialProject?.edgeLengthMm ?? 100),
+  )
   const [edgeLengthError, setEdgeLengthError] = useState('')
-  const [dimensions, setDimensions] = useState(DEFAULT_DIMENSIONS)
+  const [dimensions, setDimensions] = useState(
+    initialProject?.dimensions ?? DEFAULT_DIMENSIONS,
+  )
   const [dimensionDrafts, setDimensionDrafts] = useState({
-    widthMm: '100',
-    depthMm: '80',
-    heightMm: '60',
+    widthMm: String(initialProject?.dimensions.widthMm ?? 100),
+    depthMm: String(initialProject?.dimensions.depthMm ?? 80),
+    heightMm: String(initialProject?.dimensions.heightMm ?? 60),
   })
   const [dimensionErrors, setDimensionErrors] = useState<
     Partial<Record<keyof CuboidDimensions, string>>
   >({})
-  const [selectedFaceId, setSelectedFaceId] = useState<string | null>('front')
+  const [selectedFaceId, setSelectedFaceId] = useState<string | null>(
+    initialProject ? initialProject.selectedFaceId : 'front',
+  )
   const [faceMaterials, setFaceMaterials] = useState<
     Record<string, FaceMaterial>
-  >({})
+  >(initialProject?.faceMaterials ?? {})
   const [textureError, setTextureError] = useState('')
-  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(
+    initialProject?.selectedEdgeId ?? null,
+  )
   const [customFoldEdgeIds, setCustomFoldEdgeIds] = useState<string[] | null>(
-    null,
+    initialProject?.customFoldEdgeIds ?? null,
   )
   const [draftFoldEdgeIds, setDraftFoldEdgeIds] = useState<string[] | null>(
     null,
@@ -177,20 +200,28 @@ function App() {
     Array<string[] | null>
   >([])
   const [foldTreeHistoryIndex, setFoldTreeHistoryIndex] = useState(-1)
-  const [foldProgress, setFoldProgress] = useState(1)
-  const [assemblyStepIndex, setAssemblyStepIndex] = useState(0)
-  const [assemblyGuideActive, setAssemblyGuideActive] = useState(false)
-  const foldProgressRef = useRef(1)
+  const [foldProgress, setFoldProgress] = useState(
+    initialProject?.foldProgress ?? 1,
+  )
+  const [assemblyStepIndex, setAssemblyStepIndex] = useState(
+    initialProject?.assemblyStepIndex ?? 0,
+  )
+  const [assemblyGuideActive, setAssemblyGuideActive] = useState(
+    initialProject?.assemblyGuideActive ?? false,
+  )
+  const foldProgressRef = useRef(initialProject?.foldProgress ?? 1)
   const [foldPlaying, setFoldPlaying] = useState(false)
   const [foldSpeed, setFoldSpeed] = useState(1)
   const [cameraResetToken, setCameraResetToken] = useState(0)
-  const [glueTabOptions, setGlueTabOptions] = useState<GlueTabOptions>({
-    ...DEFAULT_GLUE_TAB_OPTIONS,
-    enabled: true,
-  })
+  const [glueTabOptions, setGlueTabOptions] = useState<GlueTabOptions>(
+    initialProject?.glueTabOptions ?? {
+      ...DEFAULT_GLUE_TAB_OPTIONS,
+      enabled: true,
+    },
+  )
   const [glueTabDrafts, setGlueTabDrafts] = useState({
-    widthMm: '10',
-    angleDeg: '45',
+    widthMm: String(initialProject?.glueTabOptions.widthMm ?? 10),
+    angleDeg: String(initialProject?.glueTabOptions.angleDeg ?? 45),
   })
   const [glueTabErrors, setGlueTabErrors] = useState<
     Partial<Record<'widthMm' | 'angleDeg', string>>
@@ -203,15 +234,65 @@ function App() {
   const [exportFormat, setExportFormat] = useState<'svg' | 'pdf' | 'guide-pdf'>(
     'svg',
   )
-  const [printSettings, setPrintSettings] = useState<PrintSettings>({
-    paperSize: 'A4',
-    orientation: 'portrait',
-    marginMm: 10,
-    overlapMm: 8,
-    showCutLines: true,
-    showFoldLines: true,
-    showAssemblyNumbers: true,
-  })
+  const [printSettings, setPrintSettings] = useState<PrintSettings>(
+    initialProject?.printSettings ?? {
+      paperSize: 'A4',
+      orientation: 'portrait',
+      marginMm: 10,
+      overlapMm: 8,
+      showCutLines: true,
+      showFoldLines: true,
+      showAssemblyNumbers: true,
+    },
+  )
+  useEffect(() => {
+    const save = () => {
+      try {
+        writeEditorDraft(
+          editorScope,
+          createProjectDocument({
+            name: projectName,
+            solidKind,
+            dimensions,
+            edgeLengthMm,
+            glueTabOptions,
+            customFoldEdgeIds,
+            selectedFaceId,
+            selectedEdgeId,
+            foldProgress,
+            printSettings,
+            faceMaterials,
+            assemblyStepIndex,
+            assemblyGuideActive,
+          }),
+        )
+      } catch {
+        /* Keep the last valid snapshot. */
+      }
+    }
+    window.addEventListener('pagehide', save)
+    const timer = window.setTimeout(save, 300)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('pagehide', save)
+      save()
+    }
+  }, [
+    editorScope,
+    projectName,
+    solidKind,
+    dimensions,
+    edgeLengthMm,
+    glueTabOptions,
+    customFoldEdgeIds,
+    selectedFaceId,
+    selectedEdgeId,
+    foldProgress,
+    printSettings,
+    faceMaterials,
+    assemblyStepIndex,
+    assemblyGuideActive,
+  ])
   const [calibrationMeasurements, setCalibrationMeasurements] = useState<
     StoredCalibrationMeasurement[]
   >(() => readCalibrationMeasurements())

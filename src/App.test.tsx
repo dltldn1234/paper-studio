@@ -1,3 +1,4 @@
+import { beforeEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -46,6 +47,7 @@ vi.mock('./preview/ThreePolyhedronPreview', () => ({
 }))
 
 describe('Paper Studio editor', () => {
+  beforeEach(() => localStorage.clear())
   it('edits a valid fold tree, rejects an incomplete draft, and supports undo and redo', async () => {
     render(<App />)
     fireEvent.change(screen.getByRole('combobox', { name: '다면체 종류' }), {
