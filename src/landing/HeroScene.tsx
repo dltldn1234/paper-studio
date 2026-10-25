@@ -1,3 +1,4 @@
+import { createBlueprintNet } from '../scene/BlueprintNet'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -101,9 +102,26 @@ export default function HeroScene() {
     scene.add(grid)
     const model = createPaperDinosaur(window.innerWidth < 700 ? 'low' : 'high')
     scene.add(model.root)
+    const blueprint = createBlueprintNet(
+      new THREE.Box3().setFromObject(model.root),
+    )
+    scene.add(blueprint.group)
     const rig = new DinosaurRig(model)
     const folds = model.panels.map((mesh) => {
-      const hinge = new HingePanels(mesh.geometry)
+      const worldPosition = mesh.getWorldPosition(new THREE.Vector3())
+      const flatOrigin = mesh.worldToLocal(
+        new THREE.Vector3(worldPosition.x, 0.04, worldPosition.z * 2),
+      )
+      const inverseRotation = mesh
+        .getWorldQuaternion(new THREE.Quaternion())
+        .invert()
+      const flatNormal = new THREE.Vector3(0, 1, 0).applyQuaternion(
+        inverseRotation,
+      )
+      const hinge = new HingePanels(mesh.geometry, {
+        normal: flatNormal,
+        origin: flatOrigin,
+      })
       mesh.geometry.dispose()
       mesh.geometry = hinge.geometry
       for (const child of [...mesh.children]) {
@@ -254,6 +272,7 @@ export default function HeroScene() {
         edges.needsUpdate = true
         fold.lines.geometry.computeBoundingSphere()
       })
+      blueprint.update(frame.blueprint, frame.reveal)
       const material = model.panels[0].material
       material.transparent = frame.seconds < 3
       material.opacity = 0.02 + smoothProgress(frame.seconds, 1.8, 3) * 0.98

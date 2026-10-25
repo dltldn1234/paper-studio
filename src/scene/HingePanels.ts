@@ -22,7 +22,13 @@ export class HingePanels {
   private readonly point = new THREE.Vector3()
   private readonly scale = new THREE.Vector3(1, 1, 1)
 
-  constructor(source: THREE.BufferGeometry) {
+  constructor(
+    source: THREE.BufferGeometry,
+    private readonly flatTarget?: {
+      normal: THREE.Vector3
+      origin: THREE.Vector3
+    },
+  ) {
     const positions = source.getAttribute('position')
     const indices = source.getIndex()
     if (!indices || indices.count === 0)
@@ -72,7 +78,7 @@ export class HingePanels {
       .multiplyScalar(1 / 3)
     this.rootAlignment.setFromUnitVectors(
       root.normal,
-      new THREE.Vector3(0, 1, 0),
+      flatTarget?.normal ?? new THREE.Vector3(0, 1, 0),
     )
     const visited = new Set([0])
     this.order.push(0)
@@ -120,7 +126,9 @@ export class HingePanels {
       const panel = this.panels[id]
       if (panel.parent === -1) {
         this.rotation.identity().slerp(this.rootAlignment, amount)
-        panel.matrix.compose(panel.origin, this.rotation, this.scale)
+        this.point.copy(panel.origin)
+        if (this.flatTarget) this.point.lerp(this.flatTarget.origin, amount)
+        panel.matrix.compose(this.point, this.rotation, this.scale)
       } else {
         const parent = this.panels[panel.parent]
         this.point.subVectors(panel.origin, parent.origin)
