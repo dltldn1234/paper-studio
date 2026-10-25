@@ -1,3 +1,7 @@
+import {
+  createCinematicLighting,
+  createPaperGrain,
+} from '../scene/LightingController'
 import { cinematicCamera } from '../scene/CameraDirector'
 import { createBlueprintNet } from '../scene/BlueprintNet'
 import { useEffect, useRef, useState } from 'react'
@@ -55,7 +59,7 @@ export default function HeroScene({
     renderer.setClearColor('#060a13', 0)
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.15
+    renderer.toneMappingExposure = 1.05
     renderer.shadowMap.enabled = true
     renderer.shadowMap.type = THREE.PCFShadowMap
     renderer.domElement.setAttribute(
@@ -81,20 +85,7 @@ export default function HeroScene({
       directed = false
     }
     controls.addEventListener('start', userControl)
-    scene.add(new THREE.HemisphereLight('#e6efff', '#2a2330', 2.2))
-    const key = new THREE.DirectionalLight('#fff2df', 4.2)
-    key.position.set(1, 8, 5)
-    key.castShadow = true
-    key.shadow.mapSize.set(1024, 1024)
-    key.shadow.camera.left = -8
-    key.shadow.camera.right = 8
-    key.shadow.camera.top = 8
-    key.shadow.camera.bottom = -8
-    key.shadow.normalBias = 0.04
-    scene.add(key)
-    const rim = new THREE.DirectionalLight('#72abff', 4)
-    rim.position.set(-3, 5, -4)
-    scene.add(rim)
+    const lighting = createCinematicLighting(scene)
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(80, 80),
       new THREE.ShadowMaterial({ opacity: 0.3 }),
@@ -109,6 +100,7 @@ export default function HeroScene({
     gridMaterial.opacity = 0.3
     scene.add(grid)
     const model = createPaperDinosaur(window.innerWidth < 700 ? 'low' : 'high')
+    model.panels[0].material.roughnessMap = createPaperGrain()
     scene.add(model.root)
     const blueprint = createBlueprintNet(
       new THREE.Box3().setFromObject(model.root),
@@ -300,7 +292,7 @@ export default function HeroScene({
         reduce,
       )
       rig.apply(awakening.pose)
-      rim.intensity = 4 + awakening.lightPulse * 3
+      lighting.update(idleTime, awakening.lightPulse, reduce)
       if (directed) {
         const shot = cinematicCamera(
           frame.seconds,

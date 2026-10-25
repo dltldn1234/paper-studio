@@ -19,6 +19,7 @@ export function paperLoft(
     )
   }
   const positions: number[] = []
+  const uv: number[] = []
   for (const section of sections) {
     if (
       ![
@@ -37,6 +38,7 @@ export function paperLoft(
     }
     for (let side = 0; side < sides; side++) {
       const angle = (side / sides) * Math.PI * 2 + Math.PI / sides
+      uv.push(positions.length / 3 / (sections.length * sides), side / sides)
       positions.push(
         section.x,
         (section.y ?? 0) + (Math.cos(angle) * section.height) / 2,
@@ -61,6 +63,7 @@ export function paperLoft(
   }
   const geometry = new BufferGeometry()
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
+  geometry.setAttribute('uv', new Float32BufferAttribute(uv, 2))
   geometry.setIndex(indices)
   geometry.computeVertexNormals()
   geometry.computeBoundingSphere()

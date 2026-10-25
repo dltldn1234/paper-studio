@@ -114,6 +114,15 @@ export class HingePanels {
         3,
       ).setUsage(THREE.DynamicDrawUsage),
     )
+    const sourceUv = source.getAttribute('uv')
+    if (sourceUv) {
+      const uv = new Float32Array(indices.count * 2)
+      for (let i = 0; i < indices.count; i++) {
+        uv[i * 2] = sourceUv.getX(indices.getX(i))
+        uv[i * 2 + 1] = sourceUv.getY(indices.getX(i))
+      }
+      this.geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
+    }
     this.update(0)
   }
 
