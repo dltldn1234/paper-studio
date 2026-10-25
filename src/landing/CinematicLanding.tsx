@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import {
   ArrowDown,
   ArrowUpRight,
@@ -7,6 +8,8 @@ import {
   Ruler,
 } from 'lucide-react'
 import './landing.css'
+
+const HeroScene = lazy(() => import('./HeroScene'))
 
 const workflow = [
   {
@@ -208,7 +211,9 @@ export default function CinematicLanding() {
           </div>
         </div>
         <div className="landing-hero__visual">
-          <StructureSchematic />
+          <Suspense fallback={<StructureSchematic />}>
+            <HeroScene />
+          </Suspense>
           <span className="landing-visual-index" aria-hidden="true">
             FIG. 01 — FORM STUDY
           </span>
