@@ -43,6 +43,7 @@ export default function HeroScene({
   const [fallback, setFallback] = useState(false)
   const [paused, setPaused] = useState(false)
   const [sound, setSound] = useState(false)
+  const [isUnfolded, setIsUnfolded] = useState(false)
   const [reduced, setReduced] = useState(false)
   const [phase, setPhase] = useState('종이의 가능성을 준비하고 있습니다')
 
@@ -206,6 +207,7 @@ export default function HeroScene({
       if (value) {
         timeline.skip()
         unfolded = false
+        setIsUnfolded(false)
         currentUnfold = 0
         reset()
       }
@@ -222,12 +224,14 @@ export default function HeroScene({
         audio.stop()
         timeline.skip()
         unfolded = false
+        setIsUnfolded(false)
       },
       replay: () => {
         timeline.replay(reduce)
         audio.stop()
         roared = false
         unfolded = false
+        setIsUnfolded(false)
         idleTime = 0
         reset()
         motionPaused = false
@@ -242,8 +246,13 @@ export default function HeroScene({
       },
       reset,
       unfold: () => {
+        audio.stop()
         timeline.skip()
         unfolded = !unfolded
+        setIsUnfolded(unfolded)
+        motionPaused = false
+        setPaused(false)
+        reset()
       },
       reduce: reduceMotion,
       sound: () => audio.toggle(),
@@ -305,7 +314,9 @@ export default function HeroScene({
         if (frame.phase === 'idle') saveMotionPreferences({ seen: true })
       }
       currentUnfold = reduce
-        ? 0
+        ? unfolded
+          ? 1
+          : 0
         : THREE.MathUtils.damp(currentUnfold, unfolded ? 1 : 0, 5, delta)
       folds.forEach((fold, index) => {
         const assembly =
@@ -343,6 +354,10 @@ export default function HeroScene({
       })
       atmosphere.update(frame.seconds + idleTime, reduce)
       blueprint.update(frame.blueprint, frame.reveal)
+      model.root.traverse((object) => {
+        if (object instanceof THREE.Mesh && !model.panels.includes(object))
+          object.visible = frame.construction > 0.8 && currentUnfold < 0.2
+      })
       const material = model.panels[0].material
       material.transparent = frame.seconds < 3
       material.opacity = 0.02 + smoothProgress(frame.seconds, 1.8, 3) * 0.98
@@ -374,8 +389,17 @@ export default function HeroScene({
           idleTime,
           reduce,
         )
-        camera.position.set(shot.x, shot.y + awakening.cameraImpulse, shot.z)
-        controls.target.set(-0.5, shot.targetY, 0)
+        camera.position.set(
+          THREE.MathUtils.lerp(shot.x, 2, currentUnfold),
+          THREE.MathUtils.lerp(shot.y, 10, currentUnfold) +
+            awakening.cameraImpulse,
+          THREE.MathUtils.lerp(shot.z, 17, currentUnfold),
+        )
+        controls.target.set(
+          -0.5,
+          THREE.MathUtils.lerp(shot.targetY, 0.4, currentUnfold),
+          0,
+        )
       }
       controls.update()
       renderer.render(scene, camera)
@@ -427,8 +451,12 @@ export default function HeroScene({
           >
             {paused ? '재생' : '일시정지'}
           </button>
-          <button onClick={() => commands.current?.unfold()}>
-            펼치기 / 접기
+          <button
+            aria-label="펼치기 / 접기"
+            aria-pressed={isUnfolded}
+            onClick={() => commands.current?.unfold()}
+          >
+            {isUnfolded ? '입체로 접기' : '전개도 펼치기'}
           </button>
           <button onClick={() => commands.current?.reset()}>시점 초기화</button>
           <button
