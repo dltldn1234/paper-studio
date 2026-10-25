@@ -75,6 +75,7 @@ export function mountHeroScene(
   } catch {
     const timer = window.setTimeout(() => {
       setFallback(true)
+      setPhase('정적 제품 미리보기')
       onPhase?.('idle')
     }, 0)
     return () => window.clearTimeout(timer)
@@ -413,6 +414,7 @@ export function mountHeroScene(
     stopped = true
     stop()
     setFallback(true)
+    setPhase('정적 제품 미리보기')
     onPhase?.('idle')
   }
   renderer.domElement.addEventListener('webglcontextlost', contextLost)
