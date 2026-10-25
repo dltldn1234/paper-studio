@@ -6,7 +6,7 @@ test('filters profile history and downloads JSON and PDF verification reports', 
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1200 })
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: '내보내기' }).click()
   await page.getByLabel('파일 형식').selectOption('pdf')
   await page.getByLabel('새 프로필 이름').fill('Report printer')

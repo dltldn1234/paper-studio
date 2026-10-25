@@ -7,7 +7,7 @@ test('shows preflight warnings for a low-resolution texture before PDF export', 
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1200 })
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: '내보내기' }).click()
   await page.getByLabel('파일 형식').selectOption('pdf')
   const report = page.getByRole('region', { name: 'PDF 사전 검사 결과' })
@@ -40,7 +40,7 @@ test('shows preflight warnings for a low-resolution texture before PDF export', 
 test('validates downloaded PDF page count, dimensions, and print scaling', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/studio')
   await page.getByRole('button', { name: '내보내기' }).click()
   await page.getByLabel('파일 형식').selectOption('pdf')
   await page.getByLabel('PDF 용지 크기').selectOption('A3')
