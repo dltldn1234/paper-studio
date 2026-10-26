@@ -18,7 +18,7 @@ test('plays layered audio only after opt-in and synchronizes the visible roar', 
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text())
   })
-  await page.goto('/')
+  await page.goto('/showcase')
   await expect(page.locator('.cinematic-canvas canvas')).toBeVisible()
   expect(
     await page.evaluate(

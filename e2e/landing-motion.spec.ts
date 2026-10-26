@@ -6,7 +6,7 @@ test('coordinates scroll reveals, pointer depth and full-page playback preferenc
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 960 })
-  await page.goto('/')
+  await page.goto('/showcase')
   const root = page.locator('.landing-page')
   await expect(root).toHaveAttribute('data-page-motion', 'active')
   await page.getByRole('button', { name: '일시정지' }).click()
@@ -71,7 +71,7 @@ test('keeps mobile content readable with system reduced motion', async ({
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/')
+  await page.goto('/showcase')
   await expect(page.locator('.landing-page')).toHaveAttribute(
     'data-page-motion',
     'reduced',

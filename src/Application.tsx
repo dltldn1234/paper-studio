@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useSyncExternalStore } from 'react'
 import { resolveAppRoute } from './app-route'
 
-const Landing = lazy(() => import('./landing/CinematicLanding'))
+const Landing = lazy(() => import('./home/Home'))
+const Showcase = lazy(() => import('./landing/CinematicLanding'))
 const Studio = lazy(() => import('./App'))
 
 function subscribeToLocation(onChange: () => void) {
@@ -47,9 +48,13 @@ export default function Application() {
   useEffect(() => {
     const pageMetadata = {
       landing: {
-        title: 'Paper Studio — 종이 위의 상상을 구조로',
+        title: 'Paper Studio — 나의 설계 워크스페이스',
         description:
           '아이디어의 치수를 입력하고 전개도와 입체 미리보기로 종이 구조물을 설계하세요.',
+      },
+      showcase: {
+        title: 'Paper Studio — 종이 위의 상상을 구조로',
+        description: 'Paper Studio의 종이 구조와 접힘을 탐험하세요.',
       },
       studio: {
         title: 'Paper Studio — 구조물 설계 스튜디오',
@@ -68,6 +73,12 @@ export default function Application() {
     description?.setAttribute('content', pageMetadata.description)
   }, [route])
 
+  if (route === 'showcase')
+    return (
+      <Suspense fallback={<RouteLoading />}>
+        <Showcase />
+      </Suspense>
+    )
   if (route === 'not-found') return <NotFound />
 
   return (

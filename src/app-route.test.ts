@@ -11,6 +11,11 @@ describe('resolveAppRoute', () => {
     expect(resolveAppRoute('/studio/')).toBe('studio')
   })
 
+  it('retains the cinematic showcase on an explicit route', () => {
+    expect(resolveAppRoute('/showcase')).toBe('showcase')
+    expect(resolveAppRoute('/showcase/')).toBe('showcase')
+  })
+
   it('does not silently treat unknown URLs as editor routes', () => {
     expect(resolveAppRoute('/unknown')).toBe('not-found')
   })

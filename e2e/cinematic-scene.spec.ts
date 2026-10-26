@@ -8,7 +8,7 @@ test('plays the real WebGL sequence and preserves immediate editor access', asyn
   await page.setViewportSize({ width: 1440, height: 960 })
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto('/')
+  await page.goto('/showcase')
   await expect(page.locator('.cinematic-canvas canvas')).toBeVisible()
   await expect(
     page.getByText('01 — THE BLUEPRINT', { exact: true }),
@@ -57,7 +57,7 @@ test('reduced motion starts static on mobile and skip remains available', async 
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/')
+  await page.goto('/showcase')
   await expect(
     page.getByText('PAPER TYRANNOSAURUS · ORIGINAL PROCEDURAL STUDY', {
       exact: true,
