@@ -1,3 +1,4 @@
+import { PreviewBoundary } from './PreviewBoundary'
 import { lazy, Suspense, useState } from 'react'
 import { Plus, ArrowRight } from 'lucide-react'
 import { templateProject } from './templates'
@@ -46,24 +47,26 @@ export function HomeHero({ onCreate }: { onCreate: () => void }) {
           <span>LIVE PREVIEW</span>
         </div>
         <div className="home-live-preview">
-          <Suspense
-            fallback={
-              <div className="home-preview-loading" role="status">
-                <SolidThumbnail project={demo} />
-                <span>3D 미리보기 준비 중…</span>
-              </div>
-            }
-          >
-            <ThreeCuboidPreview
-              presentation="home"
-              cuboid={demoCuboid}
-              netLayout={demoNet}
-              foldProgress={fold}
-              cameraResetToken={0}
-              selectedFaceId={null}
-              onFaceSelect={() => {}}
-            />
-          </Suspense>
+          <PreviewBoundary>
+            <Suspense
+              fallback={
+                <div className="home-preview-loading" role="status">
+                  <SolidThumbnail project={demo} />
+                  <span>3D 미리보기 준비 중…</span>
+                </div>
+              }
+            >
+              <ThreeCuboidPreview
+                presentation="home"
+                cuboid={demoCuboid}
+                netLayout={demoNet}
+                foldProgress={fold}
+                cameraResetToken={0}
+                selectedFaceId={null}
+                onFaceSelect={() => {}}
+              />
+            </Suspense>
+          </PreviewBoundary>
         </div>
         <div className="home-net-study" aria-label="동일 모델의 실제 전개도">
           <svg

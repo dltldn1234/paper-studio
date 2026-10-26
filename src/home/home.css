@@ -1006,3 +1006,18 @@ body:has(.home-page) {
 .home-preview-loading span {
   margin-top: 10px;
 }
+.home-header {
+  position: sticky;
+  top: 0;
+  background: var(--home-bg);
+}
+.home-section,
+.home-guide {
+  scroll-margin-top: 130px;
+}
+.home-preview-loading > span {
+  text-align: center;
+  max-width: 260px;
+  line-height: 1.8;
+  padding: 0 15px;
+}
