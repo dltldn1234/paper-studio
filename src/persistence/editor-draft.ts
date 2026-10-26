@@ -1,4 +1,5 @@
 import { saveActiveProject } from './projects'
+export { workspaceProjectId } from './projects'
 import {
   createProjectDocument,
   parseProject,
@@ -45,6 +46,7 @@ export function readEditorDraft(scope: EditorScope): PaperStudioProject | null {
 export function writeEditorDraft(
   scope: EditorScope,
   project: PaperStudioProject,
+  projectId?: string,
 ): boolean {
   try {
     const current = localStorage.getItem(key(scope))
@@ -58,7 +60,7 @@ export function writeEditorDraft(
       }
     }
     localStorage.setItem(key(scope), serializeProject(project))
-    if (scope === 'workspace') saveActiveProject(project)
+    if (scope === 'workspace') saveActiveProject(project, projectId)
     return true
   } catch {
     return false

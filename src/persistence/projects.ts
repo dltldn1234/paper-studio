@@ -52,9 +52,12 @@ function writeWithDraft(library: Library, project: PaperStudioProject | null) {
     throw error
   }
 }
-export function saveActiveProject(project: PaperStudioProject) {
+export function saveActiveProject(
+  project: PaperStudioProject,
+  projectId?: string,
+) {
   const library = readProjects()
-  const id = library.activeId ?? crypto.randomUUID()
+  const id = projectId ?? library.activeId ?? crypto.randomUUID()
   const previous = library.entries.find((entry) => entry.id === id)
   if (
     previous &&
@@ -111,4 +114,12 @@ export function deleteProject(id: string) {
   }
   if (library.activeId === id) writeWithDraft(next, null)
   else write(next)
+}
+
+export function workspaceProjectId(): string {
+  try {
+    return readProjects().activeId ?? crypto.randomUUID()
+  } catch {
+    return crypto.randomUUID()
+  }
 }

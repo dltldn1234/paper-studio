@@ -91,3 +91,21 @@ it('rolls back project activation if the compatible draft write hits quota', () 
   expect(readProjects()).toEqual(previous)
   expect(readEditorDraft('workspace')?.name).toBe('Retained')
 })
+
+it('keeps a mounted editor snapshot attached to its own project after another project opens', () => {
+  activateProject({ ...sampleProject(), name: 'First editor' })
+  const firstId = readProjects().activeId!
+  activateProject({ ...sampleProject(), name: 'Second editor' })
+  const secondId = readProjects().activeId!
+  writeEditorDraft(
+    'workspace',
+    { ...sampleProject(), name: 'First edited' },
+    firstId,
+  )
+  expect(
+    readProjects().entries.find((entry) => entry.id === secondId)?.project.name,
+  ).toBe('Second editor')
+  expect(
+    readProjects().entries.find((entry) => entry.id === firstId)?.project.name,
+  ).toBe('First edited')
+})

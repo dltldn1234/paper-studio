@@ -1,5 +1,6 @@
 import {
   readEditorDraft,
+  workspaceProjectId,
   writeEditorDraft,
   type EditorScope,
 } from './persistence/editor-draft'
@@ -152,6 +153,7 @@ function App() {
       ? 'sample'
       : 'workspace',
   )
+  const [projectId] = useState(workspaceProjectId)
   const [initialProject] = useState(() => readEditorDraft(editorScope))
   const [solidKind, setSolidKind] = useState<'cuboid' | RegularPolyhedronKind>(
     initialProject?.solidKind ?? 'cuboid',
@@ -267,6 +269,7 @@ function App() {
             assemblyStepIndex,
             assemblyGuideActive,
           }),
+          projectId,
         )
         setDraftStorageError(!saved)
         return saved
@@ -292,6 +295,7 @@ function App() {
       save()
     }
   }, [
+    projectId,
     editorScope,
     projectName,
     solidKind,
