@@ -12,6 +12,7 @@ import {
 import type { FaceMaterial } from '../materials/materials'
 
 type ThreeCuboidPreviewProps = {
+  presentation?: 'editor' | 'home'
   cuboid: Cuboid
   netLayout: NetLayout
   faceMaterials?: Record<string, FaceMaterial>
@@ -34,6 +35,7 @@ type PreviewScene = {
 }
 
 export function ThreeCuboidPreview({
+  presentation = 'editor',
   cuboid,
   netLayout,
   faceMaterials = {},
@@ -57,7 +59,14 @@ export function ThreeCuboidPreview({
     const container = containerRef.current
     if (!container) return
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color('#151a23')
+    scene.background = new THREE.Color(
+      presentation === 'home' ? '#101827' : '#151a23',
+    )
+    if (presentation === 'home') {
+      const grid = new THREE.GridHelper(650, 26, '#395779', '#22334b')
+      grid.position.y = -100
+      scene.add(grid)
+    }
     const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100_000)
     let renderer: THREE.WebGLRenderer
     try {
@@ -89,7 +98,7 @@ export function ThreeCuboidPreview({
     const group = new THREE.Group()
     for (const face of cuboid.faces) {
       const material = new THREE.MeshStandardMaterial({
-        color: BASE_FACE_COLOR,
+        color: presentation === 'home' ? '#e4eaf2' : BASE_FACE_COLOR,
         roughness: 0.78,
         side: THREE.DoubleSide,
       })
@@ -181,7 +190,7 @@ export function ThreeCuboidPreview({
       renderer.domElement.remove()
       previewRef.current = null
     }
-  }, [cuboid])
+  }, [cuboid, presentation])
 
   useEffect(() => {
     const preview = previewRef.current
@@ -198,11 +207,12 @@ export function ThreeCuboidPreview({
       material.color.set(
         selected
           ? SELECTED_FACE_COLOR
-          : (faceMaterials[faceId]?.color ?? BASE_FACE_COLOR),
+          : (faceMaterials[faceId]?.color ??
+              (presentation === 'home' ? '#e4eaf2' : BASE_FACE_COLOR)),
       )
       material.emissive.set(selected ? '#102342' : '#000000')
     }
-  }, [cuboid, faceMaterials, selectedFaceId])
+  }, [cuboid, faceMaterials, selectedFaceId, presentation])
 
   useEffect(() => {
     const preview = previewRef.current

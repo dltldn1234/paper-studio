@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test('pauses the intro, skips immediately and remembers completed playback', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/showcase')
   await expect(
     page.getByText('01 — THE BLUEPRINT', { exact: true }),
   ).toBeVisible()
@@ -35,7 +35,7 @@ test('supports keyboard rotation, explicit unfold feedback and opt-in sound', as
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('/')
+  await page.goto('/showcase')
   const canvas = page.locator('.cinematic-canvas canvas')
   await expect(canvas).toBeVisible()
   const before = await canvas.screenshot()
@@ -63,7 +63,7 @@ test('keeps scene controls and page content inside narrow and wide viewports', a
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('/')
+  await page.goto('/showcase')
   await expect(page.locator('.cinematic-canvas canvas')).toBeVisible()
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 })
@@ -82,7 +82,7 @@ test('recovers a failed scene module download to the static hero', async ({
   page,
 }) => {
   await page.route('**/src/landing/HeroScene.tsx*', (route) => route.abort())
-  await page.goto('/')
+  await page.goto('/showcase')
   await expect(page.locator('.cinematic-fallback img')).toBeVisible()
   await page.locator('.cinematic-fallback a').click()
   await expect(page.locator('.studio-topbar')).toBeVisible()

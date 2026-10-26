@@ -16,7 +16,7 @@ test('offers a static original poster and editor entry without WebGL', async ({
       },
     })
   })
-  await page.goto('/')
+  await page.goto('/showcase')
   await expect(page.locator('.cinematic-fallback img')).toBeVisible()
   await expect(
     page.getByText('정적 제품 미리보기', { exact: true }),
@@ -42,7 +42,7 @@ test('offers a static original poster and editor entry without WebGL', async ({
 test('recovers a lost WebGL context to the poster without blocking navigation', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/showcase')
   await expect(page.locator('.cinematic-canvas canvas')).toBeVisible()
   await page
     .locator('.cinematic-canvas canvas')

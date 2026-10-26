@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { INTRO_DURATION } from '../src/scene/IntroTimeline'
 
 test('plays layered audio only after opt-in and synchronizes the visible roar', async ({
   page,
@@ -18,7 +19,7 @@ test('plays layered audio only after opt-in and synchronizes the visible roar', 
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text())
   })
-  await page.goto('/')
+  await page.goto('/showcase')
   await expect(page.locator('.cinematic-canvas canvas')).toBeVisible()
   expect(
     await page.evaluate(
@@ -28,8 +29,7 @@ test('plays layered audio only after opt-in and synchronizes the visible roar', 
   await page.getByRole('button', { name: '소리 꺼짐' }).click()
   await expect(
     page.getByText('03 — THE AWAKENING', { exact: true }),
-  ).toBeVisible()
-  await page.waitForTimeout(1000)
+  ).toBeVisible({ timeout: INTRO_DURATION * 2000 })
   await expect
     .poll(() =>
       page.evaluate(

@@ -8,14 +8,14 @@ test('root route introduces Paper Studio and links to the real editor', async ({
 
   await expect(
     page.getByRole('heading', {
-      name: '종이 위의 상상이, 현실의 구조가 되다.',
+      name: '아이디어를 종이 위에, 가능성을 입체로.',
     }),
   ).toBeVisible()
   await expect(
-    page.getByRole('link', { name: /스튜디오 시작하기/ }).first(),
+    page.getByRole('link', { name: /에디터 열기/ }).first(),
   ).toHaveAttribute('href', '/studio')
   await expect(
-    page.getByRole('heading', { name: '설계부터 종이 위의 완성까지.' }),
+    page.getByRole('heading', { name: '처음이어도, 차근차근.' }),
   ).toBeVisible()
   await page.screenshot({
     path: 'test-results/landing-foundation-desktop.png',
@@ -35,7 +35,7 @@ test('direct studio route keeps the existing CAD editor available', async ({
   await expect(page).toHaveURL('/')
   await expect(
     page.getByRole('heading', {
-      name: '종이 위의 상상이, 현실의 구조가 되다.',
+      name: '아이디어를 종이 위에, 가능성을 입체로.',
     }),
   ).toBeVisible()
 })
