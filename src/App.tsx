@@ -160,6 +160,8 @@ function App() {
     initialProject?.name ?? '새 프로젝트',
   )
   const [projectError, setProjectError] = useState('')
+  const saveDraftRef = useRef<() => boolean>(() => true)
+  const [draftStorageError, setDraftStorageError] = useState(false)
   const projectFileInput = useRef<HTMLInputElement>(null)
   const [edgeLengthMm, setEdgeLengthMm] = useState(
     initialProject?.edgeLengthMm ?? 100,
@@ -248,7 +250,7 @@ function App() {
   useEffect(() => {
     const save = () => {
       try {
-        writeEditorDraft(
+        const saved = writeEditorDraft(
           editorScope,
           createProjectDocument({
             name: projectName,
@@ -266,14 +268,26 @@ function App() {
             assemblyGuideActive,
           }),
         )
+        setDraftStorageError(!saved)
+        return saved
       } catch {
-        /* Keep the last valid snapshot. */
+        setDraftStorageError(true)
+        return false
       }
     }
+    saveDraftRef.current = save
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!save()) {
+        event.preventDefault()
+        event.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', beforeUnload)
     window.addEventListener('pagehide', save)
     const timer = window.setTimeout(save, 300)
     return () => {
       window.clearTimeout(timer)
+      window.removeEventListener('beforeunload', beforeUnload)
       window.removeEventListener('pagehide', save)
       save()
     }
@@ -1104,7 +1118,14 @@ function App() {
   return (
     <div className="studio-shell" style={workspaceStyle}>
       <header className="studio-topbar">
-        <a className="studio-brand" href="/" aria-label="Paper Studio 홈">
+        <a
+          className="studio-brand"
+          href="/"
+          aria-label="Paper Studio 홈"
+          onClick={(event) => {
+            if (!saveDraftRef.current()) event.preventDefault()
+          }}
+        >
           <span className="studio-brand__mark">
             <Box size={17} strokeWidth={1.8} />
           </span>
@@ -1999,6 +2020,12 @@ function App() {
         </aside>
       </main>
 
+      {draftStorageError && (
+        <p className="dimension-error" role="alert">
+          자동 저장하지 못했습니다. 홈으로 이동하기 전에 프로젝트 저장 버튼으로
+          JSON 파일을 보관하세요.
+        </p>
+      )}
       {projectError && (
         <div className="project-file-error" role="alert">
           {projectError}
