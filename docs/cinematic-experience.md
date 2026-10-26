@@ -2,7 +2,7 @@
 
 ## Architecture
 
-- `/` lazy-loads the cinematic landing; `/studio` retains the CAD editor and supports direct SPA entry.
+- `/showcase` lazy-loads the preserved cinematic experience. Home Experience 2.0 now owns `/`; `/studio` retains the CAD editor and supports direct SPA entry.
 - `HeroSceneEngine` owns Three.js rendering, resize/visibility events, GPU resources, timeline, camera, lighting and controls. React receives phase/command updates rather than per-frame transforms.
 - `IntroTimeline` stages blueprint (0–2s), hinged construction (2–5s), awakening (5–7s), reveal (7–9s) and persistent idle.
 - `paperLoft` builds original closed indexed panels. `HingePanels` uses actual shared-edge pivots and a cut adjacency tree. `DinosaurRig` applies absolute bind-relative poses without drift.

@@ -2,11 +2,11 @@
 
 ## Work breakdown
 
-| Scope                                                       | Issue | Branch                               | Pull request         |
-| ----------------------------------------------------------- | ----- | ------------------------------------ | -------------------- |
-| Compatible local project library and editor save protection | #135  | `feat/135-home-experience`           | #138                 |
-| Premium functional home and retained editor/showcase routes | #136  | `feat/136-premium-home-dashboard`    | #139                 |
-| History hardening, Chromium coverage and release evidence   | #137  | `test/137-home-release-verification` | Follow-up release PR |
+| Scope                                                       | Issue | Branch                               | Pull request |
+| ----------------------------------------------------------- | ----- | ------------------------------------ | ------------ |
+| Compatible local project library and editor save protection | #135  | `feat/135-home-experience`           | #138         |
+| Premium functional home and retained editor/showcase routes | #136  | `feat/136-premium-home-dashboard`    | #139         |
+| History hardening, Chromium coverage and release evidence   | #137  | `test/137-home-release-verification` | #140         |
 
 ## Local verification
 
