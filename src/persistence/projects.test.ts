@@ -109,3 +109,23 @@ it('keeps a mounted editor snapshot attached to its own project after another pr
     readProjects().entries.find((entry) => entry.id === firstId)?.project.name,
   ).toBe('First edited')
 })
+
+it('keeps last modification time when reopening and synchronizes unchanged history snapshots', () => {
+  activateProject({ ...sampleProject(), name: 'First' })
+  const first = readProjects().entries[0]
+  const library = readProjects()
+  library.entries[0].updatedAt = '2020-01-01T00:00:00.000Z'
+  localStorage.setItem(KEY, JSON.stringify(library))
+  activateProject(first.project, first.id)
+  expect(readProjects().entries[0].updatedAt).toBe('2020-01-01T00:00:00.000Z')
+  activateProject({ ...sampleProject(), name: 'Second' })
+  writeEditorDraft('workspace', first.project, first.id)
+  expect(readProjects().activeId).toBe(first.id)
+  expect(
+    readProjects().entries.find((entry) => entry.id === first.id)?.updatedAt,
+  ).toBe('2020-01-01T00:00:00.000Z')
+  renameProject(first.id, 'Updated name')
+  expect(
+    readProjects().entries.find((entry) => entry.id === first.id)?.updatedAt,
+  ).not.toBe('2020-01-01T00:00:00.000Z')
+})
