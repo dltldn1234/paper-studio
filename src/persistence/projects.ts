@@ -62,8 +62,10 @@ export function saveActiveProject(
   if (
     previous &&
     serializeProject(previous.project) === serializeProject(project)
-  )
+  ) {
+    if (library.activeId !== id) write({ ...library, activeId: id })
     return
+  }
   write({
     activeId: id,
     entries: [
@@ -86,11 +88,16 @@ export function activateProject(
 ) {
   initializeProjects()
   const library = readProjects()
+  const previous = library.entries.find((entry) => entry.id === id)
+  const updatedAt =
+    previous && serializeProject(previous.project) === serializeProject(project)
+      ? previous.updatedAt
+      : new Date().toISOString()
   writeWithDraft(
     {
       activeId: id,
       entries: [
-        { id, project, updatedAt: new Date().toISOString() },
+        { id, project, updatedAt },
         ...library.entries.filter((entry) => entry.id !== id),
       ],
     },
@@ -103,6 +110,7 @@ export function renameProject(id: string, name: string) {
   const entry = library.entries.find((item) => item.id === id)
   if (!entry) return
   entry.project = { ...entry.project, name: name.trim() }
+  entry.updatedAt = new Date().toISOString()
   if (library.activeId === id) writeWithDraft(library, entry.project)
   else write(library)
 }
