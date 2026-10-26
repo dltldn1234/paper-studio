@@ -1,3 +1,4 @@
+import { saveActiveProject } from './projects'
 import {
   createProjectDocument,
   parseProject,
@@ -57,6 +58,7 @@ export function writeEditorDraft(
       }
     }
     localStorage.setItem(key(scope), serializeProject(project))
+    if (scope === 'workspace') saveActiveProject(project)
     return true
   } catch {
     return false
