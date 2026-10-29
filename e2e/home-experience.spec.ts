@@ -166,7 +166,12 @@ for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 960 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(
+      '공간을 설계하다.',
+    )
     await expect(page.locator('.home-live-preview canvas')).toBeVisible()
+    await expect(page.locator('.home-net-study svg polygon')).toHaveCount(6)
+    await expect(page.locator('.home-model-caption')).toContainText('W 100')
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,

@@ -24,9 +24,14 @@ beforeEach(() => {
 })
 it('renders an honest empty state, supported templates, local storage information and guide', () => {
   render(<Home />)
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+    '종이를 접어, 공간을 설계하다.',
+  )
   expect(
     screen.getByRole('heading', { name: '첫 번째 아이디어를 펼쳐보세요.' }),
   ).toBeInTheDocument()
+  expect(screen.getByText(/W 100/)).toBeInTheDocument()
+  expect(screen.getByLabelText('홈 접힘 미리보기')).toBeInTheDocument()
   expect(
     screen.getByRole('heading', { name: 'PDF 내보내기 및 출력' }),
   ).toBeInTheDocument()
