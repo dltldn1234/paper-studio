@@ -18,16 +18,16 @@ export function HomeHero({ onCreate }: { onCreate: () => void }) {
     <section className="home-hero">
       <div className="home-hero-copy">
         <div className="home-eyebrow">
-          <span /> YOUR NEXT DIMENSION
+          <span /> PAPER STUDIO · DESIGN SYSTEM 01
         </div>
         <h1>
-          아이디어를 종이 위에,
-          <br />
-          <span>가능성을 입체로.</span>
+          종이를 접어,
+          <br /> <span>공간을 설계하다.</span>
         </h1>
         <p>
           형태를 설계하고, 전개도를 만들고,
-          <br className="home-mobile-break" /> 완성된 모습을 미리 확인하세요.
+          <br className="home-mobile-break" /> 종이 위의 아이디어를 입체로
+          완성하세요.
         </p>
         <div className="home-hero-actions">
           <button className="home-primary" onClick={onCreate}>
@@ -38,15 +38,32 @@ export function HomeHero({ onCreate }: { onCreate: () => void }) {
           </a>
         </div>
         <div className="home-hero-note">
-          <span /> 아이디어만 준비하세요. 설계는 여기서 시작됩니다.
+          <span /> 계정 없이 시작 · 브라우저에 안전하게 저장
         </div>
       </div>
-      <div className="home-hero-model">
+      <div className="home-hero-model" aria-label="직육면체 3D 설계 미리보기">
+        <div className="home-model-coordinate" aria-hidden="true">
+          <span>+Y</span>
+          <span>+X</span>
+          <span>+Z</span>
+        </div>
         <div className="home-model-label">
-          <span>STRUCTURE STUDY / 001</span>
-          <span>LIVE PREVIEW</span>
+          <span>
+            VOLUME STUDY <i>—</i> 001
+          </span>
+          <span>
+            <i /> LIVE GEOMETRY
+          </span>
         </div>
         <div className="home-live-preview">
+          <div
+            className="home-stage-crosshair home-stage-crosshair--one"
+            aria-hidden="true"
+          />
+          <div
+            className="home-stage-crosshair home-stage-crosshair--two"
+            aria-hidden="true"
+          />
           <PreviewBoundary>
             <Suspense
               fallback={
@@ -99,10 +116,10 @@ export function HomeHero({ onCreate }: { onCreate: () => void }) {
                 />
               ))}
           </svg>
-          <span>NET / 6 FACES</span>
+          <span>FLAT PATTERN / 06 FACES</span>
         </div>
         <div className="home-model-controls">
-          <span>전개도</span>
+          <span>FLAT</span>
           <input
             aria-label="홈 접힘 미리보기"
             type="range"
@@ -112,12 +129,15 @@ export function HomeHero({ onCreate }: { onCreate: () => void }) {
             value={fold}
             onChange={(e) => setFold(Number(e.target.value))}
           />
-          <span>입체</span>
+          <span>FORM</span>
           <output>{Math.round(fold * 100)}%</output>
         </div>
         <div className="home-model-caption">
-          <span>접어서 확인하는 새로운 관점</span>
-          <span>100 × 80 × 60 mm</span>
+          <span>직접 드래그하여 구조를 살펴보세요</span>
+          <span>
+            W {demo.dimensions.widthMm} <i>·</i> D {demo.dimensions.depthMm}{' '}
+            <i>·</i> H {demo.dimensions.heightMm} mm
+          </span>
         </div>
       </div>
     </section>
