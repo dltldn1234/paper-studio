@@ -77,7 +77,6 @@ export function ThreeCuboidPreview({
       const timer = window.setTimeout(() => setWebglUnavailable(true), 0)
       return () => window.clearTimeout(timer)
     }
-    renderer.setClearColor('#101827', presentation === 'home' ? 0 : 1)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.domElement.className = 'three-preview__canvas'
