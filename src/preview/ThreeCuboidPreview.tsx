@@ -59,9 +59,8 @@ export function ThreeCuboidPreview({
     const container = containerRef.current
     if (!container) return
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(
-      presentation === 'home' ? '#101827' : '#151a23',
-    )
+    scene.background =
+      presentation === 'home' ? null : new THREE.Color('#151a23')
     if (presentation === 'home') {
       const grid = new THREE.GridHelper(650, 26, '#395779', '#22334b')
       grid.position.y = -100
@@ -70,7 +69,10 @@ export function ThreeCuboidPreview({
     const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100_000)
     let renderer: THREE.WebGLRenderer
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: presentation === 'home',
+      })
     } catch {
       const timer = window.setTimeout(() => setWebglUnavailable(true), 0)
       return () => window.clearTimeout(timer)
