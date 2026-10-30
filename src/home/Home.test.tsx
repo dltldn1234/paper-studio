@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import Home from './Home'
 import { activateProject, readProjects } from '../persistence/projects'
@@ -13,6 +13,13 @@ vi.mock('../preview/ThreeCuboidPreview', () => ({
   ThreeCuboidPreview: () => <div>3D preview</div>,
 }))
 beforeEach(() => {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query.includes('prefers-reduced-motion'),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+  }))
   localStorage.clear()
   Element.prototype.scrollIntoView = vi.fn()
   HTMLDialogElement.prototype.showModal = function () {
@@ -22,6 +29,7 @@ beforeEach(() => {
     this.removeAttribute('open')
   }
 })
+afterEach(() => vi.unstubAllGlobals())
 it('renders an honest empty state, supported templates, local storage information and guide', () => {
   render(<Home />)
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
@@ -32,6 +40,7 @@ it('renders an honest empty state, supported templates, local storage informatio
   ).toBeInTheDocument()
   expect(screen.getByText(/W 100/)).toBeInTheDocument()
   expect(screen.getByLabelText('홈 접힘 미리보기')).toBeInTheDocument()
+  expect(screen.getByLabelText('홈 접힘 미리보기')).toHaveValue('1')
   expect(
     screen.getByRole('heading', { name: 'PDF 내보내기 및 출력' }),
   ).toBeInTheDocument()
