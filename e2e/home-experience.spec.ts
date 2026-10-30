@@ -176,6 +176,8 @@ for (const width of [320, 390, 768, 1440]) {
     const sceneCanvas = page.locator(
       '.home-hero-scene .cinematic-canvas canvas',
     )
+    const sceneFallback = page.locator('.cinematic-fallback')
+    await expect(sceneCanvas.or(sceneFallback)).toBeVisible()
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -193,7 +195,7 @@ for (const width of [320, 390, 768, 1440]) {
       await page.getByRole('button', { name: '다시 보기' }).focus()
       await page.keyboard.press('Enter')
     } else {
-      await expect(page.locator('.cinematic-fallback')).toBeVisible()
+      await expect(sceneFallback).toBeVisible()
     }
     await page.getByRole('button', { name: '설정', exact: true }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
