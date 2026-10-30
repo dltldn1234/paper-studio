@@ -48,9 +48,9 @@ export default function Application() {
   useEffect(() => {
     const pageMetadata = {
       landing: {
-        title: 'Paper Studio — 나의 설계 워크스페이스',
+        title: 'Paper Studio — 종이 구조 설계',
         description:
-          '아이디어의 치수를 입력하고 전개도와 입체 미리보기로 종이 구조물을 설계하세요.',
+          '전개도를 그리고 접어 보며, 종이 구조의 완성된 형태를 실시간 3D로 확인하세요.',
       },
       showcase: {
         title: 'Paper Studio — 종이 위의 상상을 구조로',

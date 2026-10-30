@@ -42,6 +42,7 @@ export interface HeroSceneCallbacks {
 export function mountHeroScene(
   host: HTMLDivElement,
   callbacks: HeroSceneCallbacks,
+  options: { replayOnMount?: boolean } = {},
 ): () => void {
   const {
     onPhase,
@@ -180,7 +181,7 @@ export function mountHeroScene(
     return { mesh, hinge, lines, previous: -1 }
   })
   const timeline = new IntroTimeline(reduce)
-  if (preferences.seen) timeline.skip()
+  if (preferences.seen && !options.replayOnMount) timeline.skip()
   let lastPhase = ''
   let unfolded = false
   let currentUnfold = 0
