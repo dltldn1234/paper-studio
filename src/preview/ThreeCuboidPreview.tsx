@@ -13,6 +13,7 @@ import type { FaceMaterial } from '../materials/materials'
 
 type ThreeCuboidPreviewProps = {
   presentation?: 'editor' | 'home'
+  onPreviewReady?: () => void
   cuboid: Cuboid
   netLayout: NetLayout
   faceMaterials?: Record<string, FaceMaterial>
@@ -30,12 +31,14 @@ type PreviewScene = {
   camera: THREE.PerspectiveCamera
   controls: OrbitControls
   faceMeshes: Map<FaceId, FaceMesh>
+  group: THREE.Group
   renderer: THREE.WebGLRenderer
   resizeObserver: ResizeObserver | null
 }
 
 export function ThreeCuboidPreview({
   presentation = 'editor',
+  onPreviewReady,
   cuboid,
   netLayout,
   faceMaterials = {},
@@ -48,12 +51,17 @@ export function ThreeCuboidPreview({
   const containerRef = useRef<HTMLDivElement>(null)
   const previewRef = useRef<PreviewScene | null>(null)
   const onFaceSelectRef = useRef(onFaceSelect)
+  const onPreviewReadyRef = useRef(onPreviewReady)
   const [webglUnavailable, setWebglUnavailable] = useState(false)
   const { widthMm, depthMm, heightMm } = cuboid.dimensions
 
   useEffect(() => {
     onFaceSelectRef.current = onFaceSelect
   }, [onFaceSelect])
+
+  useEffect(() => {
+    onPreviewReadyRef.current = onPreviewReady
+  }, [onPreviewReady])
 
   useEffect(() => {
     const container = containerRef.current
@@ -74,7 +82,10 @@ export function ThreeCuboidPreview({
         alpha: presentation === 'home',
       })
     } catch {
-      const timer = window.setTimeout(() => setWebglUnavailable(true), 0)
+      const timer = window.setTimeout(() => {
+        setWebglUnavailable(true)
+        onPreviewReadyRef.current?.()
+      }, 0)
       return () => window.clearTimeout(timer)
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
@@ -130,6 +141,7 @@ export function ThreeCuboidPreview({
       camera,
       controls,
       faceMeshes,
+      group,
       renderer,
       resizeObserver: null,
     }
@@ -179,6 +191,7 @@ export function ThreeCuboidPreview({
       controls.update()
       renderer.render(scene, camera)
     })
+    onPreviewReadyRef.current?.()
 
     return () => {
       preview.resizeObserver?.disconnect()
@@ -302,7 +315,9 @@ export function ThreeCuboidPreview({
         pose.transform.rotation.w,
       )
     }
-  }, [cuboid, foldProgress, hingeProgressById, netLayout])
+    if (presentation === 'home')
+      preview.group.scale.setScalar(0.5 + foldProgress * 0.5)
+  }, [cuboid, foldProgress, hingeProgressById, netLayout, presentation])
 
   return (
     <section className="three-preview" aria-label="3D 접힘 시뮬레이션 패널">

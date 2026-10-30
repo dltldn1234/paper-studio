@@ -1,5 +1,5 @@
 import { PreviewBoundary } from './PreviewBoundary'
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Plus, ArrowRight } from 'lucide-react'
 import { templateProject } from './templates'
 import { createCuboid, createCuboidNet } from '../geometry'
@@ -13,10 +13,43 @@ const demo = templateProject('cuboid')
 const demoCuboid = createCuboid(demo.dimensions)
 const demoNet = createCuboidNet(demo.dimensions, demo.glueTabOptions)
 export function HomeHero({ onCreate }: { onCreate: () => void }) {
-  const [fold, setFold] = useState(1)
+  const [fold, setFold] = useState(() =>
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 0,
+  )
+  const [previewReady, setPreviewReady] = useState(false)
+  const userAdjustedFold = useRef(false)
+  const foldFrame = useRef<number | null>(null)
+  const handlePreviewReady = useCallback(() => setPreviewReady(true), [])
+  useEffect(() => {
+    if (
+      !previewReady ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    )
+      return
+    let startedAt: number | null = null
+    let timeout = 0
+    const animateFold = (time: number) => {
+      if (userAdjustedFold.current) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setFold(1)
+        return
+      }
+      startedAt ??= time
+      const progress = Math.min((time - startedAt) / 1800, 1)
+      setFold(1 - Math.pow(1 - progress, 3))
+      if (progress < 1) foldFrame.current = requestAnimationFrame(animateFold)
+    }
+    timeout = window.setTimeout(() => {
+      foldFrame.current = requestAnimationFrame(animateFold)
+    }, 420)
+    return () => {
+      window.clearTimeout(timeout)
+      if (foldFrame.current !== null) cancelAnimationFrame(foldFrame.current)
+    }
+  }, [previewReady])
   return (
     <section className="home-hero">
-      <div className="home-hero-copy">
+      <div className="home-hero-copy" data-motion-reveal>
         <div className="home-eyebrow">
           <span /> PAPER STUDIO · DESIGN SYSTEM 01
         </div>
@@ -30,10 +63,14 @@ export function HomeHero({ onCreate }: { onCreate: () => void }) {
           완성하세요.
         </p>
         <div className="home-hero-actions">
-          <button className="home-primary" onClick={onCreate}>
+          <button
+            className="home-primary"
+            data-motion-magnet
+            onClick={onCreate}
+          >
             <Plus size={18} />새 프로젝트 만들기
           </button>
-          <a className="home-secondary" href="#templates">
+          <a className="home-secondary" data-motion-magnet href="#templates">
             템플릿으로 시작하기 <ArrowRight size={16} />
           </a>
         </div>
@@ -41,7 +78,13 @@ export function HomeHero({ onCreate }: { onCreate: () => void }) {
           <span /> 계정 없이 시작 · 브라우저에 안전하게 저장
         </div>
       </div>
-      <div className="home-hero-model" aria-label="직육면체 3D 설계 미리보기">
+      <div
+        className="home-hero-model"
+        data-motion-reveal
+        data-motion-depth
+        data-preview-ready={previewReady ? 'true' : 'false'}
+        aria-label="직육면체 3D 설계 미리보기"
+      >
         <div className="home-model-coordinate" aria-hidden="true">
           <span>+Y</span>
           <span>+X</span>
@@ -75,6 +118,7 @@ export function HomeHero({ onCreate }: { onCreate: () => void }) {
             >
               <ThreeCuboidPreview
                 presentation="home"
+                onPreviewReady={handlePreviewReady}
                 cuboid={demoCuboid}
                 netLayout={demoNet}
                 foldProgress={fold}
@@ -127,7 +171,12 @@ export function HomeHero({ onCreate }: { onCreate: () => void }) {
             max="1"
             step=".01"
             value={fold}
-            onChange={(e) => setFold(Number(e.target.value))}
+            onChange={(e) => {
+              userAdjustedFold.current = true
+              if (foldFrame.current !== null)
+                cancelAnimationFrame(foldFrame.current)
+              setFold(Number(e.target.value))
+            }}
           />
           <span>FORM</span>
           <output>{Math.round(fold * 100)}%</output>

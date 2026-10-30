@@ -69,6 +69,7 @@ test('renames, searches and confirms deletion of actual projects', async ({
     .getByRole('button', { name: '새 프로젝트 만들기', exact: true })
     .click()
   await page.getByRole('link', { name: 'Paper Studio 홈' }).click()
+  await page.waitForLoadState('load')
   await page
     .getByRole('button', { name: '직육면체 프로젝트 이름 변경' })
     .click()
@@ -193,6 +194,40 @@ for (const width of [320, 390, 768, 1440]) {
     expect(errors).toEqual([])
   })
 }
+
+test('plays the hero fold sequence when motion is enabled', async ({
+  page,
+}) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text())
+  })
+  await page.setViewportSize({ width: 1440, height: 960 })
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto('/')
+  expect(
+    await page.evaluate(
+      () => matchMedia('(prefers-reduced-motion: reduce)').matches,
+    ),
+  ).toBe(false)
+  await expect(page.locator('.home-hero-model')).toHaveAttribute(
+    'data-preview-ready',
+    'true',
+    { timeout: 5000 },
+  )
+  await page.waitForTimeout(800)
+  const intermediateProgress = Number(
+    await page.getByLabel('홈 접힘 미리보기').getAttribute('value'),
+  )
+  expect(intermediateProgress).toBeGreaterThan(0)
+  expect(intermediateProgress).toBeLessThan(1)
+  await page.screenshot({ path: 'test-results/home-motion-1440.png' })
+  await expect(page.getByLabel('홈 접힘 미리보기')).toHaveValue('1', {
+    timeout: 6000,
+  })
+  expect(errors).toEqual([])
+})
 
 test('migrates a legacy version-one draft into recent projects without losing geometry', async ({
   page,

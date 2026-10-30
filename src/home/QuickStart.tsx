@@ -1,7 +1,7 @@
 import { Plus, Layers3, FolderOpen, BookOpen, ArrowUpRight } from 'lucide-react'
 export function QuickStart({ onCreate }: { onCreate: () => void }) {
   return (
-    <section className="home-quick" aria-label="빠른 시작">
+    <section className="home-quick" data-motion-reveal aria-label="빠른 시작">
       {[
         {
           icon: Plus,
@@ -28,7 +28,7 @@ export function QuickStart({ onCreate }: { onCreate: () => void }) {
           action: () => document.getElementById('guide')?.scrollIntoView(),
         },
       ].map(({ icon: Icon, title, description, action }) => (
-        <button key={title} onClick={action}>
+        <button key={title} data-motion-reveal onClick={action}>
           <span className="home-quick-icon">
             <Icon size={21} />
           </span>

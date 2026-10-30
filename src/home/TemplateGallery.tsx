@@ -8,7 +8,7 @@ export function TemplateGallery({
   onOpen: (project: PaperStudioProject) => void
 }) {
   return (
-    <section id="templates" className="home-section">
+    <section id="templates" className="home-section" data-motion-reveal>
       <div className="home-section-heading">
         <div>
           <span className="home-eyebrow">START WITH A SHAPE</span>
@@ -22,6 +22,8 @@ export function TemplateGallery({
         {templates.map((template, index) => (
           <button
             className="home-template"
+            data-motion-reveal
+            data-motion-magnet
             key={template.kind}
             onClick={() => onOpen(templateProject(template.kind))}
           >
