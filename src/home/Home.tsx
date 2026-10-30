@@ -25,6 +25,7 @@ import {
 import { parseProject, type PaperStudioProject } from '../project/project-file'
 import { templateProject } from './templates'
 import { SolidThumbnail } from './SolidThumbnail'
+import { mountLandingMotion } from '../landing/landingMotion'
 import './home.css'
 
 export default function Home() {
@@ -47,6 +48,13 @@ export default function Home() {
   const [deleting, setDeleting] = useState<SavedProject | null>(null)
   const [name, setName] = useState('')
   const input = useRef<HTMLInputElement>(null)
+  const page = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const root = page.current
+    if (!root) return
+    const motion = mountLandingMotion(root)
+    return () => motion.dispose()
+  }, [])
   useEffect(() => {
     const refresh = () => {
       try {
@@ -84,7 +92,7 @@ export default function Home() {
     })
   }
   return (
-    <div className="home-page">
+    <div className="home-page" ref={page}>
       <a className="home-skip" href="#home-main">
         본문으로 건너뛰기
       </a>
@@ -102,7 +110,7 @@ export default function Home() {
         <HomeHero onCreate={() => open(templateProject('cuboid'))} />
         <QuickStart onCreate={() => open(templateProject('cuboid'))} />
         <TemplateGallery onOpen={open} />
-        <section id="recent" className="home-section">
+        <section id="recent" className="home-section" data-motion-reveal>
           <div className="home-section-heading">
             <div>
               <span className="home-eyebrow">PICK UP WHERE YOU LEFT OFF</span>

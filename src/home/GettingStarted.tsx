@@ -11,7 +11,7 @@ const steps = [
 
 export function GettingStarted() {
   return (
-    <section id="guide" className="home-guide">
+    <section id="guide" className="home-guide" data-motion-reveal>
       <div className="home-section-heading">
         <div>
           <span className="home-eyebrow">FROM IDEA TO OBJECT</span>
@@ -21,7 +21,7 @@ export function GettingStarted() {
       </div>
       <div className="home-steps">
         {steps.map(([number, title, description]) => (
-          <div key={number}>
+          <div key={number} data-motion-reveal>
             <span>{number}</span>
             <h3>{title}</h3>
             <p>{description}</p>
