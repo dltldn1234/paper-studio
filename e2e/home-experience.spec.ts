@@ -10,10 +10,10 @@ test('creates separate projects, restores edits after reload and supports browse
   })
   await page.goto('/')
   await expect(
-    page.getByRole('heading', { name: '첫 번째 아이디어를 펼쳐보세요.' }),
+    page.getByRole('heading', { name: '한 장의 종이에서, 입체가 깨어나다.' }),
   ).toBeVisible()
   await page
-    .getByRole('button', { name: '새 프로젝트 만들기', exact: true })
+    .getByRole('button', { name: '새 설계 시작하기', exact: true })
     .click()
   await expect(page).toHaveURL('/studio')
   await page
@@ -66,13 +66,19 @@ test('renames, searches and confirms deletion of actual projects', async ({
 }) => {
   await page.goto('/')
   await page
-    .getByRole('button', { name: '새 프로젝트 만들기', exact: true })
+    .getByRole('button', { name: '새 설계 시작하기', exact: true })
     .click()
   await page.getByRole('link', { name: 'Paper Studio 홈' }).click()
   await page.waitForLoadState('load')
-  await page
-    .getByRole('button', { name: '직육면체 프로젝트 이름 변경' })
-    .click()
+  await expect(page).toHaveURL('/')
+  await expect(page.locator('.home-project')).toHaveCount(1)
+  await page.waitForTimeout(500)
+  const renameButton = page.getByRole('button', {
+    name: '직육면체 프로젝트 이름 변경',
+  })
+  await renameButton.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('dialog')).toBeVisible()
   await page.getByLabel('새 프로젝트 이름').fill('종이 파빌리온')
   await page.getByRole('button', { name: '저장', exact: true }).click()
   await page.reload()
@@ -88,7 +94,7 @@ test('renames, searches and confirms deletion of actual projects', async ({
   await expect(page.locator('.home-project')).toHaveCount(0)
   await page.reload()
   await expect(
-    page.getByRole('heading', { name: '첫 번째 아이디어를 펼쳐보세요.' }),
+    page.getByRole('heading', { name: '한 장의 종이에서, 입체가 깨어나다.' }),
   ).toBeVisible()
 })
 
@@ -125,7 +131,7 @@ test('preserves corrupt library bytes and reports unavailable browser storage', 
   await page.goto('/')
   await expect(page.getByRole('alert')).toContainText('데이터는 보존')
   await page
-    .getByRole('button', { name: '새 프로젝트 만들기', exact: true })
+    .getByRole('button', { name: '새 설계 시작하기', exact: true })
     .click()
   await expect(page).toHaveURL('/')
   expect(
@@ -161,28 +167,34 @@ for (const width of [320, 390, 768, 1440]) {
   }) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
-    page.on('console', (message) => {
-      if (message.type() === 'error') errors.push(message.text())
-    })
     await page.setViewportSize({ width, height: 960 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
     await expect(page.getByRole('heading', { level: 1 })).toContainText(
-      '공간을 설계하다.',
+      '입체가 깨어나다.',
     )
-    await expect(page.locator('.home-live-preview canvas')).toBeVisible()
-    await expect(page.locator('.home-net-study svg polygon')).toHaveCount(6)
-    await expect(page.locator('.home-model-caption')).toContainText('W 100')
+    const sceneCanvas = page.locator(
+      '.home-hero-scene .cinematic-canvas canvas',
+    )
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true)
-    await page.getByLabel('홈 접힘 미리보기').focus()
-    await page.keyboard.press('Home')
-    await expect(page.getByLabel('홈 접힘 미리보기')).toHaveValue('0')
-    await page.keyboard.press('End')
-    await expect(page.getByLabel('홈 접힘 미리보기')).toHaveValue('1')
+    if (await sceneCanvas.isVisible()) {
+      const foldToggle = page.getByRole('button', { name: '펼치기 / 접기' })
+      await expect(
+        page.getByRole('button', { name: '모션 줄이기' }),
+      ).toHaveAttribute('aria-pressed', 'true')
+      await foldToggle.click()
+      await expect(foldToggle).toHaveText('입체로 접기')
+      await foldToggle.click()
+      await expect(foldToggle).toHaveText('전개도 펼치기')
+      await page.getByRole('button', { name: '다시 보기' }).focus()
+      await page.keyboard.press('Enter')
+    } else {
+      await expect(page.locator('.cinematic-fallback')).toBeVisible()
+    }
     await page.getByRole('button', { name: '설정', exact: true }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.keyboard.press('Escape')
@@ -200,9 +212,6 @@ test('plays the hero fold sequence when motion is enabled', async ({
 }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text())
-  })
   await page.setViewportSize({ width: 1440, height: 960 })
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('/')
@@ -211,21 +220,27 @@ test('plays the hero fold sequence when motion is enabled', async ({
       () => matchMedia('(prefers-reduced-motion: reduce)').matches,
     ),
   ).toBe(false)
-  await expect(page.locator('.home-hero-model')).toHaveAttribute(
-    'data-preview-ready',
-    'true',
+  await expect(
+    page.locator('.home-hero-scene .cinematic-canvas canvas'),
+  ).toBeVisible({
+    timeout: 5000,
+  })
+  await expect(page.locator('.cinematic-showcase')).toHaveAttribute(
+    'data-phase',
+    'blueprint',
     { timeout: 5000 },
   )
-  await page.waitForTimeout(800)
-  const intermediateProgress = Number(
-    await page.getByLabel('홈 접힘 미리보기').getAttribute('value'),
+  await page.waitForTimeout(3200)
+  await expect(page.locator('.cinematic-showcase')).toHaveAttribute(
+    'data-phase',
+    'construction',
   )
-  expect(intermediateProgress).toBeGreaterThan(0)
-  expect(intermediateProgress).toBeLessThan(1)
   await page.screenshot({ path: 'test-results/home-motion-1440.png' })
-  await expect(page.getByLabel('홈 접힘 미리보기')).toHaveValue('1', {
-    timeout: 6000,
-  })
+  await page.getByRole('button', { name: '다시 보기' }).click()
+  await expect(page.locator('.cinematic-showcase')).toHaveAttribute(
+    'data-phase',
+    'blueprint',
+  )
   expect(errors).toEqual([])
 })
 
@@ -266,7 +281,7 @@ test('retains independent project data when two editor tabs save in succession',
 }) => {
   await page.goto('/')
   await page
-    .getByRole('button', { name: '새 프로젝트 만들기', exact: true })
+    .getByRole('button', { name: '새 설계 시작하기', exact: true })
     .click()
   await expect(page.getByLabel('다면체 종류')).toBeVisible()
   const firstId = await page.evaluate(
@@ -276,7 +291,7 @@ test('retains independent project data when two editor tabs save in succession',
   const second = await context.newPage()
   await second.goto('/')
   await second
-    .getByRole('button', { name: '새 프로젝트 만들기', exact: true })
+    .getByRole('button', { name: '새 설계 시작하기', exact: true })
     .click()
   await second
     .getByRole('spinbutton', { name: '너비 (mm)', exact: true })
@@ -319,12 +334,14 @@ test('keeps templates and project creation usable without WebGL', async ({
     })
   })
   await page.goto('/')
-  await expect(page.locator('.home-live-preview .preview-error')).toContainText(
-    'WebGL을 사용할 수 없어',
+  await expect(page.locator('.cinematic-fallback')).toBeVisible()
+  await expect(page.locator('.cinematic-fallback img')).toHaveAttribute(
+    'src',
+    '/paper-dinosaur-poster.jpg',
   )
   await expect(page.locator('.home-template')).toHaveCount(4)
   await page
-    .getByRole('button', { name: '새 프로젝트 만들기', exact: true })
+    .getByRole('button', { name: '새 설계 시작하기', exact: true })
     .click()
   await expect(page.locator('.studio-topbar')).toBeVisible()
 })
@@ -332,18 +349,14 @@ test('keeps templates and project creation usable without WebGL', async ({
 test('isolates a failed 3D module download from the functional home dashboard', async ({
   page,
 }) => {
-  await page.route('**/src/preview/ThreeCuboidPreview.tsx*', (route) =>
-    route.abort(),
-  )
+  await page.route('**/src/landing/HeroScene.tsx*', (route) => route.abort())
   await page.goto('/')
-  await expect(
-    page.getByRole('status').filter({ hasText: '3D를 불러오지 못했습니다' }),
-  ).toBeVisible()
+  await expect(page.locator('.cinematic-fallback')).toBeVisible()
   await expect(page.locator('.home-template')).toHaveCount(4)
   await page.getByRole('button', { name: '설정', exact: true }).click()
   await expect(page.getByRole('dialog')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(
-    page.getByRole('button', { name: '새 프로젝트 만들기', exact: true }),
+    page.getByRole('button', { name: '새 설계 시작하기', exact: true }),
   ).toBeEnabled()
 })

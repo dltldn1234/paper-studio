@@ -9,9 +9,6 @@ import {
   createRegularPolyhedron,
   unfoldPolyhedron,
 } from '../geometry'
-vi.mock('../preview/ThreeCuboidPreview', () => ({
-  ThreeCuboidPreview: () => <div>3D preview</div>,
-}))
 beforeEach(() => {
   vi.stubGlobal('matchMedia', (query: string) => ({
     matches: query.includes('prefers-reduced-motion'),
@@ -33,14 +30,17 @@ afterEach(() => vi.unstubAllGlobals())
 it('renders an honest empty state, supported templates, local storage information and guide', () => {
   render(<Home />)
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-    '종이를 접어, 공간을 설계하다.',
+    '한 장의 종이에서,입체가 깨어나다.',
   )
+  expect(
+    screen.getByRole('figure', { name: '종이 구조가 입체로 접히는 장면' }),
+  ).toBeInTheDocument()
+  expect(
+    screen.getByRole('link', { name: /3D 장면 더 살펴보기/ }),
+  ).toHaveAttribute('href', '/showcase')
   expect(
     screen.getByRole('heading', { name: '첫 번째 아이디어를 펼쳐보세요.' }),
   ).toBeInTheDocument()
-  expect(screen.getByText(/W 100/)).toBeInTheDocument()
-  expect(screen.getByLabelText('홈 접힘 미리보기')).toBeInTheDocument()
-  expect(screen.getByLabelText('홈 접힘 미리보기')).toHaveValue('1')
   expect(
     screen.getByRole('heading', { name: 'PDF 내보내기 및 출력' }),
   ).toBeInTheDocument()
